@@ -1,0 +1,89 @@
+---
+title: "ATA Nov 2021 Updated Maps"
+author: "CEB"
+date: '2023-03-13'
+output: html_document
+---
+
+##load packages
+```{r}
+library(tidyverse) #for everything
+library(rgdal) #for loading shape file
+library(ggsn) #for scalebar
+library(sf) #for st_transform
+library(mapview) #for mapview
+
+library(viridis) #for colours
+
+library(cowplot) #for combining and saving plots
+
+```
+
+
+#load data points
+```{r}
+ata_dat<-read.csv("Nov_2021_ATA_isotopes_March2023.csv", stringsAsFactors=TRUE)
+str(ata_dat)
+
+```
+
+
+###plot points with mapview - then don't need to get shape file to work* - https://map-rfun.library.duke.edu/01_georeference.html
+```{r}
+
+#set the map projection to a common projection standard such as WGS84 via the argument crs = 4326
+
+#transform data to spatial object and map:
+tet_sf <- st_as_sf(ata_dat, coords = c("Longitude", "Latitude"),  crs = 4326)
+
+
+#set colour palette
+pal <-  mapviewPalette("mapviewSpectralColors")
+
+
+##N15: ----
+ata_n15_map_sat<-tet_sf%>%
+  drop_na(N15)%>% #remove NAs
+mapview(map.types = "Esri.WorldImagery",#Stamen.Watercolor, Esri.WorldTopoMap
+        alpha = .7, color = pal,
+        zcol = 'N15',
+        legend=TRUE,
+        layer.name = 'N15') 
+ata_n15_map_sat
+
+#save map
+mapshot(ata_n15_map_sat, url = 'ata_n15_map_sat.html', file = 'ata_n15_map_sat.pdf')
+mapshot(ata_n15_map_sat, file = 'ata_n15_map_sat.png')
+
+
+ata_n15_map_gray<-tet_sf%>%
+  drop_na(N15)%>% #remove NAs
+mapview(map.types = "Esri.WorldGrayCanvas",#Stamen.Watercolor, Esri.WorldTopoMap
+        alpha = .7, color = pal,
+        zcol = 'N15',
+        legend=TRUE,
+        layer.name = 'N15') 
+ata_n15_map_gray
+
+#save map
+mapshot(ata_n15_map_gray, url = 'ata_n15_map_gray.html', file = 'ata_n15_map_gray.pdf')
+mapshot(ata_n15_map_gray, file = 'ata_n15_map_gray.png')
+
+
+##percent N-----
+ata_n_map_gray<-tet_sf%>%
+  drop_na(N_percent)%>% #remove NAs
+mapview(map.types = "Esri.WorldGrayCanvas",#Stamen.Watercolor, Esri.WorldTopoMap
+        alpha = .7, color = pal,
+        zcol = 'N_percent',
+        legend=TRUE,
+        layer.name = '%N') 
+ata_n_map_gray
+
+#save map
+#mapshot(ata_n_map_gray, url = 'ata_n_map_gray.html', file = 'ata_n_map_gray.pdf')
+#mapshot(ata_n_map_gray, file = 'ata_n_map_gray.png')
+
+
+
+```
