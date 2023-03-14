@@ -1,6 +1,6 @@
 # TARP_motu_comparison
 
-This repository holds the data and analyis for a comparative study between motus on Tetiaroa that dispaly varying rat invasion histories. 
+This repository holds the data and analysis for a comparative study between motus on Tetiaroa that dispaly varying rat invasion histories. 
 Data streams from November 2021 ONLY that are used include: 
 1) Algae isotopes
 2) Coral and water microbes
