@@ -46,19 +46,18 @@ cd ~/Documents/OSUDocs/Projects/French_Polynesia/Tetiaroa/Island_Survey/TARP_mot
 #The truncation length is based on the visualization of the quality scores
 #by basepair location. This can be viewed using paired-end-demux.qza in view.qiime2.org
 #This step can take a long time/a lot of computing power depending on sample number & read depth
-  #--p-trim-left-f 19 \
-  #--p-trim-left-r 20 \
+
+#Visualize the DADA2 output using the metadat tabulate, feature-table summarize and feature-table tabulate-seqs
+#In Qiime view you can save each of these as readable versions e.g., tsv or fasta
 
 qiime dada2 denoise-paired \
-  --i-demultiplexed-seqs ~/Documents/OSUDocs/Projects/French_Polynesia/Tetiaroa/Island_Survey/core_analysis/island_survey_june2021_current/output/bioinformatics/coral-nov21-paired-end-demux-trim.qza \
+  --i-demultiplexed-seqs ~/Documents/OSUDocs/Projects/French_Polynesia/Tetiaroa/Island_Survey/core_analysis/island_survey_june2021_current/output/bioinformatics/water-nov21-paired-end-demux-trim.qza \
   --p-trunc-len-f 240 \
   --p-trunc-len-r 200 \
   --o-table ../output/table-trim.qza \
   --o-representative-sequences ../output/rep-seqs-trim.qza \
   --o-denoising-stats ../output/denoising-stats-trim.qza
   
-#Visualize the DADA2 output: 
-#In Qiime view you can save each of these as readable versions e.g., tsv or fasta
 qiime metadata tabulate \
   --m-input-file ../output/denoising-stats-trim.qza \
   --o-visualization ../output/denoising-stats-trim.qzv
@@ -66,7 +65,7 @@ qiime metadata tabulate \
 qiime feature-table summarize \
   --i-table ../output/table-trim.qza  \
   --o-visualization ../output/table-trim.qzv  \
-  --m-sample-metadata-file ../../../../metadata/coral_nov21_metadata.txt
+  --m-sample-metadata-file ../../../../metadata/water_nov21_metadata.txt
 
 qiime feature-table tabulate-seqs \
   --i-data ../output/rep-seqs-trim.qza \
@@ -89,17 +88,17 @@ qiime feature-table tabulate-seqs \
 #  --o-classifier ../../../../../../../../../Biocomputing/databases/SILVA_138/classifier-silva-138.qza
 
 #Train the classifier on your own data
+
+#The tabulate code spits out a table of features, or ASVs, present in sample set
+#You can view by dragging the .qzv file into view.qiime2.org
+#Or use the "qiime tools view" command
+
 qiime feature-classifier classify-sklearn \
   --i-classifier ../../../../../../../../../Biocomputing/databases/SILVA_138/classifier-silva-138.qza \
   --i-reads ../output/rep-seqs-trim.qza \
   --o-classification ../output/taxonomy-trim.qza
-  
-#Trial the following code to see if the taxonomy.qza file bug is fixed in QIIME2-2022.2
-#It was!
 
-#This code spits out a table of features, or ASVs, present in sample set
-#You can view by dragging the .qzv file into view.qiime2.org
-#Or use the "qiime tools view" command
+
 qiime metadata tabulate \
   --m-input-file ../output/taxonomy-trim.qza \
   --o-visualization ../output/taxonomy-trim.qzv
@@ -140,13 +139,13 @@ qiime diversity alpha-rarefaction \
   --i-table ../output/table-trim-filtered.qza \
   --i-phylogeny ../output/rooted-tree-trim.qza \
   --p-max-depth 10000 \
-  --m-metadata-file ../../../../metadata/coral_nov21_metadata.txt \
+  --m-metadata-file ../../../../metadata/water_nov21_metadata.txt \
   --o-visualization ../output/alpha-rarefaction-trim.qzv
 
 qiime taxa barplot \
   --i-table ../output/table-trim-filtered.qza \
   --i-taxonomy ../output/taxonomy-trim.qza \
-  --m-metadata-file ../../../../metadata/coral_nov21_metadata.txt \
+  --m-metadata-file ../../../../metadata/water_nov21_metadata.txt \
   --o-visualization ../output/barplot-trim.qzv
 
 ##For downstream analyses you need the following four files:
