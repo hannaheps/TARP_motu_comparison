@@ -2,7 +2,7 @@
 #This dataset happens to have the most algae nutrient data attached
 #We will see...
 
-setwd("~/Documents/OSUDocs/Projects/French_Polynesia/Tetiaroa/Island_Survey/core_analysis/island_survey_june2021_current/procedure/")
+setwd("~/Documents/OSUDocs/Projects/French_Polynesia/Tetiaroa/Island_Survey/TARP_motu_comparison/microbiome_analyses/downstream_analyses/alpha-div/procedure/")
 
 library(phyloseq)
 library(ggplot2)
