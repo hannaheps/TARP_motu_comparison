@@ -1,6 +1,6 @@
-##Betadiversity for November 2021 only
+##Betadiversity for Coral November 2021 only
 
-setwd("~/Documents/OSUDocs/Projects/French_Polynesia/Tetiaroa/Island_Survey/core_analysis/island_survey_june2021_current/procedure/")
+setwd("~/Documents/OSUDocs/Projects/French_Polynesia/Tetiaroa/Island_Survey/TARP_motu_comparison/microbiome_analyses/downstream_analyses/alpha-div/procedure/")
 
 library(phyloseq)
 library(ggplot2)
