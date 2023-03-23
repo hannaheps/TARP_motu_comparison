@@ -1,0 +1,137 @@
+sample.id,Observed,Shannon,FaithPD,collection.date,motu,island.side,station,site,transect,distance.along.transect,lat,long,sample.type,health.state,algae.N15,algae.C13.not.acid,algae.N.percent,rat.status,mL_sterivex
+TC148,43,1.590371757,8.11270344,8-Nov-21,aie,leeward,A1Ta20,1,a,20,17.00924,149.53558,coral,D5,8.04,-7.82,0.34,none,NA
+TC149,14,1.497680838,2.718268582,8-Nov-21,aie,leeward,A1Ta20,1,a,30,17.00931,149.53563,coral,D5,6.31,-8.46,0.48,none,NA
+TC150,14,1.518673551,2.049601112,8-Nov-21,aie,leeward,A1Ta40,1,a,40,17.00941,149.53574,coral,D5,5.67,-9.13,0.32,none,NA
+TC152,87,1.28527247,13.77066724,8-Nov-21,aie,leeward,A1Tb20,1,b,20,17.00915,149.53574,coral,D5,6.6,-8.52,0.36,none,NA
+TC153,5,1.275787571,0.256003658,8-Nov-21,aie,leeward,A1Tb30,1,b,30,17.00924,149.53583,coral,D4/D5,5.81,-9.54,0.34,none,NA
+TC154,224,3.816734176,27.33719355,8-Nov-21,aie,leeward,A1Tb40,1,b,40,17.00928,149.53592,coral,E5,5.28,-8.89,0.3,none,NA
+TC156,330,4.968920262,37.29071883,8-Nov-21,aie,leeward,A1Tc20,1,c,20,17.00895,149.53598,coral,E5,7.86,-7.92,0.31,none,NA
+TC157,58,2.110154139,10.24959672,8-Nov-21,aie,leeward,A1Tc30,1,c,30,17.00899,149.53604,coral,D5,NA,NA,NA,none,NA
+TC158,28,1.45363124,5.058712795,8-Nov-21,aie,leeward,A1Tc40,1,c,40,17.00907,149.53612,coral,E5,7.06,-8.82,0.49,none,NA
+TC159,269,4.086150959,30.33816053,9-Nov-21,aie,windward,A2Ta10,2,a,10,17.00774,149.5361,coral,E5,8.45,-9.34,0.44,none,NA
+TC160,103,2.92836402,15.46168742,9-Nov-21,aie,windward,A2Ta20,2,a,20,17.00763,149.53613,coral,E5,7.38,-8.79,0.41,none,NA
+TC161,124,3.352648802,17.09997215,9-Nov-21,aie,windward,A2Ta30,2,a,30,17.00757,149.53619,coral,E5,5.61,-9,0.34,none,NA
+TC162,239,4.267515169,28.63294467,9-Nov-21,aie,windward,A2Ta40,2,a,40,17.00749,149.53615,coral,E5,NA,NA,NA,none,NA
+TC163,130,2.996099775,18.45232114,9-Nov-21,aie,windward,A2Tb10,2,b,10,17.00767,149.53595,coral,D5,6.83,-9.11,0.48,none,NA
+TC164,84,2.500787228,13.10790472,9-Nov-21,aie,windward,A2Tb20,2,b,20,17.00759,149.53596,coral,D5,6.29,-8.71,0.34,none,NA
+TC165,198,4.547841777,24.24972767,9-Nov-21,aie,windward,A2Tb30,2,b,30,17.0075,149.536,coral,E5,6.04,-8.79,0.37,none,NA
+TC166,93,3.191308991,14.43723843,9-Nov-21,aie,windward,A2Tb40,2,b,40,17.00742,149.536,coral,E4,NA,NA,NA,none,NA
+TC167,16,1.339324597,2.838488937,9-Nov-21,aie,windward,A2Tc10,2,c,10,17.00764,149.53572,coral,E5,7.3,-8.27,0.59,none,NA
+TC168,140,4.064003303,21.05667906,9-Nov-21,aie,windward,A2Tc20,2,c,20,17.00761,149.53572,coral,E4,6.09,-10.58,0.52,none,NA
+TC170,108,3.270799104,17.79459408,9-Nov-21,aie,windward,A2Tc40,2,c,40,17.00739,149.53574,coral,E5,NA,NA,NA,none,NA
+TC171,5,1.364545397,0.053488247,10-Nov-21,reiono,leeward,Re1Ta10,1,a,10,17.04528,149.54781,coral,E5,10.66,-8.88,0.61,none (recently eradicated),NA
+TC172,262,4.936605502,26.8578082,10-Nov-21,reiono,leeward,Re1Ta20,1,a,20,17.04528,149.54791,coral,E5,8.62,-7.45,0.59,none (recently eradicated),NA
+TC173,7,1.37770511,0.317048809,10-Nov-21,reiono,leeward,Re1Ta30,1,a,30,17.04528,149.54802,coral,D5,6.63,-7.86,0.42,none (recently eradicated),NA
+TC174,65,2.075544767,11.26061221,10-Nov-21,reiono,leeward,Re1Ta40,1,a,40,17.04526,149.5481,coral,E4,6.18,-8.22,0.57,none (recently eradicated),NA
+TC175,30,1.29892818,6.799940038,10-Nov-21,reiono,leeward,Re1Tb10,1,b,10,17.04634,149.54778,coral,E5,8.65,-7.06,0.61,none (recently eradicated),NA
+TC176,34,1.476046848,6.794561791,10-Nov-21,reiono,leeward,Re1Tb20,1,b,20,17.04631,149.54784,coral,E5,7.5,-8.53,0.48,none (recently eradicated),NA
+TC177,89,1.882289838,10.19582148,10-Nov-21,reiono,leeward,Re1Tb30,1,b,30,17.04633,149.54796,coral,E5,7.28,-8.92,0.58,none (recently eradicated),NA
+TC178,10,1.308461144,2.304111397,10-Nov-21,reiono,leeward,Re1Tb40,1,b,40,17.0463,149.54805,coral,E5,5.15,-8.04,0.36,none (recently eradicated),NA
+TC179,17,1.427974974,4.115146377,10-Nov-21,reiono,leeward,Re1Tc10,1,c,10,17.04688,149.54765,coral,E5,9.43,-8.02,0.49,none (recently eradicated),NA
+TC180,85,1.106349495,13.34068555,10-Nov-21,reiono,leeward,Re1Tc20,1,c,20,17.04686,149.54776,coral,E5,7.99,-7.19,0.56,none (recently eradicated),NA
+TC181,8,1.164925721,1.626248145,10-Nov-21,reiono,leeward,Re1Tc30,1,c,30,17.04684,149.54784,coral,D5,7.07,-9.46,0.49,none (recently eradicated),NA
+TC182,31,1.894253547,7.027327268,10-Nov-21,reiono,leeward,Re1Tc40,1,c,40,17.04684,149.54794,coral,D5,6.68,-7.91,0.48,none (recently eradicated),NA
+TC183,91,2.02779975,14.87139666,5-Nov-21,reiono,windward,Re2Ta10,2,a,10,17.04488,149.54433,coral,E5,5.76,-8.91,0.29,none (recently eradicated),NA
+TC184,86,2.078250256,13.20921838,5-Nov-21,reiono,windward,Re2Ta20,2,a,20,17.04486,149.54424,coral,E5,6.21,-8.84,0.43,none (recently eradicated),NA
+TC185,32,0.828432301,5.874810329,5-Nov-21,reiono,windward,Re2Ta30,2,a,30,17.04482,149.54414,coral,D4,5.65,-9.36,0.34,none (recently eradicated),NA
+TC186,56,1.803342283,10.40082991,5-Nov-21,reiono,windward,Re2Ta40,2,a,40,17.04478,149.54407,coral,E5,5.97,-9.34,0.44,none (recently eradicated),NA
+TC187,5,1.150421549,0.787914322,5-Nov-21,reiono,windward,Re2Tb10,2,b,10,17.04511,149.54422,coral,E5,7.62,-7.19,0.47,none (recently eradicated),NA
+TC188,23,1.414025252,4.243909918,5-Nov-21,reiono,windward,Re2Tb20,2,b,20,17.04508,149.54414,coral,E5,5.65,-9.69,0.34,none (recently eradicated),NA
+TC189,20,1.551046226,3.840369482,5-Nov-21,reiono,windward,Re2Tb30,2,b,30,17.04507,149.54405,coral,E4,5.38,-10.19,0.33,none (recently eradicated),NA
+TC190,15,1.312518827,3.063503158,5-Nov-21,reiono,windward,Re2Tb40,2,b,40,17.04504,149.54398,coral,D3,5.09,-8.94,0.38,none (recently eradicated),NA
+TC191,9,1.308998484,1.850386225,5-Nov-21,reiono,windward,Re2Tc10,2,c,10,17.04559,149.54399,coral,E5,7.23,-8.11,0.42,none (recently eradicated),NA
+TC192,71,1.949802744,11.37199723,5-Nov-21,reiono,windward,Re2Tc20,2,c,20,17.04558,149.54388,coral,E4/E5,4.69,-9.48,0.28,none (recently eradicated),NA
+TC193,223,3.101324086,27.01222236,5-Nov-21,reiono,windward,Re2Tc30,2,c,30,17.04556,149.54381,coral,E5,5.07,-9.35,0.43,none (recently eradicated),NA
+TC194,80,1.518757007,12.57285764,5-Nov-21,reiono,windward,Re2Tc40,2,c,40,17.04553,149.54372,coral,E5,4.64,-8.55,0.31,none (recently eradicated),NA
+TC195,34,1.650600031,5.896194161,7-Nov-21,rimatuu,leeward,Rm1Ta10,1,a,10,17.02838,149.56067,coral,E5,3.51,-7.91,0.35,exulans only,NA
+TC197,23,1.538321773,4.119866921,7-Nov-21,rimatuu,leeward,Rm1Ta30,1,a,30,17.0284,149.56085,coral,E5,3.51,-6.93,0.45,exulans only,NA
+TC198,13,1.550569385,1.633441593,7-Nov-21,rimatuu,leeward,Rm1Ta40,1,a,40,17.0284,149.56096,coral,E4,3.25,-7.56,0.34,exulans only,NA
+TC199,7,1.272157886,0.339366401,7-Nov-21,rimatuu,leeward,Rm1Tb10,1,b,10,17.02868,149.56068,coral,E5,4.07,-7.17,0.47,exulans only,NA
+TC200,6,1.184359398,0.344829624,7-Nov-21,rimatuu,leeward,Rm1Tb20,1,b,20,17.02868,149.56081,coral,E5,3.4,-7.72,0.45,exulans only,NA
+TC201,11,1.207673407,1.430492054,7-Nov-21,rimatuu,leeward,Rm1Tb30,1,b,30,17.02867,149.5609,coral,E5,3.33,-7.88,0.35,exulans only,NA
+TC202,58,1.058792551,9.985363426,7-Nov-21,rimatuu,leeward,Rm1Tb40,1,b,40,17.02867,149.56099,coral,E5,3.15,-7.59,0.37,exulans only,NA
+TC203,23,1.429748808,4.416866724,7-Nov-21,rimatuu,leeward,Rm1Tc10,1,c,10,17.029,149.5607,coral,E5,3.8,-7.62,0.41,exulans only,NA
+TC204,5,1.277418564,0.053488247,7-Nov-21,rimatuu,leeward,Rm1Tc20,1,c,20,17.02899,149.56079,coral,D5,3.56,-7.7,0.43,exulans only,NA
+TC205,8,1.458151804,0.910089883,7-Nov-21,rimatuu,leeward,Rm1Tc30,1,c,30,17.029,149.56091,coral,D5,3.45,-8.31,0.38,exulans only,NA
+TC206,8,1.444458414,0.733878759,7-Nov-21,rimatuu,leeward,Rm1Tc40,1,c,40,17.02901,149.56099,coral,D5,2.73,-9.29,0.46,exulans only,NA
+TC207,7,1.214007723,0.776293796,11-Nov-21,rimatuu,windward,Rm2Ta10,2,a,10,17.03311,149.55611,coral,E5,6.35,-9.01,0.41,exulans only,NA
+TC208,54,1.700491712,11.20301252,11-Nov-21,rimatuu,windward,Rm2Ta20,2,a,20,17.0332,149.55606,coral,D4,6.09,-9.11,0.5,exulans only,NA
+TC209,21,0.232886514,4.799188625,11-Nov-21,rimatuu,windward,Rm2Ta30,2,a,30,17.03325,149.556,coral,E5,5.33,-9.5,0.44,exulans only,NA
+TC210,11,0.977570745,2.279227227,11-Nov-21,rimatuu,windward,Rm2Ta40,2,a,40,17.0332,149.55594,coral,E5,5.78,-8.69,0.5,exulans only,NA
+TC211,6,1.344310566,0.093961361,11-Nov-21,rimatuu,windward,Rm2Tb10,2,b,10,17.03298,149.55591,coral,D5,5.66,-8.25,0.4,exulans only,NA
+TC212,84,1.359354122,12.86173077,11-Nov-21,rimatuu,windward,Rm2Tb20,2,b,20,17.03306,149.55588,coral,D4,6.57,-9.28,0.48,exulans only,NA
+TC213,8,1.568771586,0.865239951,11-Nov-21,rimatuu,windward,Rm2Tb30,2,b,30,17.03312,149.55582,coral,E4/E5,6.19,-9.4,0.5,exulans only,NA
+TC215,180,4.396676392,24.25718526,11-Nov-21,rimatuu,windward,Rm2Tc10,2,c,10,17.03278,149.55576,coral,E5,7.93,-8.62,0.48,exulans only,NA
+TC216,7,1.345612494,0.686942645,11-Nov-21,rimatuu,windward,Rm2Tc20,2,c,20,17.03285,149.55569,coral,D5,6.6,-9.22,0.54,exulans only,NA
+TC217,147,3.424500767,19.51222444,11-Nov-21,rimatuu,windward,Rm2Tc30,2,c,30,17.03291,149.5556,coral,E5,6.71,-9.11,0.53,exulans only,NA
+TC218,7,1.438441846,0.307780154,11-Nov-21,rimatuu,windward,Rm2Tc40,2,c,40,17.03296,149.55554,coral,E5,6.96,-9.24,0.57,exulans only,NA
+TW145,172,2.927227452,24.79811057,8-Nov-21,aie,leeward,A1Ta10,1,a,10,17.00918,149.53554,water,NA,9.34,-8.01,0.49,none,1035
+TW146,193,3.028004111,26.48057666,8-Nov-21,aie,leeward,A1Ta20,1,a,20,17.00924,149.53558,water,NA,8.04,-7.82,0.34,none,1030
+TW147,203,3.13664394,29.104345,8-Nov-21,aie,leeward,A1Ta20,1,a,30,17.00931,149.53563,water,NA,6.31,-8.46,0.48,none,1025
+TW148,156,3.031265681,20.56450287,8-Nov-21,aie,leeward,A1Ta40,1,a,40,17.00941,149.53574,water,NA,5.67,-9.13,0.32,none,1070
+TW149,195,2.920778015,28.11390493,8-Nov-21,aie,leeward,A1Tb10,1,b,10,17.00905,149.53566,water,NA,8.9,-8.18,0.37,none,1100
+TW150,197,3.071846079,28.31730432,8-Nov-21,aie,leeward,A1Tb20,1,b,20,17.00915,149.53574,water,NA,6.6,-8.52,0.36,none,1075
+TW151,175,3.108343057,24.38443029,8-Nov-21,aie,leeward,A1Tb30,1,b,30,17.00924,149.53583,water,NA,5.81,-9.54,0.34,none,1045
+TW152,194,3.232922692,25.90392034,8-Nov-21,aie,leeward,A1Tb40,1,b,40,17.00928,149.53592,water,NA,5.28,-8.89,0.3,none,1100
+TW153,204,2.948225955,28.70445742,8-Nov-21,aie,leeward,A1Tc10,1,c,10,17.00891,149.5359,water,NA,NA,NA,NA,none,1055
+TW154,193,2.999720977,27.4487983,8-Nov-21,aie,leeward,A1Tc20,1,c,20,17.00895,149.53598,water,NA,7.86,-7.92,0.31,none,1105
+TW155,204,3.029135136,31.1737452,8-Nov-21,aie,leeward,A1Tc30,1,c,30,17.00899,149.53604,water,NA,NA,NA,NA,none,1100
+TW156,168,3.104779537,22.93171218,8-Nov-21,aie,leeward,A1Tc40,1,c,40,17.00907,149.53612,water,NA,7.06,-8.82,0.49,none,1100
+TW157,395,2.75332036,56.44421957,9-Nov-21,aie,windward,A2Ta10,2,a,10,17.00774,149.5361,water,NA,8.45,-9.34,0.44,none,1075
+TW158,245,2.458288589,37.25785632,9-Nov-21,aie,windward,A2Ta20,2,a,20,17.00763,149.53613,water,NA,7.38,-8.79,0.41,none,1045
+TW159,189,2.359694495,27.73164482,9-Nov-21,aie,windward,A2Ta30,2,a,30,17.00757,149.53619,water,NA,5.61,-9,0.34,none,1050
+TW160,199,2.515386672,31.02134286,9-Nov-21,aie,windward,A2Ta40,2,a,40,17.00749,149.53615,water,NA,NA,NA,NA,none,1000
+TW161,481,3.53318867,64.64888869,9-Nov-21,aie,windward,A2Tb10,2,b,10,17.00767,149.53595,water,NA,6.83,-9.11,0.48,none,1020
+TW162,497,3.844012117,64.7607269,9-Nov-21,aie,windward,A2Tb20,2,b,20,17.00759,149.53596,water,NA,6.29,-8.71,0.34,none,1005
+TW163,240,2.764796133,37.6307855,9-Nov-21,aie,windward,A2Tb30,2,b,30,17.0075,149.536,water,NA,6.04,-8.79,0.37,none,1040
+TW164,293,2.927153074,43.71149761,9-Nov-21,aie,windward,A2Tb40,2,b,40,17.00742,149.536,water,NA,NA,NA,NA,none,1070
+TW165,634,4.893892366,76.22419977,9-Nov-21,aie,windward,A2Tc10,2,c,10,17.00764,149.53572,water,NA,7.3,-8.27,0.59,none,1100
+TW166,718,5.072383564,83.0761927,9-Nov-21,aie,windward,A2Tc20,2,c,20,17.00761,149.53572,water,NA,6.09,-10.58,0.52,none,1110
+TW167,580,4.955224727,69.13484079,9-Nov-21,aie,windward,A2Tc30,2,c,30,17.00749,149.53572,water,NA,7.03,-9.59,0.46,none,1110
+TW168,762,5.122968891,88.03352156,9-Nov-21,aie,windward,A2Tc40,2,c,40,17.00739,149.53574,water,NA,NA,NA,NA,none,1005
+TW169,892,5.382421073,103.098305,10-Nov-21,reiono,leeward,Re1Ta10,1,a,10,17.04528,149.54781,water,NA,10.66,-8.88,0.61,none (recently eradicated),1080
+TW170,957,5.433264202,104.6580334,10-Nov-21,reiono,leeward,Re1Ta20,1,a,20,17.04528,149.54791,water,NA,8.62,-7.45,0.59,none (recently eradicated),1075
+TW171,889,5.366599756,97.83854706,10-Nov-21,reiono,leeward,Re1Ta30,1,a,30,17.04528,149.54802,water,NA,6.63,-7.86,0.42,none (recently eradicated),1075
+TW172,757,5.248174111,88.08817047,10-Nov-21,reiono,leeward,Re1Ta40,1,a,40,17.04526,149.5481,water,NA,6.18,-8.22,0.57,none (recently eradicated),1060
+TW173,886,5.232777606,96.48539904,10-Nov-21,reiono,leeward,Re1Tb10,1,b,10,17.04634,149.54778,water,NA,8.65,-7.06,0.61,none (recently eradicated),1030
+TW174,1015,5.501471525,103.3739153,10-Nov-21,reiono,leeward,Re1Tb20,1,b,20,17.04631,149.54784,water,NA,7.5,-8.53,0.48,none (recently eradicated),1025
+TW175,871,5.396160138,99.35956606,10-Nov-21,reiono,leeward,Re1Tb30,1,b,30,17.04633,149.54796,water,NA,7.28,-8.92,0.58,none (recently eradicated),1100
+TW176,917,5.535391693,101.4379935,10-Nov-21,reiono,leeward,Re1Tb40,1,b,40,17.0463,149.54805,water,NA,5.15,-8.04,0.36,none (recently eradicated),1050
+TW177,840,5.191898814,89.93168277,10-Nov-21,reiono,leeward,Re1Tc10,1,c,10,17.04688,149.54765,water,NA,9.43,-8.02,0.49,none (recently eradicated),1065
+TW178,963,5.414868545,101.7075511,10-Nov-21,reiono,leeward,Re1Tc20,1,c,20,17.04686,149.54776,water,NA,7.99,-7.19,0.56,none (recently eradicated),1005
+TW179,939,5.328581084,103.7829427,10-Nov-21,reiono,leeward,Re1Tc30,1,c,30,17.04684,149.54784,water,NA,7.07,-9.46,0.49,none (recently eradicated),1125
+TW180,733,5.32098674,84.91171164,10-Nov-21,reiono,leeward,Re1Tc40,1,c,40,17.04684,149.54794,water,NA,6.68,-7.91,0.48,none (recently eradicated),1075
+TW181,729,4.985594299,85.31291794,12-Nov-21,reiono,windward,Re2Ta10,2,a,10,17.04488,149.54433,water,NA,5.76,-8.91,0.29,none (recently eradicated),1100
+TW182,590,4.749056573,71.34785093,12-Nov-21,reiono,windward,Re2Ta20,2,a,20,17.04486,149.54424,water,NA,6.21,-8.84,0.43,none (recently eradicated),1085
+TW183,672,4.857072719,82.18919957,12-Nov-21,reiono,windward,Re2Ta30,2,a,30,17.04482,149.54414,water,NA,5.65,-9.36,0.34,none (recently eradicated),1080
+TW184,856,5.027388558,92.32817948,12-Nov-21,reiono,windward,Re2Ta40,2,a,40,17.04478,149.54407,water,NA,5.97,-9.34,0.44,none (recently eradicated),1065
+TW185,975,5.218666237,102.7206608,12-Nov-21,reiono,windward,Re2Tb10,2,b,10,17.04511,149.54422,water,NA,7.62,-7.19,0.47,none (recently eradicated),1060
+TW186,824,4.970292869,90.27797324,12-Nov-21,reiono,windward,Re2Tb20,2,b,20,17.04508,149.54414,water,NA,5.65,-9.69,0.34,none (recently eradicated),1075
+TW187,337,4.490243725,47.27310428,12-Nov-21,reiono,windward,Re2Tb30,2,b,30,17.04507,149.54405,water,NA,5.38,-10.19,0.33,none (recently eradicated),1075
+TW188,663,4.821959137,80.66001071,12-Nov-21,reiono,windward,Re2Tb40,2,b,40,17.04504,149.54398,water,NA,5.09,-8.94,0.38,none (recently eradicated),1035
+TW189,667,5.060551031,80.31121083,12-Nov-21,reiono,windward,Re2Tc10,2,c,10,17.04559,149.54399,water,NA,7.23,-8.11,0.42,none (recently eradicated),1055
+TW190,690,4.899714619,80.92235539,12-Nov-21,reiono,windward,Re2Tc20,2,c,20,17.04558,149.54388,water,NA,4.69,-9.48,0.28,none (recently eradicated),1010
+TW191,677,4.853298581,74.78294389,12-Nov-21,reiono,windward,Re2Tc30,2,c,30,17.04556,149.54381,water,NA,5.07,-9.35,0.43,none (recently eradicated),1060
+TW192,498,4.627686696,62.93718089,12-Nov-21,reiono,windward,Re2Tc40,2,c,40,17.04553,149.54372,water,NA,4.64,-8.55,0.31,none (recently eradicated),1075
+TW193,996,5.164093424,105.7678629,7-Nov-21,rimatuu,leeward,Rm1Ta10,1,a,10,17.02838,149.56067,water,NA,3.51,-7.91,0.35,exulans only,1075
+TW194,905,5.042147536,97.72467726,7-Nov-21,rimatuu,leeward,Rm1Ta20,1,a,20,17.02839,149.56076,water,NA,3.37,-7.69,0.34,exulans only,1020
+TW195,834,4.899222377,85.42795574,7-Nov-21,rimatuu,leeward,Rm1Ta30,1,a,30,17.0284,149.56085,water,NA,3.51,-6.93,0.45,exulans only,1030
+TW196,647,4.750113509,75.4794887,7-Nov-21,rimatuu,leeward,Rm1Ta40,1,a,40,17.0284,149.56096,water,NA,3.25,-7.56,0.34,exulans only,1025
+TW197,680,4.822695764,79.36852004,7-Nov-21,rimatuu,leeward,Rm1Tb10,1,b,10,17.02868,149.56068,water,NA,4.07,-7.17,0.47,exulans only,1055
+TW198,690,4.782535014,84.41788616,7-Nov-21,rimatuu,leeward,Rm1Tb20,1,b,20,17.02868,149.56081,water,NA,3.4,-7.72,0.45,exulans only,1060
+TW199,797,4.962500667,88.99414151,7-Nov-21,rimatuu,leeward,Rm1Tb30,1,b,30,17.02867,149.5609,water,NA,3.33,-7.88,0.35,exulans only,1060
+TW200,505,4.574298283,61.90325658,7-Nov-21,rimatuu,leeward,Rm1Tb40,1,b,40,17.02867,149.56099,water,NA,3.15,-7.59,0.37,exulans only,1040
+TW201,671,4.928971773,80.69413719,7-Nov-21,rimatuu,leeward,Rm1Tc10,1,c,10,17.029,149.5607,water,NA,3.8,-7.62,0.41,exulans only,1050
+TW202,425,4.53124056,55.75301065,7-Nov-21,rimatuu,leeward,Rm1Tc20,1,c,20,17.02899,149.56079,water,NA,3.56,-7.7,0.43,exulans only,1045
+TW203,644,4.728784081,77.53977458,7-Nov-21,rimatuu,leeward,Rm1Tc30,1,c,30,17.029,149.56091,water,NA,3.45,-8.31,0.38,exulans only,1035
+TW204,597,4.70855081,71.33689745,7-Nov-21,rimatuu,leeward,Rm1Tc40,1,c,40,17.02901,149.56099,water,NA,2.73,-9.29,0.46,exulans only,1075
+TW206,619,5.133670738,79.68413793,11-Nov-21,rimatuu,windward,Rm2Ta20,2,a,20,17.0332,149.55606,water,NA,6.09,-9.11,0.5,exulans only,1085
+TW207,484,4.653092803,60.5397023,11-Nov-21,rimatuu,windward,Rm2Ta30,2,a,30,17.03325,149.556,water,NA,5.33,-9.5,0.44,exulans only,1065
+TW208,611,4.862511062,69.57708083,11-Nov-21,rimatuu,windward,Rm2Ta40,2,a,40,17.0332,149.55594,water,NA,5.78,-8.69,0.5,exulans only,1045
+TW209,678,4.887874268,80.83351628,11-Nov-21,rimatuu,windward,Rm2Tb10,2,b,10,17.03298,149.55591,water,NA,5.66,-8.25,0.4,exulans only,1070
+TW211,858,5.035095878,96.94684834,11-Nov-21,rimatuu,windward,Rm2Tb30,2,b,30,17.03312,149.55582,water,NA,6.19,-9.4,0.5,exulans only,1010
+TW212,649,4.852044211,77.47115551,11-Nov-21,rimatuu,windward,Rm2Tb40,2,b,40,17.0332,149.55576,water,NA,6.34,-8.95,0.49,exulans only,1075
+TW213,404,4.253671566,53.67894877,11-Nov-21,rimatuu,windward,Rm2Tc10,2,c,10,17.03278,149.55576,water,NA,7.93,-8.62,0.48,exulans only,1060
+TW214,553,4.804487543,68.67927639,11-Nov-21,rimatuu,windward,Rm2Tc20,2,c,20,17.03285,149.55569,water,NA,6.6,-9.22,0.54,exulans only,1075
+TW215,716,4.927480074,79.79055614,11-Nov-21,rimatuu,windward,Rm2Tc30,2,c,30,17.03291,149.5556,water,NA,6.71,-9.11,0.53,exulans only,1050
+TW216,540,4.771237321,67.11699042,11-Nov-21,rimatuu,windward,Rm2Tc40,2,c,40,17.03296,149.55554,water,NA,6.96,-9.24,0.57,exulans only,1070
