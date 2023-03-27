@@ -88,3 +88,52 @@ plot.bray + facet_grid(cols = vars(motu))
 ggsave("../output/plots/coral_bray_ordination_islandside.pdf", plot = last_plot())
 
 
+##We know from the barplots that the Aie communities are dominated
+#by litoricola marina (heterotroph) and by Synecchococcus (cyanobacteria - bloomer)
+##But the other two motus are mostly Prochlorococcus and SAR11 (oceanic bugs)
+
+##Can we build a summarized stacked bar plot to show the top 10 most abundant genera??
+
+percent.trial <- physeq.water.r %>% 
+  tax_glom(taxrank = "Genus", NArm=TRUE) %>% 
+  transform_sample_counts(function(x) {x/sum(x)} ) 
+trial.top = prune_taxa(names(sort(taxa_sums(percent.trial), TRUE))[1:10], percent.trial)
+perc.melt <- psmelt(trial.top)
+sum <- ddply(perc.melt, c("Genus", "motu", "island.side"),summarise,
+             N = length(Abundance), 
+             mean = mean(Abundance),
+             sd = sd(Abundance), 
+             se = sd/sqrt(N)
+)
+
+sum$genus_order <- sum$Genus
+sum$genus_order[sum$genus_order == "AEGEAN-169_marine_group" ] <- 'A-Rhodospirillales; AEGEAN-169'
+sum$genus_order[sum$genus_order == "Clade_Ia"] <- 'B-SAR11; Clade Ia'
+sum$genus_order[sum$genus_order == "Clade_Ib"] <- 'C-SAR11; Clade Ib'
+sum$genus_order[sum$genus_order == "Clade_II"] <- 'D-SAR11; Clade II'
+sum$genus_order[sum$genus_order == "Litoricola"] <- 'H-Litoricola'
+sum$genus_order[sum$genus_order ==  "Prochlorococcus_MIT9313" ] <- 'G-Prochlorococcus'
+sum$genus_order[sum$genus_order == "SAR116_clade"] <- 'E-SAR116 Clade'
+sum$genus_order[sum$genus_order == "SAR86_clade"] <- "F-SAR86 Clade"
+sum$genus_order[sum$genus_order == "Synechococcus_CC9902"] <- 'I-Synechococcus'
+sum$genus_order[sum$genus_order == "uncultured"] <- 'J-Uncultured Alteromonadaceaea'
+
+
+nb.cols <- 10
+mycolors <- colorRampPalette(brewer.pal(10, "Set3"))(nb.cols)
+
+ggplot(sum, aes(x = island.side , y = mean, fill = genus_order)) +
+  geom_bar(stat = "identity") +
+  #scale_fill_manual(values=mycolors) +
+  scale_fill_manual(values = c('A-Rhodospirillales; AEGEAN-169' = "#C996CC", 'B-SAR11; Clade Ia' = "#7209B7", 'C-SAR11; Clade Ib' = "#170055", 'D-SAR11; Clade II' = "#14279B",
+                               'E-SAR116 Clade' = "#185ADB", "F-SAR86 Clade" = "#77ACF1", 'G-Prochlorococcus' =  "#98BAE7",
+                               'H-Litoricola' = "#FFB950", 
+                               'I-Synechococcus' = "#FA5E1F", 
+                                'J-Uncultured Alteromonadaceaea' = "#7A0103")) +
+  #scale_fill_discrete() +
+  ylab("Relative Abundance") +
+  xlab("Island Side") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  facet_wrap(~motu)
+
+ggsave("../output/plots/water_barplots_top10genera.pdf", plot = last_plot())

@@ -126,5 +126,17 @@ ggplot(erich, aes(x = motu, y =  Observed)) +
 
 ggsave("../output/plots/richness_motu.pdf", plot = last_plot())
 
+erich.water <- filter(erich, sample.type == "water")
+ggplot(erich.water, aes(x = algae.N15, y =  Observed)) +
+  geom_point(size = 2, alpha = 3) +
+  geom_smooth(method = lm, se = FALSE) +
+  theme_bw() 
+
+ggsave("../output/plots/water_richness_N15.pdf", plot = last_plot())
 
 
+hist(erich.water$algae.N15)
+summary(lm(Observed ~ algae.N15, data = erich.water))
+
+
+hist(erich.water$Observed)
