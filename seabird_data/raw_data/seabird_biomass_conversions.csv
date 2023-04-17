@@ -1,0 +1,12 @@
+﻿Scientific_name,SpeciesName,Common_name,Body_mass_HBW,HBW mass notes,Body_mass_Elton,Elton traits source,Elton traits spp name
+Anous.minutus,Aminutus,Black noddy,112.5,from google preview - mass range 85-140,112.44,Dunning08,
+Anous.stolidus,Astolidus,Brown noddy,189,accessed for 2021 paper,177.77,Dunning08,
+Fregata.ariel,Fariel,Lesser frigatebird,804,accessed for 2021 paper,804.32,Dunning08,
+Fregata.minor,Fminor,Great frigatebird,1314,accessed for 2021 paper,1274.67,Dunning08,
+Fregata,Fregata,Fregate sp,1059,average of 2 frigate species,1039.495,average of 2 frigate species,
+Gygis.alba,Galba,Fairy tern/Common white tern,117,accessed for 2021 paper,111,PrimScale,
+Onychoprion.fuscatus,Ofuscatus,Sooty tern,183,accessed for 2021 paper,185.72,Dunning08,Sterna fuscata
+Onychoprion.lunatus,Olunatus,Grey-backed tern,120,from google preview - mass range 95-145,146,PrimScale,Sterna lunata
+Sula.leucogaster,Sleucogaster,Brown booby,1363,accessed for 2021 paper,1288.82,Dunning08,
+Sula.sula,Ssula,Red-footed booby,975,accessed for 2021 paper,1031.1,Dunning08,
+Thalasseus.bergii,Tbergii,Crested tern,360,accessed for 2021 paper,328,Dunning08,Sterna bergii

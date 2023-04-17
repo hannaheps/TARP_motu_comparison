@@ -1,0 +1,8 @@
+﻿Motu,Exposure,Side,TransectStart_100m,TransectEnd_100m,TransectStart_Additional100 m,TransectEnd_Additional100m,Transect name (alternative name) - Closest 100 m,Transect name (alternative name) - Additional 100 m,notes
+Aie,Exposed,South,0946,0947,0947,0948,A1-A2 (0946 - 0947),A2-A3 (0947 - 0948),only 1 option for each of these
+Aie,Protected,Noth,0950,0945,0949,0950,A5-A6 (0950 - 0945),A4-A5 (0949 - 0950),only 1 option for each of these
+Rimatuu,Exposed,East,0695,0696,0694,0695,Ri42-Ri43 (0695-0696),Ri41-Ri42 (0694-0695),"All between Ri42-Ri43, first transect directly off from Ri43. Used Ri41-Ri42 as second instead of Ri43-Ri44 because of presumed currents/water flow from south to north"
+Rimatuu,Protected,West,0648,0686,0686,0687,Ri32-Ri33 (0648 - 0686),Ri33-Ri34 (0686 - 0687),"Ri32-Ri33 covers 2/3 transects (and one fish transect), third transect (and 3/4 fish transects) is in Ri33-Ri34"
+Reiono,Exposed,East,1149,1150,1148,1149,Re16-Re17 (1149 - 1150),Re15-Re16 (1148-1149),"First transect ends just after Re17, so most between 16-17, used Re15-Re16 instead of Re17-Re18 (1150-1151) as second because of presumed currents/water flow from south to north"
+Reiono,Protected,West,1139,1140,1138,1139,Re6 - Re7 (1139-1140),Re5 - Re6 (1138-1139),"Marine transects spread out more - 1 is between Re4-Re5, one between Re5-Re6, one between Re6-Re7. All fish transects Re6-Re7. Used southern most as first one, middle one as second. Didn't use top transect because rock bar likely to block nutrients from farther north. "
+,,,text,text,text,text,,,
