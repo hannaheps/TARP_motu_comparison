@@ -1,0 +1,122 @@
+﻿station,site-name,lat,long,lat-end,long-end,motu,island-side,distance-from-shore,distance-from-shore-end,transect-replicate-name,rat-eradication-date,associated-seabird-100m-transect-start,associated-seabird-100m-transect-end,associated-seabird-addit-100m-transect-start,associated-seabird-addit-100m-transect-end,sample-set
+A1Ta10,A1,17.00918,149.53554,NA,NA,aie,protected,10,,Ta,None,946,947,947,948,microbe-transects
+A1Ta20,A1,17.00924,149.53558,NA,NA,aie,protected,20,,Ta,None,946,947,947,948,microbe-transects
+A1Ta20,A1,17.00931,149.53563,NA,NA,aie,protected,30,,Ta,None,946,947,947,948,microbe-transects
+A1Ta40,A1,17.00941,149.53574,NA,NA,aie,protected,40,,Ta,None,946,947,947,948,microbe-transects
+A1Tb10,A1,17.00905,149.53566,NA,NA,aie,protected,10,,Tb,None,946,947,947,948,microbe-transects
+A1Tb20,A1,17.00915,149.53574,NA,NA,aie,protected,20,,Tb,None,946,947,947,948,microbe-transects
+A1Tb30,A1,17.00924,149.53583,NA,NA,aie,protected,30,,Tb,None,946,947,947,948,microbe-transects
+A1Tb40,A1,17.00928,149.53592,NA,NA,aie,protected,40,,Tb,None,946,947,947,948,microbe-transects
+A1Tc10,A1,17.00891,149.5359,NA,NA,aie,protected,10,,Tc,None,946,947,947,948,microbe-transects
+A1Tc20,A1,17.00895,149.53598,NA,NA,aie,protected,20,,Tc,None,946,947,947,948,microbe-transects
+A1Tc30,A1,17.00899,149.53604,NA,NA,aie,protected,30,,Tc,None,946,947,947,948,microbe-transects
+A1Tc40,A1,17.00907,149.53612,NA,NA,aie,protected,40,,Tc,None,946,947,947,948,microbe-transects
+A2Ta10,A2,17.00774,149.5361,NA,NA,aie,exposed,10,,Ta,None,950,945,949,950,microbe-transects
+A2Ta20,A2,17.00763,149.53613,NA,NA,aie,exposed,20,,Ta,None,950,945,949,950,microbe-transects
+A2Ta30,A2,17.00757,149.53619,NA,NA,aie,exposed,30,,Ta,None,950,945,949,950,microbe-transects
+A2Ta40,A2,17.00749,149.53615,NA,NA,aie,exposed,40,,Ta,None,950,945,949,950,microbe-transects
+A2Tb10,A2,17.00767,149.53595,NA,NA,aie,exposed,10,,Tb,None,950,945,949,950,microbe-transects
+A2Tb20,A2,17.00759,149.53596,NA,NA,aie,exposed,20,,Tb,None,950,945,949,950,microbe-transects
+A2Tb30,A2,17.0075,149.536,NA,NA,aie,exposed,30,,Tb,None,950,945,949,950,microbe-transects
+A2Tb40,A2,17.00742,149.536,NA,NA,aie,exposed,40,,Tb,None,950,945,949,950,microbe-transects
+A2Tc10,A2,17.00764,149.53572,NA,NA,aie,exposed,10,,Tc,None,950,945,949,950,microbe-transects
+A2Tc20,A2,17.00761,149.53572,NA,NA,aie,exposed,20,,Tc,None,950,945,949,950,microbe-transects
+A2Tc30,A2,17.00749,149.53572,NA,NA,aie,exposed,30,,Tc,None,950,945,949,950,microbe-transects
+A2Tc40,A2,17.00739,149.53574,NA,NA,aie,exposed,40,,Tc,None,950,945,949,950,microbe-transects
+Re1Ta10,Re1,17.04528,149.54781,NA,NA,reiono,protected,10,,Ta,2018,1139,1140,1138,1139,microbe-transects
+Re1Ta20,Re1,17.04528,149.54791,NA,NA,reiono,protected,20,,Ta,2018,1139,1140,1138,1139,microbe-transects
+Re1Ta30,Re1,17.04528,149.54802,NA,NA,reiono,protected,30,,Ta,2018,1139,1140,1138,1139,microbe-transects
+Re1Ta40,Re1,17.04526,149.5481,NA,NA,reiono,protected,40,,Ta,2018,1139,1140,1138,1139,microbe-transects
+Re1Tb10,Re1,17.04634,149.54778,NA,NA,reiono,protected,10,,Tb,2018,1139,1140,1138,1139,microbe-transects
+Re1Tb20,Re1,17.04631,149.54784,NA,NA,reiono,protected,20,,Tb,2018,1139,1140,1138,1139,microbe-transects
+Re1Tb30,Re1,17.04633,149.54796,NA,NA,reiono,protected,30,,Tb,2018,1139,1140,1138,1139,microbe-transects
+Re1Tb40,Re1,17.0463,149.54805,NA,NA,reiono,protected,40,,Tb,2018,1139,1140,1138,1139,microbe-transects
+Re1Tc10,Re1,17.04688,149.54765,NA,NA,reiono,protected,10,,Tc,2018,1139,1140,1138,1139,microbe-transects
+Re1Tc20,Re1,17.04686,149.54776,NA,NA,reiono,protected,20,,Tc,2018,1139,1140,1138,1139,microbe-transects
+Re1Tc30,Re1,17.04684,149.54784,NA,NA,reiono,protected,30,,Tc,2018,1139,1140,1138,1139,microbe-transects
+Re1Tc40,Re1,17.04684,149.54794,NA,NA,reiono,protected,40,,Tc,2018,1139,1140,1138,1139,microbe-transects
+Re2Ta10,Re2,17.04488,149.54433,NA,NA,reiono,exposed,10,,Ta,2018,1149,1150,1148,1149,microbe-transects
+Re2Ta20,Re2,17.04486,149.54424,NA,NA,reiono,exposed,20,,Ta,2018,1149,1150,1148,1149,microbe-transects
+Re2Ta30,Re2,17.04482,149.54414,NA,NA,reiono,exposed,30,,Ta,2018,1149,1150,1148,1149,microbe-transects
+Re2Ta40,Re2,17.04478,149.54407,NA,NA,reiono,exposed,40,,Ta,2018,1149,1150,1148,1149,microbe-transects
+Re2Tb10,Re2,17.04511,149.54422,NA,NA,reiono,exposed,10,,Tb,2018,1149,1150,1148,1149,microbe-transects
+Re2Tb20,Re2,17.04508,149.54414,NA,NA,reiono,exposed,20,,Tb,2018,1149,1150,1148,1149,microbe-transects
+Re2Tb30,Re2,17.04507,149.54405,NA,NA,reiono,exposed,30,,Tb,2018,1149,1150,1148,1149,microbe-transects
+Re2Tb40,Re2,17.04504,149.54398,NA,NA,reiono,exposed,40,,Tb,2018,1149,1150,1148,1149,microbe-transects
+Re2Tc10,Re2,17.04559,149.54399,NA,NA,reiono,exposed,10,,Tc,2018,1149,1150,1148,1149,microbe-transects
+Re2Tc20,Re2,17.04558,149.54388,NA,NA,reiono,exposed,20,,Tc,2018,1149,1150,1148,1149,microbe-transects
+Re2Tc30,Re2,17.04556,149.54381,NA,NA,reiono,exposed,30,,Tc,2018,1149,1150,1148,1149,microbe-transects
+Re2Tc40,Re2,17.04553,149.54372,NA,NA,reiono,exposed,40,,Tc,2018,1149,1150,1148,1149,microbe-transects
+Rm1Ta10,Rm1,17.02838,149.56067,NA,NA,rimatuu,protected,10,,Ta,2022,648,686,686,687,microbe-transects
+Rm1Ta20,Rm1,17.02839,149.56076,NA,NA,rimatuu,protected,20,,Ta,2022,648,686,686,687,microbe-transects
+Rm1Ta30,Rm1,17.0284,149.56085,NA,NA,rimatuu,protected,30,,Ta,2022,648,686,686,687,microbe-transects
+Rm1Ta40,Rm1,17.0284,149.56096,NA,NA,rimatuu,protected,40,,Ta,2022,648,686,686,687,microbe-transects
+Rm1Tb10,Rm1,17.02868,149.56068,NA,NA,rimatuu,protected,10,,Tb,2022,648,686,686,687,microbe-transects
+Rm1Tb20,Rm1,17.02868,149.56081,NA,NA,rimatuu,protected,20,,Tb,2022,648,686,686,687,microbe-transects
+Rm1Tb30,Rm1,17.02867,149.5609,NA,NA,rimatuu,protected,30,,Tb,2022,648,686,686,687,microbe-transects
+Rm1Tb40,Rm1,17.02867,149.56099,NA,NA,rimatuu,protected,40,,Tb,2022,648,686,686,687,microbe-transects
+Rm1Tc10,Rm1,17.029,149.5607,NA,NA,rimatuu,protected,10,,Tc,2022,648,686,686,687,microbe-transects
+Rm1Tc20,Rm1,17.02899,149.56079,NA,NA,rimatuu,protected,20,,Tc,2022,648,686,686,687,microbe-transects
+Rm1Tc30,Rm1,17.029,149.56091,NA,NA,rimatuu,protected,30,,Tc,2022,648,686,686,687,microbe-transects
+Rm1Tc40,Rm1,17.02901,149.56099,NA,NA,rimatuu,protected,40,,Tc,2022,648,686,686,687,microbe-transects
+Rm2Ta10,Rm2,17.03311,149.55611,NA,NA,rimatuu,exposed,10,,Ta,2022,695,696,694,695,microbe-transects
+Rm2Ta20,Rm2,17.0332,149.55606,NA,NA,rimatuu,exposed,20,,Ta,2022,695,696,694,695,microbe-transects
+Rm2Ta30,Rm2,17.03325,149.556,NA,NA,rimatuu,exposed,30,,Ta,2022,695,696,694,695,microbe-transects
+Rm2Ta40,Rm2,17.0332,149.55594,NA,NA,rimatuu,exposed,40,,Ta,2022,695,696,694,695,microbe-transects
+Rm2Tb10,Rm2,17.03298,149.55591,NA,NA,rimatuu,exposed,10,,Tb,2022,695,696,694,695,microbe-transects
+Rm2Tb20,Rm2,17.03306,149.55588,NA,NA,rimatuu,exposed,20,,Tb,2022,695,696,694,695,microbe-transects
+Rm2Tb30,Rm2,17.03312,149.55582,NA,NA,rimatuu,exposed,30,,Tb,2022,695,696,694,695,microbe-transects
+Rm2Tb40,Rm2,17.0332,149.55576,NA,NA,rimatuu,exposed,40,,Tb,2022,695,696,694,695,microbe-transects
+Rm2Tc10,Rm2,17.03278,149.55576,NA,NA,rimatuu,exposed,10,,Tc,2022,695,696,694,695,microbe-transects
+Rm2Tc20,Rm2,17.03285,149.55569,NA,NA,rimatuu,exposed,20,,Tc,2022,695,696,694,695,microbe-transects
+Rm2Tc30,Rm2,17.03291,149.5556,NA,NA,rimatuu,exposed,30,,Tc,2022,695,696,694,695,microbe-transects
+Rm2Tc40,Rm2,17.03296,149.55554,NA,NA,rimatuu,exposed,40,,Tc,2022,695,696,694,695,microbe-transects
+Aie_north_benthic1,A2,-17.007413,-149.53612,-17.007319,-149.53585,aie,exposed,NA,NA,benthic_1,None,950,945,949,950,benthic-transects
+Aie_north_benthic2,A2,-17.007211,-149.53564,-17.007131,-149.53582,aie,exposed,NA,NA,benthic_2,None,950,945,949,950,benthic-transects
+Aie_north_benthic3,A2,-17.006915,-149.53595,-17.007006,-149.53572,aie,exposed,NA,NA,benthic_3,None,950,945,949,950,benthic-transects
+Aie_north_benthic4,A2,-17.006867,-149.53571,-17.006774,-149.53589,aie,exposed,NA,NA,benthic_4,None,950,945,949,950,benthic-transects
+Aie_south_benthic1,A1,-17.009826,-149.53486,-17.010027,-149.53472,aie,protected,NA,NA,benthic_1,None,946,947,947,948,benthic-transects
+Aie_south_benthic2,A1,-17.009801,-149.53476,-17.009638,-149.53493,aie,protected,NA,NA,benthic_2,None,946,947,947,948,benthic-transects
+Aie_south_benthic3,A1,-17.010059,-149.53501,-17.010303,-149.53488,aie,protected,NA,NA,benthic_3,None,946,947,947,948,benthic-transects
+Aie_south_benthic4,A1,-17.01039,-149.53491,-17.010566,-149.5348,aie,protected,NA,NA,benthic_4,None,946,947,947,948,benthic-transects
+Reiono_site1_benthic1,Re1,-17.046685,-149.54811,-17.046953,-149.54807,reiono,exposed,NA,NA,benthic_1,2018,1139,1140,1138,1139,benthic-transects
+Reiono_site1_benthic2,Re1,-17.046324,-149.54798,-17.046637,-149.54798,reiono,exposed,NA,NA,benthic_2,2018,1139,1140,1138,1139,benthic-transects
+Reiono_site1_benthic3,Re1,-17.046778,-149.54795,-17.047018,-149.54799,reiono,exposed,NA,NA,benthic_3,2018,1139,1140,1138,1139,benthic-transects
+Reiono_site1_benthic4,Re1,-17.04477,-149.54362,-17.045033,-149.54351,reiono,exposed,NA,NA,benthic_4,2018,1139,1140,1138,1139,benthic-transects
+Reiono_site2_benthic1,Re2,-17.045071,-149.54345,-17.045291,-149.54356,reiono,protected,NA,NA,benthic_1,2018,1149,1150,1148,1149,benthic-transects
+Reiono_site2_benthic2,Re2,-17.045106,-149.54322,-17.045326,-149.54336,reiono,protected,NA,NA,benthic_2,2018,1149,1150,1148,1149,benthic-transects
+Reiono_site2_benthic3,Re2,-17.045546,-149.5438,-17.045338,-149.54394,reiono,protected,NA,NA,benthic_3,2018,1149,1150,1148,1149,benthic-transects
+Reiono_site2_benthic4,Re2,-17.045316,-149.54385,-17.045107,-149.54392,reiono,protected,NA,NA,benthic_4,2018,1149,1150,1148,1149,benthic-transects
+Rimatuu_site1_benthic1,Rm1,-17.028839,-149.5612,-17.02911,-149.56125,rimatuu,exposed,NA,NA,benthic_1,2022,648,686,686,687,benthic-transects
+Rimatuu_site1_benthic2,Rm1,-17.029226,-149.56123,-17.029453,-149.56138,rimatuu,exposed,NA,NA,benthic_2,2022,648,686,686,687,benthic-transects
+Rimatuu_site1_benthic3,Rm1,-17.028923,-149.56097,-17.029217,-149.56102,rimatuu,exposed,NA,NA,benthic_3,2022,648,686,686,687,benthic-transects
+Rimatuu_site1_benthic4,Rm1,-17.028754,-149.56095,-17.028563,-149.56093,rimatuu,exposed,NA,NA,benthic_4,2022,648,686,686,687,benthic-transects
+Rimatuu_site2_benthic1,Rm2,-17.033156,-149.55557,-17.0334,-149.55566,rimatuu,protected,NA,NA,benthic_1,2022,695,696,694,695,benthic-transects
+Rimatuu_site2_benthic2,Rm2,-17.033479,-149.55575,-17.033736,-149.55585,rimatuu,protected,NA,NA,benthic_2,2022,695,696,694,695,benthic-transects
+Rimatuu_site2_benthic3,Rm2,-17.033319,-149.5554,-17.033534,-149.55554,rimatuu,protected,NA,NA,benthic_3,2022,695,696,694,695,benthic-transects
+Rimatuu_site2_benthic4,Rm2,-17.033559,-149.55564,-17.033769,-149.55584,rimatuu,protected,NA,NA,benthic_4,2022,695,696,694,695,benthic-transects
+Rimatuu_2_1,Rm2,-149.55557,-17.033156,-149.55566,-17.0334,rimatuu,Exposed (southeast),60.3391984,71.983045,1,2022,695,696,694,695,fish-transects
+Rimatuu_2_2,Rm2,-149.55575,-17.033479,-149.55585,-17.033736,rimatuu,Exposed (southeast),73.94081051,94.30461486,2,2022,695,696,694,695,fish-transects
+Rimatuu_2_3,Rm2,-149.5554,-17.033319,-149.55554,-17.033534,rimatuu,Exposed (southeast),85.95345738,91.54808679,3,2022,695,696,694,695,fish-transects
+Rimatuu_2_4,Rm2,-149.55564,-17.033559,-149.55584,-17.033769,rimatuu,Exposed (southeast),87.53712325,98.03987817,4,2022,695,696,694,695,fish-transects
+Reiono_1_1,Re1,-149.54812,-17.046343,-149.54815,-17.046603,reiono,Protected (southwest),72.04377293,77.38138935,1,2018,1139,1140,1138,1139,fish-transects
+Reiono_1_2,Re1,-149.54811,-17.046685,-149.54807,-17.046953,reiono,Protected (southwest),74.50155549,61.19521566,2,2018,1139,1140,1138,1139,fish-transects
+Reiono_1_3,Re1,-149.54798,-17.046324,-149.54798,-17.046637,reiono,Protected (southwest),57.22094904,60.0446258,3,2018,1139,1140,1138,1139,fish-transects
+Reiono_1_4,Re1,-149.54795,-17.046778,-149.54799,-17.047018,reiono,Protected (southwest),57.84103909,50.23277478,4,2018,1139,1140,1138,1139,fish-transects
+Reiono_2_1,Re2,-149.54362,-17.04477,-149.54351,-17.045033,reiono,Exposed (southeast),89.27546603,90.6890455,1,2018,1149,1150,1148,1149,fish-transects
+Reiono_2_2,Re2,-149.54345,-17.045071,-149.54356,-17.045291,reiono,Exposed (southeast),95.60125417,77.43618364,2,2018,1149,1150,1148,1149,fish-transects
+Reiono_2_3,Re2,-149.54322,-17.045106,-149.54336,-17.045326,reiono,Exposed (southeast),117.9523861,96.9492238,3,2018,1149,1150,1148,1149,fish-transects
+Reiono_2_4,Re2,-149.5438,-17.045546,-149.54394,-17.045338,reiono,Exposed (southeast),46.52890183,37.21016787,4,2018,1149,1150,1148,1149,fish-transects
+Reiono_2_5,Re2,-149.54385,-17.045316,-149.54392,-17.045107,reiono,Exposed (southeast),47.07542969,46.52084923,5,2018,1149,1150,1148,1149,fish-transects
+Rimatuu_1_1,Rm1,-149.5612,-17.028839,-149.56125,-17.02911,rimatuu,Protected (southwest),87.56878608,91.58813766,1,2022,648,686,686,687,fish-transects
+Rimatuu_1_2,Rm1,-149.56123,-17.029226,-149.56138,-17.029453,rimatuu,Protected (southwest),88.88834325,103.7530397,2,2022,648,686,686,687,fish-transects
+Rimatuu_1_3,Rm1,-149.56097,-17.028923,-149.56102,-17.029217,rimatuu,Protected (southwest),62.59740629,66.52172069,3,2022,648,686,686,687,fish-transects
+Rimatuu_1_4,Rm1,-149.56095,-17.028754,-149.56093,-17.028563,rimatuu,Protected (southwest),60.98391824,56.10954929,4,2022,648,686,686,687,fish-transects
+Aie_1_1,A1,-149.53486,-17.009826,-149.53472,-17.010027,aie,South (Site 1),92.0637116,115.0482805,1,None,946,947,947,948,fish-transects
+Aie_1_2,A1,-149.53476,-17.009801,-149.53493,-17.009638,aie,South (Site 1),89.7586211,70.52632164,2,None,946,947,947,948,fish-transects
+Aie_1_3,A1,-149.53501,-17.010059,-149.53488,-17.010303,aie,South (Site 1),116.3980747,144.7415365,3,None,946,947,947,948,fish-transects
+Aie_1_4,A1,-149.53491,-17.01039,-149.5348,-17.010566,aie,South (Site 1),154.0886371,174.1704758,4,None,946,947,947,948,fish-transects
+Aie_2_1,A2,-149.53612,-17.007413,-149.53585,-17.007319,aie,North (Site 2),44.44670097,54.17230455,1,None,950,945,949,950,fish-transects
+Aie_2_2,A2,-149.53564,-17.007211,-149.53582,-17.007131,aie,North (Site 2),68.28615054,75.31411407,2,None,950,945,949,950,fish-transects
+Aie_2_3,A2,-149.53595,-17.006915,-149.53572,-17.007006,aie,North (Site 2),97.46233901,90.1948976,3,None,950,945,949,950,fish-transects
+Aie_2_4,A2,-149.53571,-17.006867,-149.53589,-17.006774,aie,North (Site 2),105.7020319,113.4769818,4,None,950,945,949,950,fish-transects
