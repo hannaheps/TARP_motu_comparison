@@ -1,0 +1,7 @@
+﻿site-name,site-lat,site-long,motu,island-side,wind-exposure,protection,rat-eradication-status,seabird-100m-transect-start,seabird-100m-transect-end,seabird-additional-100m-transect-start,seabird-additional-100m-transect-end
+A1,17.00928,149.53592,aie,south,leeward,protected,None,946,947,947,948
+A2,17.00742,149.536,aie,north,windward,exposed,None,950,945,949,950
+Re1,17.0463,149.54805,reiono,west,leeward,protected,eradicated_2018,1139,1140,1138,1139
+Re2,17.04504,149.54398,reiono,east,windward,exposed,eradicated_2018,1149,1150,1148,1149
+Rm1,17.02867,149.56099,rimatuu,west,leeward,protected,eradicated_2022,648,686,686,687
+Rm2,17.0332,149.55576,rimatuu,east,windward,exposed,eradicated_2022,695,696,694,695
