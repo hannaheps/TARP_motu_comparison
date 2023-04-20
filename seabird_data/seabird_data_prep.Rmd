@@ -45,33 +45,52 @@ str(sb_dat_focal) #down to 588 rows, 3 factor levels for Motu.
 
 ```
 
+#and delete Aie sandbar
+From Jayna: "So for the sandbar transect we walk down the middle of the sandbar and count in both directions. This differs from the other transects where we are primarily counting birds that are inland…
+Indeed birds generally aren’t breeding on the sandbar. Any noddies that try to lay eggs there generally lose them to waves. One option would be to treat the birds on the sandbar the way you treat the birds on the rocks, and consider the sandbar birds as being at different distances from the motu? If you have decided not to include the birds on the rocks then I would maybe skip the sandbar birds too?"
+```{r}
+#sandbar transects from GPScoordinates tab = 1549, 1550, 1551, 1718, 0952
+#sandbar transects from map: 1718-0952, 0952-1549, 1549-1550, 1550-1551, 1551-0945.
+#from datasheet, only found: 0952-1548, 1548-1549, 1550-1551, 1551-1552. Note for 1551-1552 says end transect also called 0952. 
+
+sb_dat_focal2<-
+  sb_dat_focal%>%
+  filter(!(TransectStart=="1548"|TransectStart=="1550"|TransectStart=="1551"|TransectStart=="0952"))%>%
+  droplevels()
+
+sb_dat_focal2%>%
+  distinct(TransectStart) #59 total transects, regardless of |TransectStart=="1718"
+#looks like from map, should be 11 transects on Aie (5 on sandbar, 6 around coast), not 10. So I think missing one sandbar transect in data*
+#move forward with these, double-check with Jayna/Simon. 
+
+```
+
 #initial data processing: 
-*Need to check what to do with Aie sandbar - I think this is artificially inflating # of transects on Aie, leading to lower density/biomass estimates below (esp relative to Reiono)
 ```{r}
 
 ##need to get number of transects per motu and area to calculate density----
-sb_dat_focal%>%
-  distinct(TransectStart) #63 total transects
+sb_dat_focal2%>%
+  distinct(TransectStart) #63 total transects --> now 59
 
-sb_dat_focal%>%
+sb_dat_focal2%>%
   group_by(Motu)%>%
   distinct(TransectStart) %>%
   summarize(number_transects = length(TransectStart))
 #Motu     number_transects
-#Aie	    10			
+#Aie	    6			
 #Reiono	  19			
 #Rimatuu	34	
-#equals 63, so makes sense
+#equals 59, so makes sense
 
 #check that we get the same when use TransectEnd instead: 
-sb_dat_focal%>%
+sb_dat_focal2%>%
   group_by(Motu)%>%
   distinct(TransectEnd) %>%
   summarize(number_transects = length(TransectEnd))
 #yup, matches above!
 
 #and can triple check by using times:
-sb_dat_focal%>%
+sb_dat_focal2%>%
   group_by(Motu)%>%
   distinct(Time) %>%
   summarize(number_transects = length(Time))
@@ -80,7 +99,7 @@ sb_dat_focal%>%
 #add column to data that has number of transects info: 
 sb_dat_focal3<-
   sb_dat_focal2%>%
-  mutate(Number_transects = case_when(Motu == "Aie" ~ 10,
+  mutate(Number_transects = case_when(Motu == "Aie" ~ 6, #changed from 10 in previous version to exclude sandbar
                                       Motu == "Reiono" ~19,
                                        Motu == "Rimatuu" ~34))%>%
   relocate(Number_transects, .after = Motu)
@@ -114,9 +133,9 @@ str(sb_dat_focal4)
 ```
 
 
-#create new data with only transects within 100 and 200 m of marine data areas
+#create new data with only transects within 100 m, 200 m, and same side of marine data areas
+do these calculations before limiting by adults/nests to make sure all these transects are in the datasheet (and not just eliminated because 0 adults and/or nests)
 ```{r}
-trans_dat
 
 ##100 m-----
 #probably an easier way to do this, but for now just manually keep any transects that match our designated ones. Not sure if points will be start or end, so allow to be either: 
@@ -185,12 +204,112 @@ sb_dat_focal_100_and_200m<-
 sb_dat_focal_100_and_200m
 
 
-```
+##motu side----
+#Aie South (Exposed): 945 - 946 - 947 - 948 = 3 transects 
+#Aie North (Protected): 948 - 949 - 950 - 945 = 3 transects
 
+#Reiono: dividing point south = 1143 (RE10 transect), north = 0837 (RE1 transect)
+#Reiono west (Protected): RE1 - RE10 = 0837 - 0838 - 0839 - 1137 - 1138 - 1139 - 1140 - 1141 - 1142 - 1143 = 9 transects
+#Reiono east (Exposed): RE10 - RE19 = 1143 - 1144 - 1145 - 1146 - 1147 - 1148 - 1149 - 1150 - 1151 - 1152 = 9 transects
+
+#Rimatuu: dividing point south = 0692 (RI39 transect). West go to top corner (RI20/ 0631) East go to corner - RI1(0606) to cover to corner (or could stop at  RI49 (0702) which ends just before corner). 
+#Rimatuu west (Protected): RI20 - RI39 = 0631 - 0632 - 0633 - 0634 - 0635 - 0636 - 0637 - 0638 - 0644 - 0645 - 0646 - 0647 - 0648 - 0686 - 0687 - 0688 - 0689 - 0690 - 0691  - 0692  = 19 transects
+#Rimatuu east (Exposed): RI1 - RI49 - RI39 = 0692 - 0693 - 0694 - 0695 - 0696 - 0697 - 0698 - 0699 - 0700 - 0701 - 0702 - 0606 = 11 transects
+
+#additional transects: 
+#we know all direction is counterclockwise, so don't need to worry about replicating start/end when a lot of these: 
+sb_dat_focal_motu_side_only<-
+  sb_dat_focal4%>%
+  filter((TransectStart == "0945"&TransectEnd == "0946")| #Aie exposed (just need to add 0945 - 0946)
+           
+           (TransectStart == "0948"&TransectEnd == "0949")|  #Aie protected (just need to add 0948 - 0949)
+           
+           (TransectStart == "0692"&TransectEnd == "0693")|(TransectStart == "0693"&TransectEnd == "0694")| (TransectStart == "0696"&TransectEnd == "0697")| (TransectStart == "0697"&TransectEnd == "0698")| 
+           (TransectStart == "0698"&TransectEnd == "0699")| (TransectStart == "0699"&TransectEnd == "0700")| (TransectStart == "0700"&TransectEnd == "0701")|
+           (TransectStart == "0701"&TransectEnd == "0702")| (TransectStart == "0702"&TransectEnd == "0606")|#Rimatuu exposed, exclude 100 & 200 m = (TransectStart == "0694"&TransectEnd == "0695")| (TransectStart == "0695"&TransectEnd == "0696")|
+           
+           (TransectStart == "0631"&TransectEnd == "0632")|(TransectStart == "0632"&TransectEnd == "0633")| (TransectStart == "0633"&TransectEnd == "0634")|
+           (TransectStart == "0634"&TransectEnd == "0635")|(TransectStart == "0635"&TransectEnd == "0636")|(TransectStart == "0636"&TransectEnd == "0637")|
+           (TransectStart == "0637"&TransectEnd == "0638")|(TransectStart == "0638"&TransectEnd == "0644")|(TransectStart == "0644"&TransectEnd == "0645")|
+           (TransectStart == "0645"&TransectEnd == "0646")|(TransectStart == "0646"&TransectEnd == "0647")|(TransectStart == "0647"&TransectEnd == "0648")|
+           (TransectStart == "0687"&TransectEnd == "0688")|(TransectStart == "0688"&TransectEnd == "0689")|(TransectStart == "0689"&TransectEnd == "0690")|
+           (TransectStart == "0690"&TransectEnd == "0691")|(TransectStart == "0691"&TransectEnd == "0692")| #Rimatuu protected, exclude 100 & 200 m:(TransectStart == "0648"&TransectEnd == "0686")|(TransectStart == "0686"&TransectEnd == "0687")|
+           
+           (TransectStart == "1143"&TransectEnd == "1144")|(TransectStart == "1144"&TransectEnd == "1145")|(TransectStart == "1145"&TransectEnd == "1146")|
+           (TransectStart == "1146"&TransectEnd == "1147")|(TransectStart == "1147"&TransectEnd == "1148")
+        |(TransectStart == "1150"&TransectEnd == "1151")|(TransectStart == "1151"&TransectEnd == "1152") | #Reiono exposed, exclude 100 & 200 m: |(TransectStart == "1148"&TransectEnd == "1149") |(TransectStart == "1149"&TransectEnd == "1150")
+          
+           (TransectStart == "0837"&TransectEnd == "0838")|(TransectStart == "0838"&TransectEnd == "0839")|(TransectStart == "0839"&TransectEnd == "1137")
+        |(TransectStart == "1137"&TransectEnd == "1138") 
+        |(TransectStart == "1140"&TransectEnd == "1141") |(TransectStart == "1141"&TransectEnd == "1142") |(TransectStart == "1142"&TransectEnd == "1143")) #Reiono protected, exclude 100 & 200 m: |(TransectStart == "1138"&TransectEnd == "1139") |(TransectStart == "1139"&TransectEnd == "1140") 
+
+
+sb_dat_focal_motu_side_only %>%
+   group_by(Motu)%>%
+  distinct(TransectStart) %>%
+  summarize(number_transects = length(TransectStart))
+
+#Aie	2			- yup, only added 1 transect per side
+#Reiono	12		- should be 18 - 4 = 14, BUT missing reiono 1143-1144 and 1144-1145 BECAUSE NO BIRDS WITHIN 5 M** So this is okay, but be sure to include these transects in calculation of area/density**
+#Rimatuu	26	- should be 30 - 4 = 26, so this is good*
+
+#add exposure: 
+sb_dat_focal_motu_side_only<-
+  sb_dat_focal_motu_side_only%>%
+  mutate(Exposure = case_when(TransectStart == "0945" ~ "Exposed", #Aie
+                              TransectStart == "0948" ~ "Protected", #Aie
+                              TransectStart == "0692" | TransectStart == "0693" | TransectStart == "0696" | TransectStart == "0697" | TransectStart == "0698" | TransectStart == "0699" 
+                              | TransectStart == "0700" | TransectStart == "0701" | TransectStart == "0702"  ~ "Exposed", #Rimatuu
+                              TransectStart == "0631" | TransectStart == "0632" | TransectStart == "0633" | TransectStart == "0634" | 
+                               TransectStart == "0635" | TransectStart == "0636" | TransectStart == "0637"|TransectStart == "0638" | TransectStart == "0644"|TransectStart == "0645" | 
+                               TransectStart == "0646"|TransectStart == "0647" |  TransectStart == "0687"|TransectStart == "0688" | TransectStart == "0689"|TransectStart == "0690" | 
+                              TransectStart == "0691"  ~ "Protected", #Rimatuu
+                              TransectStart == "1143" | TransectStart == "1144" | TransectStart == "1145" | TransectStart == "1146" | TransectStart == "1147" | 
+                              TransectStart == "1150" | TransectStart == "1151"   ~ "Exposed", #Reiono 
+                              TransectStart == "0837" |  TransectStart == "0838" | TransectStart == "0839" | TransectStart == "1137" | TransectStart == "1140" | TransectStart == "1141" | 
+                               TransectStart == "1142" ~ "Protected" #Reiono 
+                              ))%>%
+  mutate(Exposure  = as.factor(Exposure))%>%
+  relocate(Exposure, .after = Motu)
+
+sb_dat_focal_motu_side_only   
+      
+#combine with 100 and 200 m transects: 
+sb_dat_focal_100_and_200m_and_side<-
+  bind_rows(sb_dat_focal_100_and_200m, sb_dat_focal_motu_side_only)
+
+sb_dat_focal_100_and_200m_and_side
+
+sb_dat_focal_100_and_200m_and_side%>%
+    group_by(Motu, Exposure)%>%
+  distinct(TransectStart) %>%
+  summarize(number_transects = length(TransectStart))
+#Aie	Exposed	3		- YUP
+#Aie	Protected	3		- YUP 
+#Reiono	Exposed	7		- Missing 2, but no birds. so this is fine but use 9 as transect number**** 
+#Reiono	Protected	9		- YUP 
+#Rimatuu	Exposed	11	- YUP 	
+#Rimatuu	Protected	19	 - YUP 
+
+#add in number of transects: 
+sb_dat_focal_100_and_200m_and_side<-
+  sb_dat_focal_100_and_200m_and_side%>%
+  mutate(Number_transects_side = case_when(Motu == "Aie" ~ 3, 
+                                      Motu == "Reiono" ~9,
+                                       Motu == "Rimatuu" & Exposure == "Exposed" ~11,
+                                      Motu == "Rimatuu" & Exposure == "Protected" ~19))%>%
+  relocate(Number_transects_side, .after = Motu)
+
+sb_dat_focal_100_and_200m_and_side
+
+```
 
 
 #Add up all adult-sized birds by species: 
 This will give total number of pooping birds at that moment. Ignore nests, chicks, eggs because small and/or don't poop!
+
+From Jayna: "FYI, if the category is either “nest” or “on egg” that means that the adult is included- so both the egg and the adult are present in the nest. But for the category “egg” the adult wasn’t present- it probably flushed before we counted it.  In this case it’s probably one of the adults that flew away. To avoid double counting you might subtract the number of unattended eggs from the number of adults that flushed (assuming that you are counting adults that flushed as part of the biomass calculation). That way you won’t add additional roosting adults that actually should have been classified as adults on nest."
+
 ```{r}
 
 levels(sb_dat_focal4$StageCategory) #looks like some have blank stage - let's see what these are:
@@ -200,10 +319,13 @@ sb_dat_focal4%>%
 
 #****NOTE: there is a "juv" category - I ignored this for now because then we only cover adult-sized birds as I think that makes the most sense since we're already excluding chicks.  But, we can change to include it if we want to
 
-#limit to adults:---- 
+#limit to adult-sized birds---- 
+#includes juveniles ("adult-sized birds that can fly but aren’t in their breeding coloration":
+#but also if the category is "nest" or "onegg" then the adult is also present so should probably include these in the adult counts as well*
+#don't include "egg" because adult wasn't present - likely was one of the adults that was flushed and already counted in the "adult" category. 
 sb_dat_focal_adults<-
   sb_dat_focal4%>%
-  filter(StageCategory=="adult" | StageCategory=="adultORjuv")%>%
+  filter(StageCategory=="adult" | StageCategory=="adultORjuv"|StageCategory=="juv"|StageCategory=="nest"|StageCategory=="onegg")%>%
   droplevels()
 
 
@@ -227,7 +349,7 @@ sb_dat_focal_adults_motu_sp
 ##do this only for focal transects - first 100 m----
 sb_dat_focal_adults_100m<-
   sb_dat_focal_100m%>%
-  filter(StageCategory=="adult" | StageCategory=="adultORjuv")%>%
+  filter(StageCategory=="adult" | StageCategory=="adultORjuv"|StageCategory=="juv"|StageCategory=="nest"|StageCategory=="onegg")%>%
   droplevels()
 sb_dat_focal_adults_100m
 
@@ -248,7 +370,7 @@ sb_dat_focal_adults_100m_sp
 
 sb_dat_focal_adults_200m<-
   sb_dat_focal_100_and_200m%>%
-  filter(StageCategory=="adult" | StageCategory=="adultORjuv")%>%
+  filter(StageCategory=="adult" | StageCategory=="adultORjuv"|StageCategory=="juv"|StageCategory=="nest"|StageCategory=="onegg")%>%
   droplevels()
 sb_dat_focal_adults_200m
 
@@ -265,8 +387,27 @@ sb_dat_focal_adults_200m_sp<-
 sb_dat_focal_adults_200m_sp
 
 
+##do this only for focal transects - side of motu----
+sb_dat_focal_adults_side<-
+  sb_dat_focal_100_and_200m_and_side%>%
+  filter(StageCategory=="adult" | StageCategory=="adultORjuv"|StageCategory=="juv"|StageCategory=="nest"|StageCategory=="onegg")%>%
+  droplevels()
+sb_dat_focal_adults_side
+
+
+sb_dat_focal_adults_side_sp<-
+  sb_dat_focal_adults_side%>%
+  group_by(Motu, Exposure, Number_transects_side, TransectStart, TransectEnd,  SpeciesName, Body_mass_HBW)%>%
+  summarize(Abundance = sum(Nb))%>%
+  mutate(Density_m2 = Abundance/(500*Number_transects_side)) %>% #5 x 100 m transects, so each transect = 500 m, times the number of transects
+  mutate(Density_ha = Density_m2*10000) %>% #and convert to hectares because that's used a lot
+  mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species - divide by 1000 to go from grams to kg
+         biomass_kg_m2 = biomass_kg/(500*Number_transects_side), #convert to per m^2 as above
+        biomass_kg_ha = biomass_kg_m2 *10000) #convert to per hectare - divide by 500 because 500 m&2 per transect, multiple by 10000 for m^2 to hectare
+
 
 ```
+
 
 ##Count all nests by species: 
 This will give total number of apparently occupied nests (AON), which is standard measurement for seabirds and from this we can estimate the number (and biomass, etc) of breeding pairs.
@@ -274,8 +415,8 @@ This will give total number of apparently occupied nests (AON), which is standar
 
 levels(sb_dat_focal4$StageCategory) #so now we DONT count any adults or juveniles.
 
-#****NOTE: currently assuming "juv" category shoudn't be counted here either, which I think makes sense because not sure if all juveniles are in nests. I did count fledglings though because I assume they are in a nest. But can double-check this.
-##****NOTE: currently assuming each egg/chick/fledgling is in its OWN nest - double check this is okay.  In notes I only see chicks "with previous adult", and since adults weren't counted this is fine.  But if two eggs/chicks/fledglings/etc were in the same nest, then we would be double-counting that nest and inflating the numbers of nests!
+#****NOTE: "juv" category shoudn't be counted here because "Since the “juveniles” are fully mobile adult-like birds they aren’t associated with nests."
+##****NOTE: currently assuming each egg/chick/fledgling is in its OWN nest - this is correct - "all eggs, chicks, and fledglings are on their own nest. The only species that lays more than one egg is the brown booby, but there are no brown booby nests on those motu. I believe did try to make only one line per nest even for brown boobies, but for those there can be more than one egg or chick in the same nest."
 
 #limit to nests:---- 
 sb_dat_focal_nests<-
@@ -343,10 +484,31 @@ sb_dat_focal_nests_200m_sp<-
 sb_dat_focal_nests_200m_sp
 
 
+##do this only for focal transects - side of motu----
+sb_dat_focal_nests_side<-
+  sb_dat_focal_100_and_200m_and_side%>%
+  filter(StageCategory=="chick" | StageCategory=="egg"| StageCategory=="fledgling"| StageCategory=="nest"| StageCategory=="onegg")%>%
+  droplevels()
+sb_dat_focal_nests_side
+
+
+sb_dat_focal_nests_side_sp<-
+  sb_dat_focal_nests_side%>%
+  group_by(Motu, Exposure, Number_transects_side, TransectStart, TransectEnd,  SpeciesName, Body_mass_HBW)%>%
+  summarize(BreedingPairs = sum(Nb),
+            Abundance = BreedingPairs*2)%>% #- multiply by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs)
+  mutate(Density_m2 = Abundance/(500*Number_transects_side)) %>% #5 x 100 m transects, so each transect = 500 m, times the number of transects
+  mutate(Density_ha = Density_m2*10000) %>% #and convert to hectares because that's used a lot
+ mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species  - divide by 1000 to go from grams to kg
+         biomass_kg_m2 = biomass_kg/(500*Number_transects_side), #convert to per m^2 as above
+        biomass_kg_ha = biomass_kg_m2 *10000) #convert to per hectare - divide by 500 because 500 m&2 per transect, multiple by 10000 for m^2 to hectare
+ 
+ 
+
+
 ```
 Random notes: interesting that rimatuu exposed and protected BOTH equally low in birds based on transect data - so these birds are likely NOT what's driving difference in N15 between exposed and protected side.  I think it's some residual effect of all the birds on iti that's making the exposed side of Rimatuu have higher N15**
-
-TO DO: Split by side of motu rather than whole motu***
+May want to add in Iti transects 1-7 to see if this helps explain Rimatuu N15 on exposed side. Could justify it because it's as close as other areas on the same side of the motu. 
 
 
 #sum for total biomass (rather than by species), combine all scales into one table
@@ -355,11 +517,12 @@ TO DO: Split by side of motu rather than whole motu***
 sb_dat_focal_nests_motu_sp
 sb_dat_focal_nests_100m_sp
 sb_dat_focal_nests_200m_sp
+sb_dat_focal_nests_side_sp
 
 sb_dat_focal_adults_motu_sp
 sb_dat_focal_adults_100m_sp
 sb_dat_focal_adults_200m_sp
-
+sb_dat_focal_adults_side_sp
 
 #nesting birds----
 sb_dat_focal_nests_motu<-
@@ -368,8 +531,9 @@ sb_dat_focal_nests_motu<-
   summarize(breeding_density_ha_motu = sum(Density_ha),
             breeding_biomass_kgha_motu = sum(biomass_kg_ha))
 sb_dat_focal_nests_motu
-#Aie and Reiono similar - see note above, need to check whether 10 is really the right number of transects for Aie, or if this is high because of sandbar transects (which may not = 100 m/is changing habitat so no nests??)
+#Aie and Reiono were similar when included sandbar - see note above, need to check whether 10 is really the right number of transects for Aie, or if this is high because of sandbar transects (which may not = 100 m/is changing habitat so no nests??)
 #BUT this is interesting given similar N15 signatures at Aie and Reiono - could give clues about scales that matter!
+#When exclude sandbar, now clear gradient of Aie --> Reiono --> Rimatuu
 
 sb_dat_focal_nests_100m<-
   sb_dat_focal_nests_100m_sp%>%
@@ -386,16 +550,30 @@ sb_dat_focal_nests_200m<-
             breeding_biomass_kgha_200m = sum(biomass_kg_ha))
 sb_dat_focal_nests_200m
 
+
+sb_dat_focal_nests_side<-
+  sb_dat_focal_nests_side_sp%>%
+  group_by(Motu, Exposure)%>%
+  summarize(breeding_density_ha_side = sum(Density_ha),
+            breeding_biomass_kgha_side = sum(biomass_kg_ha))
+sb_dat_focal_nests_side
+
+
 #combine:
 sb_dat_focal_nests_all1<-
   full_join(sb_dat_focal_nests_motu, sb_dat_focal_nests_200m,
             by = "Motu")
 
-sb_dat_focal_nests_all<-
+sb_dat_focal_nests_all2<-
   full_join(sb_dat_focal_nests_100m, sb_dat_focal_nests_all1, 
+            by = c("Motu", "Exposure"))  
+
+
+sb_dat_focal_nests_all<-
+  full_join(sb_dat_focal_nests_side, sb_dat_focal_nests_all2, 
             by = c("Motu", "Exposure"))  %>% 
-  select(Motu, Exposure, breeding_biomass_kgha_100m, breeding_biomass_kgha_200m, breeding_biomass_kgha_motu,
-         breeding_density_ha_100m, breeding_density_ha_200m, breeding_density_ha_motu) %>% #reorder columns
+  select(Motu, Exposure, breeding_biomass_kgha_100m, breeding_biomass_kgha_200m, breeding_biomass_kgha_side, breeding_biomass_kgha_motu,
+         breeding_density_ha_100m, breeding_density_ha_200m, breeding_density_ha_side, breeding_density_ha_motu) %>% #reorder columns
     replace_na(list(breeding_density_ha_100m = 0, breeding_biomass_kgha_100m = 0)) #replace NA with 0s because 0 birds in Rimatuu Protected 100 m
 
 sb_dat_focal_nests_all
@@ -426,16 +604,28 @@ sb_dat_focal_adults_200m<-
             adult_biomass_kgha_200m = sum(biomass_kg_ha))
 sb_dat_focal_adults_200m
 
+sb_dat_focal_adults_side<-
+  sb_dat_focal_adults_side_sp%>%
+  group_by(Motu, Exposure)%>%
+  summarize(adult_density_ha_side = sum(Density_ha),
+            adult_biomass_kgha_side = sum(biomass_kg_ha))
+sb_dat_focal_adults_side
+
 #combine:
 sb_dat_focal_adults_all1<-
   full_join(sb_dat_focal_adults_motu, sb_dat_focal_adults_200m,
             by = "Motu")
 
-sb_dat_focal_adults_all<-
+sb_dat_focal_adults_all2<-
   full_join(sb_dat_focal_adults_all1, sb_dat_focal_adults_100m, 
+            by = c("Motu", "Exposure"))  
+
+
+sb_dat_focal_adults_all<-
+  full_join(sb_dat_focal_adults_all2, sb_dat_focal_adults_side, 
             by = c("Motu", "Exposure"))  %>% 
-  select(Motu, Exposure, adult_biomass_kgha_100m, adult_biomass_kgha_200m, adult_biomass_kgha_motu,
-         adult_density_ha_100m, adult_density_ha_200m, adult_density_ha_motu) %>% #reorder columns
+  select(Motu, Exposure, adult_biomass_kgha_100m, adult_biomass_kgha_200m, adult_biomass_kgha_side, adult_biomass_kgha_motu,
+         adult_density_ha_100m, adult_density_ha_200m, adult_density_ha_side, adult_density_ha_motu) %>% #reorder columns
     replace_na(list(adult_density_ha_100m = 0, adult_biomass_kgha_100m = 0)) #replace NA with 0s because 0 birds in Reiono Exposed 100 m
 
 sb_dat_focal_adults_all
@@ -474,12 +664,38 @@ seabird_focal_all%>%
   select(Motu, Exposure, adult_biomass_kgha_100m:adult_biomass_kgha_motu)%>%
   pivot_longer(cols = starts_with("adult_biomass_kgha_"),
                 names_to = "scale",
-               names_prefix  = "adult_iomass_kgha_",
+               names_prefix  = "adult_biomass_kgha_",
                values_to = "adult_biomass")%>%
   mutate(Motu_exposure = str_c(Motu, Exposure, sep ="_"))%>%
   ggplot(aes(x = Motu_exposure, y = adult_biomass, fill = scale, color = scale))+
   geom_point(size = 5, alpha= .6)+
   theme_bw()
+
+##log plots: 
+seabird_focal_all%>%
+  select(Motu, Exposure, breeding_biomass_kgha_100m:breeding_biomass_kgha_motu)%>%
+  pivot_longer(cols = starts_with("breeding_biomass_kgha_"),
+                names_to = "scale",
+               names_prefix  = "breeding_biomass_kgha_",
+               values_to = "breeding_biomass")%>%
+  mutate(Motu_exposure = str_c(Motu, Exposure, sep ="_"))%>%
+  ggplot(aes(x = Motu_exposure, y = log(breeding_biomass), fill = scale, color = scale))+
+  geom_point(size = 5, alpha= .6)+
+  theme_bw()
+
+
+
+seabird_focal_all%>%
+  select(Motu, Exposure, adult_biomass_kgha_100m:adult_biomass_kgha_motu)%>%
+  pivot_longer(cols = starts_with("adult_biomass_kgha_"),
+                names_to = "scale",
+               names_prefix  = "adult_biomass_kgha_",
+               values_to = "adult_biomass")%>%
+  mutate(Motu_exposure = str_c(Motu, Exposure, sep ="_"))%>%
+  ggplot(aes(x = Motu_exposure, y = log(adult_biomass), fill = scale, color = scale))+
+  geom_point(size = 5, alpha= .6)+
+  theme_bw()
+
 
 
 #check relationship among the different scales:----
@@ -533,6 +749,51 @@ seabird_focal_all%>%
 
 ```
 
+#make correlation plot to look at relationship among scales, breeding vs. adult biomass within each motu: 
+```{r}
+
+#cor plots:
+library(corrplot) #for checking correlations
+
+#just look at biomass---
+seabird_focal_all_bio<-
+  seabird_focal_all%>%
+  select(-contains("density")) %>%
+   rename_with(~ str_remove(., "kgha_"), everything())#%>%
+  # rename_with(~ str_remove(., "mass"), everything())
+ seabird_focal_all_bio 
+
+corrplot(cor(seabird_focal_all_bio[,3:10]), type = "upper", addCoef.col = "gray", addCoefasPercent = FALSE, tl.col = "black", title = "biomass")
+
+
+#just look at density---
+seabird_focal_all_density<-
+  seabird_focal_all%>%
+  select(-contains("biomass")) %>%
+   rename_with(~ str_remove(., "ha_"), everything())#%>%
+  # rename_with(~ str_remove(., "mass"), everything())
+ seabird_focal_all_density 
+
+ corrplot(cor(seabird_focal_all_density[,3:10]), type = "upper", addCoef.col = "gray", addCoefasPercent = FALSE, tl.col = "black", title = "density")
+
+ 
+#all combined---
+seabird_focal_all_r<-
+  seabird_focal_all%>%
+   rename_with(~ str_remove(., "eeding"), everything())%>%
+   rename_with(~ str_remove(., "dult"), everything())%>%
+   rename_with(~ str_remove(., "kgha_"), everything())%>%
+   rename_with(~ str_remove(., "ha_"), everything())%>%
+   rename_with(~ str_remove(., "ity"), everything())%>%
+   rename_with(~ str_remove(., "mass"), everything())
+
+ corrplot(cor(seabird_focal_all_r[,3:18]), type = "upper", addCoef.col = "gray", addCoefasPercent = FALSE, tl.col = "black", title = "all")
+
+ 
+
+ ##all very highly correlated, esp breeding biomass at 100-200-side scales, and breeding with adult biomass at 100-200 scales.  
+
+```
 
 #save data as .Rdata:
 ```{r}
@@ -541,18 +802,24 @@ seabird_focal_all%>%
 sb_dat_focal_nests_motu_sp
 sb_dat_focal_nests_100m_sp
 sb_dat_focal_nests_200m_sp
+sb_dat_focal_nests_side_sp
 
 sb_dat_focal_adults_motu_sp
 sb_dat_focal_adults_100m_sp
 sb_dat_focal_adults_200m_sp
+sb_dat_focal_adults_side_sp
 
 #aggregated:
 seabird_focal_all
 
 
-#save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,
-#     sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, sb_dat_focal_adults_200m_sp,
+#save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,sb_dat_focal_nests_side_sp,
+#     sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, sb_dat_focal_adults_200m_sp,sb_dat_focal_adults_side_sp,
 #     seabird_focal_all, file = "outputs/seabird_dens_bio_data.RData")
+
+
+##also save all aggregated as .csv to make it easy to email/share----
+#write.csv(seabird_focal_all, "outputs/seabird_dens_bio_focal_data.csv")
 
 
 ```
