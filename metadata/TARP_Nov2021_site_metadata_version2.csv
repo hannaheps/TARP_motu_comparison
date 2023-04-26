@@ -1,4 +1,4 @@
-﻿site-name,site-lat,site-long,motu,island-side,wind-exposure,protection,rat-eradication-status,seabird-100m-transect-start,seabird-100m-transect-end,seabird-additional-100m-transect-start,seabird-additional-100m-transect-end
+﻿site.name,site.lat,site.long,motu,island.side,wind.exposure,protection,rat.eradication.status,seabird.100m.transect.start,seabird.100m.transect.end,seabird.additional.100m.transect.start,seabird.additional.100m.transect.end
 A1,17.00928,149.53592,aie,south,leeward,protected,None,946,947,947,948
 A2,17.00742,149.536,aie,north,windward,exposed,None,950,945,949,950
 Re1,17.0463,149.54805,reiono,west,leeward,protected,eradicated_2018,1139,1140,1138,1139
