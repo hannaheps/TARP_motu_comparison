@@ -1,0 +1,308 @@
+---
+title: "calculating_comm_div_metrics_benthic"
+author: "CEB"
+date: '2023-05-10'
+output: html_document
+---
+
+#load packages
+```{r}
+library(tidyverse) #for everything
+library(vegan) # for diversity and community analyses
+
+```
+
+
+#START WITH VIDEO DATA-----------
+
+#load raw data
+```{r}
+
+#raw video data----
+tet_video_raw<-read.csv("../raw_data/Summary_sheet_benthic_video_tetiaroa_Nov21_RW.csv", stringsAsFactors = TRUE)
+str(tet_video_raw)
+
+#change transect number to factor
+tet_video_raw<-
+  tet_video_raw%>%
+  mutate(Transect = as.factor(Transect))
+tet_video_raw
+
+##also load site metadata:----
+tet_site_meta<-read.csv("../../metadata/TARP_Nov2021_site_metadata_version2.csv", stringsAsFactors = TRUE)
+str(tet_site_meta)
+
+#also load transect metadata:-----
+
+
+#create new columns to match metadata, and remove capitalization of motu----
+tet_video_raw<-
+  tet_video_raw%>%
+  rename_with(tolower)%>%
+  mutate(motu = str_to_lower(motu),
+         transect_name = str_to_lower(transect_name),
+         protection = str_to_lower(exposure))%>%
+  relocate(protection, .after = exposure)
+ 
+tet_video_raw
+
+#combine with site metadata----
+tet_video_raw_meta<-left_join(
+  select(tet_video_raw,-c(rat_treatment, exposure, longitude_start, latitude_start, longitude_end, latitude_end)),
+                              tet_site_meta, by = c("motu", "protection"))%>%
+  relocate(site.name:rat.eradication.status, .after = motu)
+tet_video_raw_meta
+
+```
+
+##aggregate - one for broad groupings, one for coral-focused bc can use genus for these:
+```{r}
+
+#broad groupings: hard coral, other inverts (sea_cucumber, tridacna_giant_clam, corallimorpharia), pavement, dead_coral, fish, rubble (rubble, sand_rubble), sand, cca, turf (turf_algae, turf_rubble), macroalgae
+#transect_tape
+
+colnames(tet_video_raw_meta)
+
+tet_video_raw_meta_broad<-
+  tet_video_raw_meta%>%
+  mutate(total_hard_coral = rowSums(across(c(acropora_arborescent:porites_submassive))))%>%
+  mutate(other_fish_inverts = rowSums(across(c(sea_cucumber, tridacna_giant_clam, fish, corallimorpharia ))))%>%
+  mutate(turf = rowSums(across(c(turf_algae, turf_rubble))))%>%
+  mutate(rubble = rowSums(across(c(rubble, sand_rubble))))%>%
+  select(motu, site.name, wind.exposure, rat.eradication.status, protection, transect, 
+         total_hard_coral, other_fish_inverts, sand, dead_coral, pavement, rubble, turf, cca, macroalgae,
+         transect_tape)%>%
+  mutate(total = rowSums(across(c(total_hard_coral:transect_tape))))
+
+tet_video_raw_meta_broad
+#looks good, rowsums to 100, but can ignore transect tape. 
+
+#coral only: 
+tet_video_raw_meta_coral<-
+  tet_video_raw_meta%>%
+  select(motu:porites_submassive)
+
+tet_video_raw_meta_coral
+
+
+```
+
+#calculate diversity (only makes sense for corals?)
+```{r}
+
+str(tet_fish_raw_trans_wide_density)
+
+#make species only table and env only table: ----
+tet_video_raw_meta_coral_sp<-
+  tet_video_raw_meta_coral%>%
+  ungroup()%>%
+  select(acropora_arborescent:porites_submassive)
+tet_video_raw_meta_coral_sp
+
+tet_video_raw_meta_broad_sp<-
+  tet_video_raw_meta_broad%>%
+  ungroup()%>%
+  select(total_hard_coral:macroalgae)
+tet_video_raw_meta_broad_sp
+
+
+tet_video_raw_env<-
+  tet_video_raw_meta_broad%>%
+  ungroup()%>%
+  select(motu:transect)
+tet_video_raw_env
+
+
+###calculate diversity for corals----
+observed<-specnumber(tet_video_raw_meta_coral_sp)
+shannon<-diversity(tet_video_raw_meta_coral_sp, "shannon")
+evenness<-diversity(tet_video_raw_meta_coral_sp)/log(specnumber(tet_video_raw_meta_coral_sp)) #J = H/log(specnumber(BCI))
+
+tet_video_coral_diversity<-
+tet_video_raw_env %>%
+  cbind(observed, shannon, evenness)
+
+tet_video_coral_diversity
+
+
+#quick plots----
+tet_video_coral_diversity%>%
+  ggplot(aes(x = motu, y = observed, color = wind.exposure, fill = wind.exposure))+
+  geom_boxplot(outlier.size=0, outlier.stroke=0,outlier.shape=NA, alpha = 0.1) +
+  geom_point(size = 3, pch=21, alpha= .6, position=position_jitterdodge())+
+  theme_bw()
+
+tet_video_coral_diversity%>%
+  ggplot(aes(x = motu, y = shannon, color = wind.exposure, fill = wind.exposure))+
+  geom_boxplot(outlier.size=0, outlier.stroke=0,outlier.shape=NA, alpha = 0.1) +
+  geom_point(size = 3, pch=21, alpha= .6, position=position_jitterdodge())+
+  theme_bw()
+
+
+tet_video_coral_diversity%>%
+  ggplot(aes(x = motu, y = evenness, color = wind.exposure, fill = wind.exposure))+
+  geom_boxplot(outlier.size=0, outlier.stroke=0,outlier.shape=NA, alpha = 0.1) +
+  geom_point(size = 3, pch=21, alpha= .6, position=position_jitterdodge())+
+  theme_bw()
+
+
+
+
+```
+
+###run nmds (broad groupings)-----
+```{r}
+#run nmds----
+nmds_video_log<-metaMDS(tet_video_raw_meta_broad_sp, distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds_video_log
+#2 axes stress = 0.09865958, so all good
+
+plot(nmds_video_log)
+scores(nmds_video_log, display="species")
+
+
+#look at plot and centroids, for now just motu and exposure (so sitename). will need to add explanatory variables
+plot(nmds_video_log)
+ord.fit<-envfit(nmds_video_log~site.name, data = tet_video_raw_meta_broad, na.rm=TRUE)
+ord.fit #looks like some differences among motu
+plot(ord.fit)
+#draw polygons
+ordihull(nmds_video_log, tet_fish_raw_trans_wide_density$site.name, pty=3)
+
+
+#PERMANOVA
+#anosim more influenced by dispersion, so use adonis
+#run analysis
+ad_video1<-adonis2(tet_video_raw_meta_broad_sp ~ site.name, data = tet_video_raw_meta_broad, method="euclidean")
+ad_video1
+#site explains ~36% of variance
+
+
+ad_video2<-adonis2(tet_video_raw_meta_broad_sp ~ motu*wind.exposure, data = tet_video_raw_meta_broad, method="euclidean")
+ad_video2
+#motu only significant - explains 27.7%
+
+
+#test dispersion using PERMDISP
+mod_video <- betadisper(vegdist(tet_video_raw_meta_broad_sp, method = "bray"), tet_video_raw_meta_broad$site.name)
+mod_video
+#test for overall differences
+anova(mod_video)
+#not different
+
+#extract distance to centroid - use TukeyHSD.betadisper from ?betadisper
+dist_cent_video <-betadisper(d = vegdist(tet_video_raw_meta_broad_sp, method = "bray"),
+                           group = tet_video_raw_meta_broad$site.name,
+                           type = "centroid", sqrt.dist = FALSE)
+dist_cent_video
+TukeyHSD(dist_cent_video,conf.level = .95) #okay this shows CI's for contrasts. note that conf.level affects intervals, but not p-values. 
+
+dist_cent_videodf<-
+  cbind(tet_video_raw_env, dist_cent_video$distances) %>%
+  rename(Distance_to_centroid = "dist_cent_video$distances")
+dist_cent_videodf
+
+
+
+##SIMPER analysis to test effects of species----
+#by site:
+sim_video<-simper(tet_video_raw_meta_broad_sp, tet_video_raw_meta_broad$site.name, permutations = 999)
+summary(sim_video)
+
+#by motu:
+sim_video_motu<-simper(tet_video_raw_meta_broad_sp, tet_video_raw_meta_broad$motu, permutations = 999)
+summary(sim_video_motu)
+
+#by exposure:
+sim_video_exp<-simper(tet_video_raw_meta_broad_sp, tet_video_raw_meta_broad$wind.exposure, permutations = 999)
+summary(sim_video_exp)
+
+
+
+##extract site/transect scores----
+video_spp.sc <- as.data.frame(scores(nmds_video_log, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+video_spp.sc<-
+  video_spp.sc%>%
+  rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
+
+
+video_site.sc <- scores(nmds_video_log, display = "sites", shrink = FALSE) 
+video_site.sc
+
+#merge site.sc with metadata and dispersion
+nmds_video_site_scores<-
+  bind_cols(dist_cent_fish_logdf,
+                    as_tibble(video_site.sc))
+nmds_video_site_scores
+
+
+#plot just to see----
+
+#get hull data:
+site.A1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "A1", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "A1", c("NMDS1", "NMDS2")]), ]
+
+site.A2 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "A2", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "A2", c("NMDS1", "NMDS2")]), ]  
+
+site.Re1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Re1", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Re1", c("NMDS1", "NMDS2")]), ]
+
+site.Re2<- nmds_video_site_scores[nmds_video_site_scores$site.name == "Re2", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Re2", c("NMDS1", "NMDS2")]), ]  
+
+site.Rm1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Rm1", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Rm1", c("NMDS1", "NMDS2")]), ]
+
+site.Rm2<- nmds_video_site_scores[nmds_video_site_scores$site.name == "Rm2", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Rm2", c("NMDS1", "NMDS2")]), ]  
+
+hull.data <- rbind(site.A1, site.A2, site.Re1, site.Re2, site.Rm1, site.Rm2)  #combine
+hull.data
+
+ggplot() + 
+  geom_text(data=video_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
+  geom_point(data=nmds_video_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
+  geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.30) + # add the convex hulls
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), #remove gray boxes
+        text = element_text(size=20))
+        #legend.title = element_blank()) #remove legend title
+        #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
+       # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
+
+
+
+```
+
+##combine transect data and save----
+```{r}
+str(nmds_video_site_scores) #BROAD GROUPS
+str(tet_video_coral_diversity) #CORALS
+
+#rename:
+tet_video_coral_diversity_rn<-
+  tet_video_coral_diversity%>%
+  rename(coral_observed = observed,
+         coral_shannon = shannon, 
+         coral_evenness= evenness)
+tet_video_coral_diversity_rn
+
+
+tet_video_div_comm_dat<-
+  left_join(tet_video_coral_diversity_rn, nmds_video_site_scores,
+            by = c("motu", "site.name", "wind.exposure", "rat.eradication.status", "transect"))
+tet_video_div_comm_dat
+
+#write.csv(tet_video_div_comm_dat, "../output/data/tet_video_div_comm_dat.csv")
+
+```
+
+
+
+#####NOW DO IN SITU---------
+
+
+
