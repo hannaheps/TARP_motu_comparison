@@ -123,10 +123,17 @@ sb_dat_focal3_bio #looks good!
 ```{r}
 levels(sb_dat_focal$Distance.m)
 #only keep "within 3" and "3 to 5"
+#update: also keep 0 and what about blank - these seem to be flushed (at least for Iti - see below)*
+
+sb_dat_focal%>%
+filter(Distance.m ==""| Distance.m == "0")
+
+sb_dat_focal%>%
+filter(InlandVsSeaward =="Seaward")
 
 sb_dat_focal4<-
   sb_dat_focal3_bio%>%
-  filter(Distance.m=="within 3" | Distance.m=="3 to 5")%>%
+  filter(Distance.m=="within 3" | Distance.m=="3 to 5" |Distance.m=="0"| Distance.m=="")%>%
   droplevels()
 
 str(sb_dat_focal4)
@@ -317,7 +324,6 @@ sb_dat_focal4%>%
   filter(StageCategory=="")
 #seaward "dead petrel?" so can ignore this one!
 
-#****NOTE: there is a "juv" category - I ignored this for now because then we only cover adult-sized birds as I think that makes the most sense since we're already excluding chicks.  But, we can change to include it if we want to
 
 #limit to adult-sized birds---- 
 #includes juveniles ("adult-sized birds that can fly but aren’t in their breeding coloration":
@@ -823,4 +829,147 @@ seabird_focal_all
 
 
 ```
+
+
+##add in close tahuna iti transects for Rimatuu exposed side
+```{r}
+
+#limit to correct transects - same as above plus transects 1-4 on Iti (0717-0718-0719-0720)----
+sb_dat_iti<-
+  sb_dat %>%
+  filter((TransectStart == "0717"&TransectEnd == "0718")| 
+           (TransectStart == "0718"&TransectEnd == "0719")|
+           (TransectStart == "0719"&TransectEnd == "0720")|
+           (TransectStart == "0720"&TransectEnd == "0721"))
+
+
+#remove birds > 5 m----
+sb_dat_iti2<-
+  sb_dat_iti%>%
+  filter(Distance.m=="within 3" | Distance.m=="3 to 5" |Distance.m=="0"| Distance.m=="")%>%
+  droplevels()
+
+##add in biomass----
+sb_dat_iti_bio<-
+  left_join(sb_dat_iti2,
+            select(bio_dat, c(SpeciesName, Body_mass_HBW, Body_mass_Elton)),
+            by = "SpeciesName")%>%
+  relocate(Body_mass_HBW, .after = SpeciesName)%>%
+    relocate(Body_mass_Elton, .after = Body_mass_HBW)%>%
+  mutate(Number_transects = 4) #add number of transects
+
+sb_dat_iti_bio #looks good!
+
+
+#limit to adult-sized birds---- 
+#includes juveniles ("adult-sized birds that can fly but aren’t in their breeding coloration":
+#but also if the category is "nest" or "onegg" then the adult is also present so should probably include these in the adult counts as well*
+#don't include "egg" because adult wasn't present - likely was one of the adults that was flushed and already counted in the "adult" category. 
+sb_dat_iti_adults<-
+  sb_dat_iti_bio%>%
+  filter(StageCategory=="adult" | StageCategory=="adultORjuv"|StageCategory=="juv"|StageCategory=="nest"|StageCategory=="onegg")%>%
+  droplevels()
+sb_dat_iti_adults
+
+
+#now add by species/motu and calculate density----
+sb_dat_iti_adults_sp<-
+  sb_dat_iti_adults%>%
+  group_by(Motu, Number_transects, SpeciesName, Body_mass_HBW)%>%
+  summarize(Abundance = sum(Nb))%>%
+  mutate(Density_m2 = Abundance/(500*Number_transects)) %>% #5 x 100 m transects, so each transect = 500 m, times the number of transects
+  mutate(Density_ha = Density_m2*10000) %>% #and convert to hectares because that's used a lot
+  mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species - divide by 1000 to go from grams to kg
+         biomass_kg_m2 = biomass_kg/(500*Number_transects), #convert to per m^2 as above
+        biomass_kg_ha = biomass_kg_m2 *10000) #convert to per hectare - divide by 500 because 500 m&2 per transect, multiple by 10000 for m^2 to hectare
+
+sb_dat_iti_adults_sp
+
+
+
+##repeat for breeding birds----
+sb_dat_iti_nests<-
+  sb_dat_iti_bio%>%
+  filter(StageCategory=="chick" | StageCategory=="egg"| StageCategory=="fledgling"| StageCategory=="nest"| StageCategory=="onegg")%>%
+  droplevels()
+
+sb_dat_iti_nests
+
+#now add by species/motu and calculate density----
+sb_dat_iti_nests_sp<-
+  sb_dat_iti_nests%>%
+  group_by(Motu, Number_transects, SpeciesName, Body_mass_HBW)%>%
+  summarize(BreedingPairs = sum(Nb),
+            Abundance = BreedingPairs*2)%>% #- multiply by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs)
+  mutate(Density_m2 = Abundance/(500*Number_transects)) %>% #5 x 100 m transects, so each transect = 500 m, times the number of transects
+  mutate(Density_ha = Density_m2*10000) %>% #and convert to hectares because that's used a lot
+ mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species  - divide by 1000 to go from grams to kg
+         biomass_kg_m2 = biomass_kg/(500*Number_transects), #convert to per m^2 as above
+        biomass_kg_ha = biomass_kg_m2 *10000) #convert to per hectare - divide by 500 because 500 m&2 per transect, multiple by 10000 for m^2 to hectare
+
+sb_dat_iti_nests_sp
+
+
+###sum total, not by species----
+#nesting birds
+sb_dat_iti_nests<-
+  sb_dat_iti_nests_sp%>%
+  group_by(Motu)%>%
+  summarize(breeding_density_ha_side = sum(Density_ha),
+            breeding_biomass_kgha_side = sum(biomass_kg_ha))
+sb_dat_iti_nests
+
+
+#adult birds
+sb_dat_iti_adults<-
+  sb_dat_iti_adults_sp%>%
+  group_by(Motu)%>%
+  summarize(adult_density_ha_side = sum(Density_ha),
+            adult_biomass_kgha_side = sum(biomass_kg_ha))%>%
+  mutate(Exposure = "south")
+sb_dat_iti_adults
+
+
+##combine all into one wide datasheet:
+seabird_iti_all<-
+  full_join(sb_dat_iti_nests, sb_dat_iti_adults,
+            by = c("Motu"))%>%
+  mutate(Exposure = "na")
+
+seabird_iti_all
+
+##combine with side data:
+seabird_side_w_iti_1<-
+  rbind(select(seabird_focal_all, c(Motu, Exposure, breeding_density_ha_side, breeding_biomass_kgha_side,
+                                                     adult_density_ha_side, adult_biomass_kgha_side)),
+        seabird_iti_all)
+seabird_side_w_iti_1
+
+seabird_side_w_iti_2<-
+  seabird_side_w_iti_1%>%
+  ungroup%>%
+  add_row(Motu = "Rimatuu_Iti", Exposure = "Exposed", 
+          breeding_density_ha_side = (61.05263 + 2010.00000),
+          breeding_biomass_kgha_side = (10.78105 + 489.93000),
+          adult_density_ha_side = (62.10526 + 2850.00000),
+          adult_biomass_kgha_side = (10.82842 + 607.40000))
+seabird_side_w_iti_2
+
+seabird_side_w_iti<-
+  seabird_side_w_iti_2%>%
+  filter(Motu!="Tahuna Iti")%>%
+  filter(!(Motu == "Rimatuu"& Exposure == "Exposed"))%>%
+  mutate(Motu = if_else(Motu == "Rimatuu_Iti", "Rimatuu", Motu))
+  
+seabird_side_w_iti
+
+##ITI has by far the highest densities of any motu side....could explain n15 of Rimatuu??
+
+
+#save as .csv:
+#write.csv(seabird_side_w_iti, "outputs/seabird_dens_bio_by_side_iti_rimatuu_exposed_combined.csv")
+
+
+```
+
 
