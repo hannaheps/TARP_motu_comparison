@@ -123,7 +123,7 @@ sb_dat_focal3_bio #looks good!
 ```{r}
 levels(sb_dat_focal$Distance.m)
 #only keep "within 3" and "3 to 5"
-#update: also keep 0 and what about blank - these seem to be flushed (at least for Iti - see below)*
+#update: also keep 0 and what about blank - these seem to be flushed (at least for Iti - see below)*****
 
 sb_dat_focal%>%
 filter(Distance.m ==""| Distance.m == "0")
@@ -801,35 +801,6 @@ seabird_focal_all_r<-
 
 ```
 
-#save data as .Rdata:
-```{r}
-
-#by species:
-sb_dat_focal_nests_motu_sp
-sb_dat_focal_nests_100m_sp
-sb_dat_focal_nests_200m_sp
-sb_dat_focal_nests_side_sp
-
-sb_dat_focal_adults_motu_sp
-sb_dat_focal_adults_100m_sp
-sb_dat_focal_adults_200m_sp
-sb_dat_focal_adults_side_sp
-
-#aggregated:
-seabird_focal_all
-
-
-#save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,sb_dat_focal_nests_side_sp,
-#     sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, sb_dat_focal_adults_200m_sp,sb_dat_focal_adults_side_sp,
-#     seabird_focal_all, file = "outputs/seabird_dens_bio_data.RData")
-
-
-##also save all aggregated as .csv to make it easy to email/share----
-#write.csv(seabird_focal_all, "outputs/seabird_dens_bio_focal_data.csv")
-
-
-```
-
 
 ##add in close tahuna iti transects for Rimatuu exposed side
 ```{r}
@@ -965,11 +936,43 @@ seabird_side_w_iti
 
 ##ITI has by far the highest densities of any motu side....could explain n15 of Rimatuu??
 
+```
 
-#save as .csv:
+
+
+#save data as .Rdata:
+```{r}
+
+#by species:
+sb_dat_focal_nests_motu_sp
+sb_dat_focal_nests_100m_sp
+sb_dat_focal_nests_200m_sp
+sb_dat_focal_nests_side_sp
+
+sb_dat_focal_adults_motu_sp
+sb_dat_focal_adults_100m_sp
+sb_dat_focal_adults_200m_sp
+sb_dat_focal_adults_side_sp
+
+#plus iti by species:
+sb_dat_iti_adults_sp
+sb_dat_iti_nests_sp
+
+#aggregated:
+seabird_focal_all
+seabird_side_w_iti
+
+#save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,sb_dat_focal_nests_side_sp,
+  #   sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, sb_dat_focal_adults_200m_sp,sb_dat_focal_adults_side_sp,
+ #    sb_dat_iti_adults_sp, sb_dat_iti_nests_sp,
+  #   seabird_focal_all, seabird_side_w_iti, file = "outputs/seabird_dens_bio_data.RData")
+
+
+##also save all aggregated as .csv to make it easy to email/share----
+#write.csv(seabird_focal_all, "outputs/seabird_dens_bio_focal_data.csv")
+
+#save as .csv - w/ Iti:
 #write.csv(seabird_side_w_iti, "outputs/seabird_dens_bio_by_side_iti_rimatuu_exposed_combined.csv")
 
 
 ```
-
-

@@ -11,6 +11,10 @@ output: html_document
 library(tidyverse) #for everything
 library(vegan) # for diversity and community analyses
 
+
+library(fishtree)#for phylogentic diversity - tree
+library(picante)#for phylogentic diversity -Faith's PD
+
 ```
 
 
@@ -58,6 +62,13 @@ tet_fish_raw_meta%>%
 filter(is.na(site.name))
 #all good
 
+
+###fish trait data (biomass conversions, trophic level, feeding groups)----
+tet_fish_trait<-read.csv("../raw_data/Tetiaroa_fish_traits.csv", stringsAsFactors = TRUE)
+tet_fish_trait
+#a, b, trophic levels from Bayesian estimates on FishBase
+#Diet data from Morais & Bellwood 2019, 2018, Benkwitt et al. NEE 2020, or if in none of those - fishbase diet table/description
+
 ```
 
 #sum by transect, change to wide to calculate diversity metrics:
@@ -95,7 +106,7 @@ tet_fish_raw_trans_wide_biomass
 ```
 
 
-#calculate diversity:
+#calculate species diversity:
 ```{r}
 str(tet_fish_raw_trans_wide_density)
 
@@ -162,6 +173,76 @@ tet_fish_dens_diversity%>%
 
 
 ##maybe interesting - diveristy metrics definitely not following same pattern as density (and biomass)
+
+```
+
+#calculate Faith's PD
+```{r}
+
+tet_fish_raw_trans_wide_density
+tet_fish_raw_meta_trans
+
+#get species list
+fish_species_list<-
+  as.data.frame(colnames(tet_fish_raw_trans_wide_density_sp))%>%
+  rename(Species = "colnames(tet_fish_raw_trans_wide_density_sp)")%>%
+  #mutate(Species = gsub())
+  mutate(Species = str_replace(Species, fixed("."), " "))
+fish_species_list
+
+# Retrieve the phylogeny of observed species
+phy <- fishtree_phylogeny(species = fish_species_list$Species)
+#warning, missing: • Scaridae sp, Pycnochromis iomelas, Ostracion cubicum
+#maybe should be unaccepted name: Ostracion cubicus?
+#maybe should be unaccepted name: Chromis iomelas?
+
+fish_species_list2<-
+  fish_species_list%>%
+  mutate(Species = str_replace(Species, "Ostracion cubicum", "Ostracion cubicus"))%>%
+  mutate(Species = str_replace(Species, "Pycnochromis iomelas", "Chromis iomelas"))
+
+phy <- fishtree_phylogeny(species = fish_species_list2$Species)
+#yup, that worked!
+#scaridae sp. we don't know what it should be. Could jsut use C. spilurus beause most common, OR for now - just ignore. 
+
+tet_fish_raw_trans_wide_density
+
+species_matrix<-
+  tet_fish_raw_trans_wide_density%>%
+  ungroup()%>%
+ # mutate(site_name = site.name)%>%
+  unite("site_transect", site.name, transect, sep = "_")%>%
+  select(-c(motu, wind.exposure, rat.eradication.status))%>%
+  column_to_rownames(var="site_transect")%>%
+  rename_with(~gsub(".", "_", .x, fixed = TRUE))
+  
+species_matrix
+
+
+trans_pd<-pd(species_matrix, phy)
+trans_pd
+
+#combine with other diversity data:----
+tet_fish_dens_diversity_PD<-
+  cbind(tet_fish_dens_diversity, trans_pd)
+
+tet_fish_dens_diversity_PD
+
+
+tet_fish_dens_diversity_PD%>%
+  ggplot(aes(x = motu, y = PD, color = wind.exposure, fill = wind.exposure))+
+  geom_boxplot(outlier.size=0, outlier.stroke=0,outlier.shape=NA, alpha = 0.1) +
+  geom_point(size = 3, pch=21, alpha= .6, position=position_jitterdodge())+
+  theme_bw()
+
+
+tet_fish_dens_diversity_PD%>%
+  ggplot(aes(x = SR, y = PD, color = wind.exposure, fill = wind.exposure))+
+  geom_point(size = 3, pch=21, alpha= .6)+
+  theme_bw()
+#looks pretty correlated**
+
+#also seems like reasonable PD values based on a few other studies of reef corals/fish. 
 
 ```
 
@@ -418,20 +499,6 @@ tet_fish_raw_trans_wide_biomass%>%
 ###look at trophic levels by transect----
 ```{r}
 #for this use biomass, because that's what trophic pyramids based on:
-tet_fish_raw_meta%>%
-  group_by(motu, site.name, wind.exposure, rat.eradication.status, transect, species)%>%
-  summarize(density_ha_trans = sum(density_ha),
-            biomass_kgha_trans = sum(biomass_kg_ha))%>%
-  mutate(species = str_replace(species, " ", "."),
-         species = as.factor(species))
-
-
-tet_fish_raw_trans_wide_biomass<-
-  tet_fish_raw_meta%>%
-  pivot_wider(id_cols = c(motu, site.name, wind.exposure, rat.eradication.status, transect), 
-              values_from = biomass_kgha_trans, names_from = species, values_fill = 0)
-tet_fish_raw_trans_wide_biomass
-
 tet_fish_dat_bio_trans_TL<-
 tet_fish_raw_meta%>%
   mutate(trophic_bin = case_when(trophic_level<=2.5 ~ 1,
@@ -490,20 +557,308 @@ tet_fish_dat_bio_trans_TL_wide%>%
 ```
 
 
+###look at feeding groups
+```{r}
+#combine trait data with raw survey data:
+tet_fish_trait
+tet_fish_raw_meta
+
+tet_fish_trait<-
+  tet_fish_trait%>%
+  rename_with(tolower)
+
+tet_fish_raw_meta_trait<-
+  left_join(select(tet_fish_raw_meta, -c(a_fishbase, b_fishbase, trophic_level, trophic_level_se, notes.x)),
+            tet_fish_trait, by = "species")
+
+tet_fish_raw_meta_trait
+
+#combine by transect - diet and density/biomass
+tet_fish_dat_trans_diet<-
+tet_fish_raw_meta_trait%>%
+    group_by(motu, site.name, wind.exposure, rat.eradication.status, transect, broad_diet)%>%
+     summarize(density_ha_trans = sum(density_ha),
+            biomass_kgha_trans = sum(biomass_kg_ha))
+tet_fish_dat_trans_diet
+
+####HER/MAC ONLY AT ONE TRANSECT - SO COMBINE WITH HER/DET TO MAKE ONLY HERBIVORE GROUP:----
+tet_fish_dat_trans_diet<-
+tet_fish_raw_meta_trait%>%
+  mutate(broad_diet = case_when(broad_diet == "HerMac" ~ "Herb",
+                                broad_diet == "HerDet" ~ "Herb",
+                                TRUE ~ as.character(broad_diet)))%>%
+    group_by(motu, site.name, wind.exposure, rat.eradication.status, transect, broad_diet)%>%
+     summarize(density_ha_trans = sum(density_ha),
+            biomass_kgha_trans = sum(biomass_kg_ha))
+tet_fish_dat_trans_diet
+
+
+#make wide to fill in missing 0s:
+#BIOMASS:
+tet_fish_dat_bio_trans_diet_wide<-
+  tet_fish_dat_trans_diet%>%
+  pivot_wider(id_cols = c(motu, site.name, wind.exposure, rat.eradication.status, transect), 
+              values_from = biomass_kgha_trans, names_from = broad_diet, values_fill = 0)%>%
+  ungroup()
+
+#DENSITY:
+tet_fish_dat_dens_trans_diet_wide<-
+  tet_fish_dat_trans_diet%>%
+  pivot_wider(id_cols = c(motu, site.name, wind.exposure, rat.eradication.status, transect), 
+              values_from = density_ha_trans, names_from = broad_diet, values_fill = 0)%>%
+  ungroup()
+tet_fish_dat_dens_trans_diet_wide
+
+
+#make plots (BIOMASS): 
+tet_fish_dat_bio_trans_diet_wide%>%
+  pivot_longer(c(Herb:InvSes), names_to = "diet", values_to = "biomass_diet")%>%
+  ggplot(aes(x = site.name, y = biomass_diet, color = rat.eradication.status, fill = rat.eradication.status, alpha = .5))+
+  geom_boxplot()+
+  facet_wrap(~diet, scales = "free")
+
+
+tet_fish_dat_bio_trans_diet_wide%>%
+  pivot_longer(c(Herb:InvSes), names_to = "diet", values_to = "biomass_diet")%>%
+  ggplot(aes(x = site.name, y = log(biomass_diet+1), color = rat.eradication.status, fill = rat.eradication.status, alpha = .5))+
+  geom_boxplot()+
+  facet_wrap(~diet, scales = "free")
+
+
+tet_fish_dat_bio_trans_diet_wide%>%
+  pivot_longer(c(Herb:InvSes), names_to = "diet", values_to = "biomass_diet")%>%
+  ggplot(aes(x = diet, y = log(biomass_diet+1), color = rat.eradication.status, fill = rat.eradication.status, alpha = .5))+
+  geom_boxplot()
+
+
+tet_fish_dat_bio_trans_diet_wide%>%
+  pivot_longer(c(Herb:InvSes), names_to = "diet", values_to = "biomass_diet")%>%
+  ggplot(aes(x = diet, y = log(biomass_diet+1), color = rat.eradication.status, fill = rat.eradication.status, 
+             shape = wind.exposure, alpha = wind.exposure))+
+  geom_boxplot()+
+  scale_alpha_manual(values = c(9, .5))
+#doesn't look like much
+
+#make plots (DENSITY):
+tet_fish_dat_dens_trans_diet_wide%>%
+  pivot_longer(c(Herb:InvSes), names_to = "diet", values_to = "density_diet")%>%
+  ggplot(aes(x = site.name, y = log(density_diet+1), color = rat.eradication.status, fill = rat.eradication.status, alpha = .5))+
+  geom_boxplot()+
+  facet_wrap(~diet, scales = "free")
+
+
+
+
+  
+
+
+```
+
+##re-run NMDS with broad diet groups rather than species----
+```{r}
+#use density for consistency with previous papers:-----
+tet_fish_dat_dens_trans_diet_wide_sp<-
+  tet_fish_dat_dens_trans_diet_wide%>%
+  select(c(Herb:InvSes))
+
+##run with log density----
+tet_fish_dat_dens_trans_diet_wide_sp_log<-
+  log(tet_fish_dat_dens_trans_diet_wide_sp+1)
+
+#run NMDS:
+nmds_fish_focal_diet_log_transform<-metaMDS(tet_fish_dat_dens_trans_diet_wide_sp_log, distance = "bray", trymax=200, k=2, autotransform = TRUE)
+nmds_fish_focal_diet_log_transform
+#2 axes stress = 0.0477184 so all good
+plot(nmds_fish_focal_diet_log_transform)
+scores(nmds_fish_focal_diet_log_transform, display="species")
+
+
+#try without autotransform:
+nmds_fish_focal_diet_log<-metaMDS(tet_fish_dat_dens_trans_diet_wide_sp_log, distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds_fish_focal_diet_log
+#2 axes stress = 0.09477 so all good
+plot(nmds_fish_focal_diet_log)
+scores(nmds_fish_focal_diet_log, display="species")
+
+
+##proceed withNMDS:---
+#extract distance to centroid - use TukeyHSD.betadisper from ?betadisper
+dist_cent_fish_diet_log <-betadisper(d = vegdist(tet_fish_dat_dens_trans_diet_wide_sp_log, method = "bray"),
+                           group = tet_fish_dat_dens_trans_diet_wide$site.name,
+                           type = "centroid", sqrt.dist = FALSE)
+dist_cent_fish_diet_log
+TukeyHSD(dist_cent_fish_diet_log,conf.level = .95) #okay this shows CI's for contrasts. note that conf.level affects intervals, but not p-values. 
+
+dist_cent_fish_diet_logdf<-
+  cbind(tet_fish_dat_dens_trans_diet_wide, dist_cent_fish_diet_log$distances) %>%
+  rename(Distance_to_centroid = "dist_cent_fish_diet_log$distances")
+dist_cent_fish_diet_logdf
+
+
+##extract site/transect scores----
+fish_diet_log_spp.sc <- as.data.frame(scores(nmds_fish_focal_diet_log, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+fish_diet_log_spp.sc<-
+  fish_diet_log_spp.sc%>%
+  rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
+
+
+fish_diet_log_site.sc <- scores(nmds_fish_focal_diet_log, display = "sites", shrink = FALSE) 
+fish_diet_log_site.sc
+
+#merge site.sc with metadata and dispersion
+nmds_fish_diet_log_site_scores<-
+  bind_cols(dist_cent_fish_diet_logdf,
+                    as_tibble(fish_diet_log_site.sc))
+nmds_fish_diet_log_site_scores
+
+
+#plot just to see----
+
+#get hull data:
+site.A1 <- nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == "A1", ][chull(nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == 
+    "A1", c("NMDS1", "NMDS2")]), ]
+
+site.A2 <- nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == "A2", ][chull(nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == 
+    "A2", c("NMDS1", "NMDS2")]), ]  
+
+site.Re1 <- nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == "Re1", ][chull(nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == 
+    "Re1", c("NMDS1", "NMDS2")]), ]
+
+site.Re2<- nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == "Re2", ][chull(nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == 
+    "Re2", c("NMDS1", "NMDS2")]), ]  
+
+site.Rm1 <- nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == "Rm1", ][chull(nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == 
+    "Rm1", c("NMDS1", "NMDS2")]), ]
+
+site.Rm2<- nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == "Rm2", ][chull(nmds_fish_diet_log_site_scores[nmds_fish_diet_log_site_scores$site.name == 
+    "Rm2", c("NMDS1", "NMDS2")]), ]  
+
+hull.data.diet <- rbind(site.A1, site.A2, site.Re1, site.Re2, site.Rm1, site.Rm2)  #combine
+hull.data.diet
+
+ggplot() + 
+  geom_text(data=fish_diet_log_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
+  geom_point(data=nmds_fish_diet_log_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
+  geom_polygon(data=hull.data.diet,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.30) + # add the convex hulls
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), #remove gray boxes
+        text = element_text(size=20))
+        #legend.title = element_blank()) #remove legend title
+        #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
+       # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
+
+#not much happening....
+
+```
+
+#NMDS by diet with biomass instead of density
+```{r}
+#use bioity for consistency with previous papers:
+tet_fish_dat_bio_trans_diet_wide_sp<-
+  tet_fish_dat_bio_trans_diet_wide%>%
+  select(c(Herb:InvSes))
+
+##run with log bioity----
+tet_fish_dat_bio_trans_diet_wide_sp_log<-
+  log(tet_fish_dat_bio_trans_diet_wide_sp+1)
+
+#run NMDS without autotransform:
+nmds_fish_focal_diet_log_bio<-metaMDS(tet_fish_dat_bio_trans_diet_wide_sp_log, distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds_fish_focal_diet_log_bio
+#2 axes stress = 0.1853274 so okay
+plot(nmds_fish_focal_diet_log_bio)
+scores(nmds_fish_focal_diet_log_bio, display="species")
+
+
+##proceed withNMDS:---
+#extract distance to centroid - use TukeyHSD.betadisper from ?betadisper
+dist_cent_fish_diet_log_bio <-betadisper(d = vegdist(tet_fish_dat_bio_trans_diet_wide_sp_log, method = "bray"),
+                           group = tet_fish_dat_bio_trans_diet_wide$site.name,
+                           type = "centroid", sqrt.dist = FALSE)
+dist_cent_fish_diet_log_bio
+TukeyHSD(dist_cent_fish_diet_log_bio,conf.level = .95) #okay this shows CI's for contrasts. note that conf.level affects intervals, but not p-values. 
+
+dist_cent_fish_diet_log_biodf<-
+  cbind(tet_fish_dat_bio_trans_diet_wide, dist_cent_fish_diet_log_bio$distances) %>%
+  rename(Distance_to_centroid = "dist_cent_fish_diet_log_bio$distances")
+dist_cent_fish_diet_log_biodf
+
+
+##extract site/transect scores----
+fish_diet_log_bio_spp.sc <- as.data.frame(scores(nmds_fish_focal_diet_log_bio, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+fish_diet_log_bio_spp.sc<-
+  fish_diet_log_bio_spp.sc%>%
+  rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
+
+
+fish_diet_log_bio_site.sc <- scores(nmds_fish_focal_diet_log_bio, display = "sites", shrink = FALSE) 
+fish_diet_log_bio_site.sc
+
+#merge site.sc with metadata and dispersion
+nmds_fish_diet_log_bio_site_scores<-
+  bind_cols(dist_cent_fish_diet_log_biodf,
+                    as_tibble(fish_diet_log_bio_site.sc))
+nmds_fish_diet_log_bio_site_scores
+
+
+#plot just to see----
+
+#get hull data:
+site.A1 <- nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == "A1", ][chull(nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == 
+    "A1", c("NMDS1", "NMDS2")]), ]
+
+site.A2 <- nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == "A2", ][chull(nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == 
+    "A2", c("NMDS1", "NMDS2")]), ]  
+
+site.Re1 <- nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == "Re1", ][chull(nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == 
+    "Re1", c("NMDS1", "NMDS2")]), ]
+
+site.Re2<- nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == "Re2", ][chull(nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == 
+    "Re2", c("NMDS1", "NMDS2")]), ]  
+
+site.Rm1 <- nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == "Rm1", ][chull(nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == 
+    "Rm1", c("NMDS1", "NMDS2")]), ]
+
+site.Rm2<- nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == "Rm2", ][chull(nmds_fish_diet_log_bio_site_scores[nmds_fish_diet_log_bio_site_scores$site.name == 
+    "Rm2", c("NMDS1", "NMDS2")]), ]  
+
+hull.data.diet <- rbind(site.A1, site.A2, site.Re1, site.Re2, site.Rm1, site.Rm2)  #combine
+hull.data.diet
+
+ggplot() + 
+  geom_text(data=fish_diet_log_bio_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
+  geom_point(data=nmds_fish_diet_log_bio_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
+  geom_polygon(data=hull.data.diet,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.30) + # add the convex hulls
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), #remove gray boxes
+        text = element_text(size=20))
+        #legend.title = element_blank()) #remove legend title
+        #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
+       # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
+```
+
 
 ##combine transect data and save----
 ```{r}
 str(nmds_fish_log_site_scores) #DENSITY
-str(tet_fish_dens_diversity) #DENSITY
+str(tet_fish_dens_diversity_PD) #DENSITY
 str(tet_fish_dat_bio_trans_TL_rel_abund) #BIOMASS relative trophic levels
+str(tet_fish_dat_bio_trans_diet_wide) #BIOMASS by diet groups (broad)
+str(tet_fish_dat_dens_trans_diet_wide) #DENSITY by diet groups (broad)
+str(nmds_fish_diet_log_bio_site_scores) #BIOMASS by diet groups (nmds) - ready to go
+str(nmds_fish_diet_log_site_scores) #DENSITY by diet groups (nmds) - ready to go
 
-
+#combine species-level data (DENSITY):----
 tet_fish_dens_div_comm_dat<-
-  left_join(tet_fish_dens_diversity, nmds_fish_log_site_scores,
+  left_join(tet_fish_dens_diversity_PD, nmds_fish_log_site_scores,
             by = c("motu", "site.name", "wind.exposure", "rat.eradication.status", "transect"))
 tet_fish_dens_div_comm_dat
 
-
+#combine TL data (BIOMASS):----
 tet_fish_div_comm_tl_dat<-
   left_join(tet_fish_dens_div_comm_dat, 
             select(tet_fish_dat_bio_trans_TL_rel_abund, c(site.name, transect, rel_bio_TL1, rel_bio_TL2, rel_bio_TL3, rel_bio_TL4, rel_bio_TL5)),
@@ -512,6 +867,11 @@ tet_fish_div_comm_tl_dat
 
 #write.csv(tet_fish_dens_div_comm_dat, "../output/data/tet_fish_dens_div_comm_dat.csv")
 #write.csv(tet_fish_div_comm_tl_dat, "../output/data/tet_fish_div_comm_tl_dat.csv")
+#write.csv(nmds_fish_diet_log_site_scores, "../output/data/tet_fish_comm_diet_dens_dat.csv")
+#write.csv(nmds_fish_diet_log_bio_site_scores, "../output/data/tet_fish_comm_diet_bio_dat.csv")
+
+#save(tet_fish_dens_div_comm_dat, tet_fish_div_comm_tl_dat, nmds_fish_diet_log_site_scores, nmds_fish_diet_log_bio_site_scores, file = "../output/data/fish_community_data.Rdata")
+
 
 ```
 
