@@ -279,6 +279,7 @@ ggplot() +
 ```{r}
 str(nmds_video_site_scores) #BROAD GROUPS
 str(tet_video_coral_diversity) #CORALS
+str(tet_video_raw_meta_broad) #broad groups - % cover
 
 #rename:
 tet_video_coral_diversity_rn<-
@@ -291,10 +292,23 @@ tet_video_coral_diversity_rn
 
 tet_video_div_comm_dat<-
   left_join(tet_video_coral_diversity_rn, nmds_video_site_scores,
-            by = c("motu", "site.name", "wind.exposure", "rat.eradication.status", "transect"))
+            by = c("motu", "site.name", "wind.exposure", "rat.eradication.status", "protection", "transect"))
 tet_video_div_comm_dat
 
-#write.csv(tet_video_div_comm_dat, "../output/data/tet_video_div_comm_dat.csv")
+
+tet_video_div_comm_dat_w_cover<-
+  left_join(tet_video_div_comm_dat, tet_video_raw_meta_broad,
+            by = c("motu", "site.name", "wind.exposure", "rat.eradication.status", "protection", "transect"))
+
+tet_video_div_comm_dat_w_cover
+#round % cover data, and make it clear what it is....
+tet_video_div_comm_dat_w_cover<-
+  tet_video_div_comm_dat_w_cover%>%
+  mutate(across(c(total_hard_coral:transect_tape), round, 2))%>%
+  rename_with(.fn = ~ paste0(.x, "_percent_cover"), .cols = c("total_hard_coral":"total"))
+tet_video_div_comm_dat_w_cover
+
+#write.csv(tet_video_div_comm_dat_w_cover, "../output/data/tet_video_div_comm_dat.csv")
 
 ```
 
@@ -305,7 +319,7 @@ tet_video_div_comm_dat
 #load raw data
 ```{r}
 
-#raw video data----
+#raw in situ data----
 tet_insitu_raw<-read.csv("../raw_data/Tetiaroa_benthic_uvc_focal_Nov21_in_situ.csv", stringsAsFactors = TRUE)
 str(tet_insitu_raw)
 
@@ -651,6 +665,7 @@ ggplot() +
 ```{r}
 str(nmds_insitu_site_scores) #BROAD GROUPS
 str(tet_insitu_coral_diversity) #CORALS
+str(tet_insitu_raw_meta_cat_wide) #% cover data
 
 #rename:
 tet_insitu_coral_diversity_rn<-
@@ -668,4 +683,76 @@ tet_insitu_div_comm_dat
 
 #write.csv(tet_insitu_div_comm_dat, "../output/data/tet_insitu_div_comm_dat.csv")
 
+##keep % cover data, too: 
+tet_insitu_div_comm_dat_w_cover<-
+  left_join(tet_insitu_div_comm_dat, tet_insitu_raw_meta_cat_wide,
+            by = c("motu", "site.name", "wind.exposure", "rat.eradication.status", "transect"))
+
+tet_insitu_div_comm_dat_w_cover
+
+#round % cover data, and make it clear what it is....
+tet_insitu_div_comm_dat_w_cover<-
+  tet_insitu_div_comm_dat_w_cover%>%
+  mutate(across(c(coral:cyano), round, 2))%>%
+  rename_with(.fn = ~ paste0(.x, "_prop_cover"), .cols = c("coral":"cyano"))
+tet_insitu_div_comm_dat_w_cover
+
+
+#write.csv(tet_insitu_div_comm_dat_w_cover, "../output/data/tet_insitu_div_comm_dat.csv")
+
+
 ```
+
+
+
+#check corrs bewtween in situ and video % cover:
+```{r}
+
+#hard coral
+cor.test(tet_insitu_div_comm_dat_w_cover$coral_prop_cover, tet_video_div_comm_dat_w_cover$total_hard_coral_percent_cover)
+#0.7463035 
+
+
+#macroalgae
+cor.test(tet_insitu_div_comm_dat_w_cover$macroalgae_prop_cover, tet_video_div_comm_dat_w_cover$macroalgae_percent_cover)
+#0.7884377
+
+
+#pavement
+cor.test(tet_insitu_div_comm_dat_w_cover$pavement_prop_cover, tet_video_div_comm_dat_w_cover$pavement_percent_cover)
+#0.4166722
+#but, no turf category in in situ:
+cor.test(tet_insitu_div_comm_dat_w_cover$pavement_prop_cover, (tet_video_div_comm_dat_w_cover$pavement_percent_cover+ tet_video_div_comm_dat_w_cover$turf_percent_cover))
+#0.3118573 - that's actually worse....
+
+#rubble
+cor.test(tet_insitu_div_comm_dat_w_cover$rubble_prop_cover, tet_video_div_comm_dat_w_cover$rubble_percent_cover)
+#0.4603791
+
+
+#sand
+cor.test(tet_insitu_div_comm_dat_w_cover$sand_prop_cover, tet_video_div_comm_dat_w_cover$sand_percent_cover)
+#0.8228589
+
+#other inverts
+cor.test(tet_insitu_div_comm_dat_w_cover$other_invert_prop_cover, tet_video_div_comm_dat_w_cover$other_fish_inverts_percent_cover)
+#0.1873515
+
+
+#for largest groups (corals, macroalgae, sand) - very strongly correlated
+#only issue is with turf/pavement...
+
+```
+
+
+#save all as .Rdata
+```{r}
+tet_video_div_comm_dat_w_cover #video
+tet_insitu_div_comm_dat_w_cover #in situ
+
+
+#save(tet_video_div_comm_dat_w_cover, tet_insitu_div_comm_dat_w_cover, nmds_fish_diet_log_site_scores, file = "../output/data/benthic_community_data.Rdata")
+
+
+```
+
