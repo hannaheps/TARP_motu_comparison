@@ -1,0 +1,287 @@
+﻿date,motu,site.name,distance.along.transect,transect.id.Maya,transect.length,taxonomic.group,algal.species,abundance.cm2
+11/4/21,Aie,A2,10,A2-10-T1,25m,brown algae,Lobophora spp,300
+11/4/21,Aie,A2,10,A2-10-T1,25m,brown algae,Turbinaria ornata,3075
+11/4/21,Aie,A2,10,A2-10-T1,25m,green algae,Caulerpa serrulata,25
+11/4/21,Aie,A2,10,A2-10-T2,25m,brown algae,Lobophora spp,200
+11/4/21,Aie,A2,10,A2-10-T2,25m,brown algae,Turbinaria ornata,2000
+11/4/21,Aie,A2,10,A2-10-T2,25m,green algae,Caulerpa serrulata,25
+11/4/21,Aie,A2,10,A2-10-T3,25m,brown algae,Lobophora spp,250
+11/4/21,Aie,A2,10,A2-10-T3,25m,brown algae,Turbinaria ornata,3950
+11/4/21,Aie,A2,10,A2-10-T3,25m,cyanobacteria,Schizothrix minuta,20
+11/4/21,Aie,A2,10,A2-10-T3,25m,green algae,Caulerpa serrulata,25
+11/4/21,Aie,A2,10,A2-10-T4,25m,brown algae,Lobophora spp,250
+11/4/21,Aie,A2,10,A2-10-T4,25m,brown algae,Turbinaria ornata,3000
+11/4/21,Aie,A2,10,A2-10-T4,25m,cyanobacteria,Schizothrix minuta,20
+11/4/21,Aie,A2,10,A2-10-T4,25m,green algae,Caulerpa serrulata,50
+11/4/21,Aie,A2,40,A2-40-T1,25m,brown algae,Lobophora spp,2000
+11/4/21,Aie,A2,40,A2-40-T1,25m,cyanobacteria,Hydrocoleum coccineum,1800
+11/4/21,Aie,A2,40,A2-40-T1,25m,green algae,Chlorodesmis fastigiata,50
+11/4/21,Aie,A2,40,A2-40-T1,25m,cyanobacteria,Schizothrix minuta,80
+11/4/21,Aie,A2,40,A2-40-T1,25m,brown algae,Turbinaria ornata,75
+11/4/21,Aie,A2,40,A2-40-T1,25m,green algae,Neomeris vanbosseae,25
+11/4/21,Aie,A2,40,A2-40-T1,25m,green algae,Caulerpa serrulata,25
+11/4/21,Aie,A2,40,A2-40-T1,25m,green algae,Avrainvillea lacerata,200
+11/4/21,Aie,A2,40,A2-40-T1,25m,green algae,Halimeda distorta,500
+11/4/21,Aie,A2,40,A2-40-T2,25m,brown algae,Lobophora spp,2000
+11/4/21,Aie,A2,40,A2-40-T2,25m,cyanobacteria,Hydrocoleum coccineum,1200
+11/4/21,Aie,A2,40,A2-40-T2,25m,green algae,Chlorodesmis fastigiata,25
+11/4/21,Aie,A2,40,A2-40-T2,25m,brown algae,Turbinaria ornata,100
+11/4/21,Aie,A2,40,A2-40-T2,25m,green algae,Neomeris vanbosseae,25
+11/4/21,Aie,A2,40,A2-40-T2,25m,green algae,Caulerpa serrulata,25
+11/4/21,Aie,A2,40,A2-40-T2,25m,green algae,Halimeda distorta,500
+11/4/21,Aie,A2,40,A2-40-T3,25m,brown algae,Lobophora spp,2000
+11/4/21,Aie,A2,40,A2-40-T3,25m,cyanobacteria,Hydrocoleum coccineum,1500
+11/4/21,Aie,A2,40,A2-40-T3,25m,green algae,Chlorodesmis fastigiata,25
+11/4/21,Aie,A2,40,A2-40-T4,25m,brown algae,Lobophora spp,2000
+11/4/21,Aie,A2,40,A2-40-T4,25m,green algae,Chlorodesmis fastigiata,50
+11/4/21,Aie,A2,40,A2-40-T4,25m,cyanobacteria,Hydrocoleum coccineum,1000
+11/4/21,Aie,A2,40,A2-40-T4,25m,cyanobacteria,Pseudanabaena lonchoides,100
+11/5/21,Aie,A1,10,A1-10-T1,50m,brown algae,Turbinaria ornata,3325
+11/5/21,Aie,A1,10,A1-10-T2,50m,brown algae,Turbinaria ornata,5975
+11/5/21,Aie,A1,10,A1-10-T3,50m,brown algae,Turbinaria ornata,15025
+11/5/21,Aie,A1,10,A1-10-T4,50m,brown algae,Turbinaria ornata,11825
+11/5/21,Aie,A1,40,A1-40-T1,50m,brown algae,Lobophora spp,4100
+11/5/21,Aie,A1,40,A1-40-T1,50m,brown algae,Turbinaria ornata,12500
+11/5/21,Aie,A1,40,A1-40-T1,50m,cyanobacteria,Hydrocoleum spp,100
+11/5/21,Aie,A1,40,A1-40-T2,50m,brown algae,Lobophora spp,5500
+11/5/21,Aie,A1,40,A1-40-T2,50m,brown algae,Turbinaria ornata,12300
+11/5/21,Aie,A1,40,A1-40-T2,50m,green algae,Chlorodesmis fastigiata,220
+11/5/21,Aie,A1,40,A1-40-T2,50m,green algae,Avrainvillea lacerata,100
+11/5/21,Aie,A1,40,A1-40-T3,50m,brown algae,Lobophora spp,4200
+11/5/21,Aie,A1,40,A1-40-T3,50m,brown algae,Turbinaria ornata,10820
+11/5/21,Aie,A1,40,A1-40-T3,50m,green algae,Caulerpa serrulata,100
+11/5/21,Aie,A1,40,A1-40-T4,50m,brown algae,Lobophora spp,3500
+11/5/21,Aie,A1,40,A1-40-T4,50m,brown algae,Turbinaria ornata,7000
+11/5/21,Aie,A1,40,A1-40-T4,50m,green algae,Caulerpa serrulata,25
+11/5/21,Aie,A1,40,A1-40-T4,50m,cyanobacteria,Schizothrix minuta,20
+11/5/21,Reiono,Re2,10,RE1-10-T1,25m,brown algae,Turbinaria ornata,2600
+11/5/21,Reiono,Re2,10,RE1-10-T1,25m,green algae,Chlorodesmis fastigiata,1700
+11/5/21,Reiono,Re2,10,RE1-10-T1,25m,brown algae,Lobophora spp,900
+11/5/21,Reiono,Re2,10,RE1-10-T1,25m,green algae,Caulerpa serrulata,100
+11/5/21,Reiono,Re2,10,RE1-10-T1,25m,green algae,Caulerpa chemnitzia,200
+11/5/21,Reiono,Re2,10,RE1-10-T1,25m,green algae,Halimeda distorta,50
+11/5/21,Reiono,Re2,10,RE1-10-T1,25m,cyanobacteria,Caldora penicillata,100
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,brown algae,Turbinaria ornata,4000
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,green algae,Chlorodesmis fastigiata,1700
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,brown algae,Lobophora spp,1000
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,green algae,Caulerpa serrulata,50
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,cyanobacteria,Schizothrix minuta,40
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,green algae,Halimeda distorta,50
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,cyanobacteria,Caldora penicillata,100
+11/5/21,Reiono,Re2,10,RE1-10-T2,25m,green algae,Halimeda distorta,100
+11/5/21,Reiono,Re2,10,RE1-10-T3,25m,brown algae,Turbinaria ornata,4500
+11/5/21,Reiono,Re2,10,RE1-10-T3,25m,green algae,Chlorodesmis fastigiata,1500
+11/5/21,Reiono,Re2,10,RE1-10-T3,25m,brown algae,Lobophora spp,1100
+11/5/21,Reiono,Re2,10,RE1-10-T3,25m,green algae,Caulerpa serrulata,50
+11/5/21,Reiono,Re2,10,RE1-10-T3,25m,green algae,Halimeda distorta,500
+11/5/21,Reiono,Re2,10,RE1-10-T4,25m,brown algae,Turbinaria ornata,5000
+11/5/21,Reiono,Re2,10,RE1-10-T4,25m,green algae,Chlorodesmis fastigiata,1400
+11/5/21,Reiono,Re2,10,RE1-10-T4,25m,brown algae,Lobophora spp,1000
+11/5/21,Reiono,Re2,10,RE1-10-T4,25m,green algae,Halimeda distorta,500
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,brown algae,Turbinaria ornata,2600
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,green algae,Chlorodesmis fastigiata,1000
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,brown algae,Lobophora spp,2900
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,cyanobacteria,Hydrocoleum coccineum,200
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,cyanobacteria,Caldora penicillata,100
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,green algae,Caulerpa serrulata,25
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,green algae,Halimeda heteromorpha,25
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,green algae,Halimeda distorta,1000
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,green algae,Cladophora fuliginosa,50
+11/5/21,Reiono,Re2,40,RE1-40-T1,25m,cyanobacteria,Schizothrix minuta,50
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,brown algae,Turbinaria ornata,4000
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,green algae,Chlorodesmis fastigiata,950
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,brown algae,Lobophora spp,2000
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,cyanobacteria,Caldora penicillata,100
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,green algae,Caulerpa serrulata,75
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,green algae,Halimeda distorta,650
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,green algae,Halimeda distorta,30
+11/5/21,Reiono,Re2,40,RE1-40-T2,25m,cyanobacteria,Schizothrix minuta,50
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,cyanobacteria,Hydrocoleum spp,150
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,green algae,Halimeda heteromorpha,200
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,green algae,Halimeda distorta,2000
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,green algae,Halimeda distorta,100
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,cyanobacteria,Schizothrix minuta,100
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,cyanobacteria,Hydrocoleum coccineum,200
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,green algae,Neomeris vanbosseae,25
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,red algae,Jania articulata,25
+11/5/21,Reiono,Re2,40,RE1-40-T3,25m,red algae,Hypnea spinella,25
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,cyanobacteria,Caldora penicillata,25
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,green algae,Halimeda heteromorpha,200
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,green algae,Halimeda distorta,1400
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,green algae,Halimeda distorta,100
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,cyanobacteria,Schizothrix minuta,100
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,cyanobacteria,Hydrocoleum coccineum,200
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,green algae,Dictyosphaeria cavernosa,20
+11/5/21,Reiono,Re2,40,RE1-40-T4,25m,green algae,Neomeris vanbosseae,25
+11/6/21,Reiono,Re1,10,RE2-10-T1,25m,,Turbinaria ornata,6900
+11/6/21,Reiono,Re1,10,RE2-10-T1,25m,,Chlorodesmis fastigiata,425
+11/6/21,Reiono,Re1,10,RE2-10-T1,25m,,Caulerpa serrulata,25
+11/6/21,Reiono,Re1,10,RE2-10-T1,25m,,Lobophora spp,150
+11/6/21,Reiono,Re1,10,RE2-10-T2,25m,,Turbinaria ornata,900
+11/6/21,Reiono,Re1,10,RE2-10-T2,25m,,Chlorodesmis fastigiata,2750
+11/6/21,Reiono,Re1,10,RE2-10-T2,25m,,Caulerpa serrulata,50
+11/6/21,Reiono,Re1,10,RE2-10-T2,25m,,Schizothrix minuta,40
+11/6/21,Reiono,Re1,10,RE2-10-T3,25m,,Turbinaria ornata,1525
+11/6/21,Reiono,Re1,10,RE2-10-T3,25m,,Caulerpa serrulata,75
+11/6/21,Reiono,Re1,10,RE2-10-T3,25m,,Chlorodesmis fastigiata,350
+11/6/21,Reiono,Re1,10,RE2-10-T3,25m,,Halimeda opuntia,100
+11/6/21,Reiono,Re1,10,RE2-10-T3,25m,,Halimeda distorta,50
+11/6/21,Reiono,Re1,10,RE2-10-T4,25m,,Turbinaria ornata,3700
+11/6/21,Reiono,Re1,10,RE2-10-T4,25m,,Chlorodesmis fastigiata,850
+11/6/21,Reiono,Re1,10,RE2-10-T4,25m,,Boodlea composita,100
+11/6/21,Reiono,Re1,10,RE2-10-T4,25m,,Lobophora spp,100
+11/6/21,Reiono,Re1,10,RE2-10-T4,25m,,Pterocladiella caerulescens,50
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Turbinaria ornata,15000
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Chlorodesmis fastigiata,1350
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Schizothrix minuta,40
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Halimeda discoidea,10
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Halimeda distorta,300
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Halimeda heteromorpha,200
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Caulerpa serrulata,25
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Hydrocoleum spp,1000
+11/6/21,Reiono,Re1,40,RE2-40-T1,25m,,Lobophora spp,400
+11/6/21,Reiono,Re1,40,RE2-40-T2,25m,,Turbinaria ornata,9400
+11/6/21,Reiono,Re1,40,RE2-40-T2,25m,,Chlorodesmis fastigiata,3300
+11/6/21,Reiono,Re1,40,RE2-40-T2,25m,,Halimeda distorta,1000
+11/6/21,Reiono,Re1,40,RE2-40-T2,25m,,Halimeda heteromorpha,200
+11/6/21,Reiono,Re1,40,RE2-40-T2,25m,,Caulerpa serrulata,350
+11/6/21,Reiono,Re1,40,RE2-40-T2,25m,,Lobophora spp,750
+11/6/21,Reiono,Re1,40,RE2-40-T2,25m,,Caldora penicillata,250
+11/6/21,Reiono,Re1,40,RE2-40-T3,25m,,Turbinaria ornata,10000
+11/6/21,Reiono,Re1,40,RE2-40-T3,25m,,Chlorodesmis fastigiata,2800
+11/6/21,Reiono,Re1,40,RE2-40-T3,25m,,Lobophora spp,1200
+11/6/21,Reiono,Re1,40,RE2-40-T3,25m,,Schizothrix minuta,20
+11/6/21,Reiono,Re1,40,RE2-40-T3,25m,,Halimeda distorta,300
+11/6/21,Reiono,Re1,40,RE2-40-T3,25m,,Caulerpa serrulata,100
+11/6/21,Reiono,Re1,40,RE2-40-T4,25m,,Turbinaria ornata,9900
+11/6/21,Reiono,Re1,40,RE2-40-T4,25m,,Chlorodesmis fastigiata,2500
+11/6/21,Reiono,Re1,40,RE2-40-T4,25m,,Lobophora spp,500
+11/6/21,Reiono,Re1,40,RE2-40-T4,25m,,Schizothrix minuta,80
+11/6/21,Reiono,Re1,40,RE2-40-T4,25m,,Halimeda distorta,600
+11/6/21,Reiono,Re1,40,RE2-40-T4,25m,,Caulerpa serrulata,400
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Turbinaria ornata,11540
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Dictyosphaeria cavernosa,200
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Dictyota friabilis,100
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Lyngbya sordida,500
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Lobophora spp,1700
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Chlorodesmis fastigiata,450
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Hydroclathrus clathratus,20
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Caulerpa serrulata,300
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Halimeda opuntia,10
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Pterocladiella caerulescens,25
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Caldora penicillata,100
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Oscilllatoria spp,100
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Schizothrix minuta,160
+11/6/21,Rimatuu,Rm2,10,RI1-10-T1,25m,,Neomeris vanbosseae,25
+11/6/21,Rimatuu,Rm2,10,RI1-10-T2,25m,,Turbinaria ornata,6025
+11/6/21,Rimatuu,Rm2,10,RI1-10-T2,25m,,Lyngbya sordida,500
+11/6/21,Rimatuu,Rm2,10,RI1-10-T2,25m,,Lobophora spp,1700
+11/6/21,Rimatuu,Rm2,10,RI1-10-T2,25m,,Chlorodesmis fastigiata,400
+11/6/21,Rimatuu,Rm2,10,RI1-10-T2,25m,,Neomeris vanbosseae,100
+11/6/21,Rimatuu,Rm2,10,RI1-10-T3,25m,,Turbinaria ornata,7950
+11/6/21,Rimatuu,Rm2,10,RI1-10-T3,25m,,Lobophora spp,1300
+11/6/21,Rimatuu,Rm2,10,RI1-10-T3,25m,,Dictyota ceylanica,250
+11/6/21,Rimatuu,Rm2,10,RI1-10-T3,25m,,Lyngbya sordida,300
+11/6/21,Rimatuu,Rm2,10,RI1-10-T3,25m,,Dictyosphaeria cavernosa,250
+11/6/21,Rimatuu,Rm2,10,RI1-10-T3,25m,,Caldora penicillata,100
+11/6/21,Rimatuu,Rm2,10,RI1-10-T4,25m,,Turbinaria ornata,3550
+11/6/21,Rimatuu,Rm2,10,RI1-10-T4,25m,,Lobophora spp,500
+11/6/21,Rimatuu,Rm2,10,RI1-10-T4,25m,,Lyngbya sordida,400
+11/6/21,Rimatuu,Rm2,10,RI1-10-T4,25m,,Dictyosphaeria cavernosa,300
+11/6/21,Rimatuu,Rm2,10,RI1-10-T4,25m,,Caulerpa serrulata,325
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Oscilllatoria spp,2475
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Caulerpa serrulata,1000
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Turbinaria ornata,5725
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Chlorodesmis fastigiata,1975
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Lobophora spp,11400
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Neomeris vanbosseae,1200
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,galaxaura filamentosa,10
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Jania articulata,125
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Schizothrix minuta,80
+11/6/21,Rimatuu,Rm2,40,RI1-40-T1,25m,,Halimeda minima,50
+11/6/21,Rimatuu,Rm2,40,RI1-40-T2,25m,,Oscilllatoria spp,1400
+11/6/21,Rimatuu,Rm2,40,RI1-40-T2,25m,,Caulerpa serrulata,600
+11/6/21,Rimatuu,Rm2,40,RI1-40-T2,25m,,Turbinaria ornata,5450
+11/6/21,Rimatuu,Rm2,40,RI1-40-T2,25m,,Chlorodesmis fastigiata,1525
+11/6/21,Rimatuu,Rm2,40,RI1-40-T2,25m,,Lobophora spp,2800
+11/6/21,Rimatuu,Rm2,40,RI1-40-T2,25m,,Hydrocoleum coccineum,200
+11/6/21,Rimatuu,Rm2,40,RI1-40-T2,25m,,Halimeda heteromorpha,25
+11/6/21,Rimatuu,Rm2,40,RI1-40-T3,25m,,Oscilllatoria spp,200
+11/6/21,Rimatuu,Rm2,40,RI1-40-T3,25m,,Caulerpa serrulata,100
+11/6/21,Rimatuu,Rm2,40,RI1-40-T3,25m,,Turbinaria ornata,11800
+11/6/21,Rimatuu,Rm2,40,RI1-40-T3,25m,,Chlorodesmis fastigiata,1250
+11/6/21,Rimatuu,Rm2,40,RI1-40-T3,25m,,Lobophora spp,4200
+11/6/21,Rimatuu,Rm2,40,RI1-40-T3,25m,,Neomeris vanbosseae,225
+11/6/21,Rimatuu,Rm2,40,RI1-40-T3,25m,,Halimeda heteromorpha,25
+11/6/21,Rimatuu,Rm2,40,RI1-40-T4,25m,,Oscilllatoria spp,1000
+11/6/21,Rimatuu,Rm2,40,RI1-40-T4,25m,,Caulerpa serrulata,50
+11/6/21,Rimatuu,Rm2,40,RI1-40-T4,25m,,Turbinaria ornata,16100
+11/6/21,Rimatuu,Rm2,40,RI1-40-T4,25m,,Lobophora spp,3700
+11/6/21,Rimatuu,Rm2,40,RI1-40-T4,25m,,Chlorodesmis fastigiata,1150
+11/6/21,Rimatuu,Rm2,40,RI1-40-T4,25m,,Neomeris vanbosseae,350
+11/6/21,Rimatuu,Rm2,40,RI1-40-T4,25m,,Halimeda discoidea,25
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Turbinaria ornata,7675
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Chlorodesmis fastigiata,400
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Lobophora spp,1700
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Halimeda distorta,1200
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Halimeda heteromorpha,500
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Boodlea composita,50
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Hydrocoleum coccineum,950
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Caulerpa serrulata,375
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Halimeda minima,100
+11/7/21,Rimatuu,Rm1,10,RI2-10-T1,25m,,Dictyota ceylanica,100
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Turbinaria ornata,4000
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Chlorodesmis fastigiata,350
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Lobophora spp,1200
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Boodlea composita,50
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Hydrocoleum coccineum,850
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Halimeda distorta,500
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Caulerpa serrulata,150
+11/7/21,Rimatuu,Rm1,10,RI2-10-T2,25m,,Gelidiella acerosa,150
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Halimeda heteromorpha,70
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Lobophora spp,1150
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Chlorodesmis fastigiata,575
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Halimeda distorta,1550
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Hypnea spinella,125
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Turbinaria ornata,6025
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Hydrocoleum coccineum,1000
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Oscilllatoria spp,100
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Symploca hydnoides,25
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Gelidiella acerosa,100
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Caulerpa serrulata,50
+11/7/21,Rimatuu,Rm1,10,RI2-10-T3,25m,,Boodlea composita,100
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Lobophora spp,1500
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Chlorodesmis fastigiata,650
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Halimeda distorta,1600
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Hypnea spinella,100
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Turbinaria ornata,8150
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Hydrocoleum coccineum,650
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Oscilllatoria spp,100
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Caulerpa serrulata,250
+11/7/21,Rimatuu,Rm1,10,RI2-10-T4,25m,,Schizothrix minuta,20
+11/7/21,Rimatuu,Rm1,40,RI2-40-T1,25m,,Hydrocoleum coccineum,2000
+11/7/21,Rimatuu,Rm1,40,RI2-40-T1,25m,,Turbinaria ornata,11400
+11/7/21,Rimatuu,Rm1,40,RI2-40-T1,25m,,Halimeda distorta,2450
+11/7/21,Rimatuu,Rm1,40,RI2-40-T1,25m,,Chlorodesmis fastigiata,500
+11/7/21,Rimatuu,Rm1,40,RI2-40-T1,25m,,Caulerpa serrulata,250
+11/7/21,Rimatuu,Rm1,40,RI2-40-T1,25m,,Lobophora spp,1100
+11/7/21,Rimatuu,Rm1,40,RI2-40-T1,25m,,Neomeris vanbosseae,10
+11/7/21,Rimatuu,Rm1,40,RI2-40-T2,25m,,Hydrocoleum coccineum,900
+11/7/21,Rimatuu,Rm1,40,RI2-40-T2,25m,,Turbinaria ornata,2300
+11/7/21,Rimatuu,Rm1,40,RI2-40-T2,25m,,Halimeda distorta,1000
+11/7/21,Rimatuu,Rm1,40,RI2-40-T2,25m,,Chlorodesmis fastigiata,300
+11/7/21,Rimatuu,Rm1,40,RI2-40-T2,25m,,Caulerpa serrulata,225
+11/7/21,Rimatuu,Rm1,40,RI2-40-T2,25m,,Lobophora spp,3000
+11/7/21,Rimatuu,Rm1,40,RI2-40-T2,25m,,Hypnea spinella,100
+11/7/21,Rimatuu,Rm1,40,RI2-40-T3,25m,,Hydrocoleum coccineum,1300
+11/7/21,Rimatuu,Rm1,40,RI2-40-T3,25m,,Chlorodesmis fastigiata,750
+11/7/21,Rimatuu,Rm1,40,RI2-40-T3,25m,,Turbinaria ornata,2200
+11/7/21,Rimatuu,Rm1,40,RI2-40-T3,25m,,Lobophora spp,2300
+11/7/21,Rimatuu,Rm1,40,RI2-40-T3,25m,,Halimeda distorta,650
+11/7/21,Rimatuu,Rm1,40,RI2-40-T3,25m,,Schizothrix minuta,20
+11/7/21,Rimatuu,Rm1,40,RI2-40-T4,25m,,Hydrocoleum coccineum,900
+11/7/21,Rimatuu,Rm1,40,RI2-40-T4,25m,,Chlorodesmis fastigiata,75
+11/7/21,Rimatuu,Rm1,40,RI2-40-T4,25m,,Turbinaria ornata,14100
+11/7/21,Rimatuu,Rm1,40,RI2-40-T4,25m,,Lobophora spp,300
+11/7/21,Rimatuu,Rm1,40,RI2-40-T4,25m,,Halimeda distorta,1200
+11/7/21,Rimatuu,Rm1,40,RI2-40-T4,25m,,Caulerpa serrulata,225
