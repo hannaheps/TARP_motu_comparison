@@ -228,7 +228,6 @@ sb_dat_focal_100_and_200m
 sb_dat_focal_motu_side_only<-
   sb_dat_focal4%>%
   filter((TransectStart == "0945"&TransectEnd == "0946")| #Aie exposed (just need to add 0945 - 0946)
-           
            (TransectStart == "0948"&TransectEnd == "0949")|  #Aie protected (just need to add 0948 - 0949)
            
            (TransectStart == "0692"&TransectEnd == "0693")|(TransectStart == "0693"&TransectEnd == "0694")| (TransectStart == "0696"&TransectEnd == "0697")| (TransectStart == "0697"&TransectEnd == "0698")| 
@@ -437,7 +436,7 @@ sb_dat_focal_nests_motu_sp<-
   sb_dat_focal_nests%>%
   group_by(Motu, Number_transects, SpeciesName, Body_mass_HBW)%>%
   summarize(BreedingPairs = sum(Nb),
-            Abundance = BreedingPairs*2)%>% #- multiply by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs)
+            Abundance = BreedingPairs)%>% #- originally multipled by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs) - CHANGED TO 1 based on Jayna's email that only usually 1 bird on a nest at a time pooping***
   mutate(Density_m2 = Abundance/(500*Number_transects)) %>% #5 x 100 m transects, so each transect = 500 m, times the number of transects
   mutate(Density_ha = Density_m2*10000) %>% #and convert to hectares because that's used a lot
  mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species  - divide by 1000 to go from grams to kg
@@ -461,11 +460,13 @@ sb_dat_focal_nests_100m_sp<-
   sb_dat_focal_nests_100m%>%
   group_by(Motu, Exposure, TransectStart, TransectEnd, SpeciesName, Body_mass_HBW)%>%
   summarize(BreedingPairs = sum(Nb),
-            Abundance = BreedingPairs*2)%>% #- multiply by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs)
+            Abundance = BreedingPairs)%>% #- originally multipled by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs) - CHANGED TO 1 based on Jayna's email that only usually 1 bird on a nest at a time pooping***
   mutate(Density_m2 = Abundance/(500)) %>% #5 x 100 m transects, so each transect = 500 m, and for this just 1 transect per motu/side
   mutate(Density_ha = Density_m2*10000)%>% #and convert to hectares because that's used a lot
  mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species - divide by 1000 to go from grams to kg
          biomass_kg_ha = biomass_kg/500*10000) #convert to per hectare - divide by 500 because 500 m&2 per transect, multiple by 10000 for m^2 to hectare
+     #  mutate(biomass_kg_ha2 = Density_ha*(Body_mass_HBW/1000)) #THIS IS EQUIVALENT TO BIOMASS_KG_HA CALCULATION
+
 sb_dat_focal_nests_100m_sp
 
 
@@ -482,12 +483,14 @@ sb_dat_focal_nests_200m_sp<-
   sb_dat_focal_nests_200m%>%
   group_by(Motu, Exposure, TransectStart, TransectEnd, SpeciesName, Body_mass_HBW)%>%
    summarize(BreedingPairs = sum(Nb),
-            Abundance = BreedingPairs*2)%>% #- multiply by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs)
+            Abundance = BreedingPairs)%>% #- originally multipled by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs) - CHANGED TO 1 based on Jayna's email that only usually 1 bird on a nest at a time pooping***
   mutate(Density_m2 = Abundance/(500*2)) %>% #5 x 100 m transects, so each transect = 500 m, and for this just 2 transects per motu/side so *2
   mutate(Density_ha = Density_m2*10000)%>% #and convert to hectares because that's used a lot
  mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species - divide by 1000 to go from grams to kg
-         biomass_kg_ha = biomass_kg/500*10000) #convert to per hectare - divide by 500 because 500 m&2 per transect, multiple by 10000 for m^2 to hectare
-sb_dat_focal_nests_200m_sp
+         biomass_kg_ha = biomass_kg/(500*2)*10000) #convert to per hectare - divide by 500*2 because 500 m^2 per transect and 2 transects, multiple by 10000 for m^2 to hectare
+         #  mutate(biomass_kg_ha2 = Density_ha*(Body_mass_HBW/1000)) #THIS IS EQUIVALENT TO BIOMASS_KG_HA CALCULATION
+
+  sb_dat_focal_nests_200m_sp
 
 
 ##do this only for focal transects - side of motu----
@@ -502,15 +505,15 @@ sb_dat_focal_nests_side_sp<-
   sb_dat_focal_nests_side%>%
   group_by(Motu, Exposure, Number_transects_side, TransectStart, TransectEnd,  SpeciesName, Body_mass_HBW)%>%
   summarize(BreedingPairs = sum(Nb),
-            Abundance = BreedingPairs*2)%>% #- multiply by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs)
+            Abundance = BreedingPairs)%>% #- originally multipled by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs) - CHANGED TO 1 based on Jayna's email that only usually 1 bird on a nest at a time pooping***
   mutate(Density_m2 = Abundance/(500*Number_transects_side)) %>% #5 x 100 m transects, so each transect = 500 m, times the number of transects
   mutate(Density_ha = Density_m2*10000) %>% #and convert to hectares because that's used a lot
  mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species  - divide by 1000 to go from grams to kg
          biomass_kg_m2 = biomass_kg/(500*Number_transects_side), #convert to per m^2 as above
         biomass_kg_ha = biomass_kg_m2 *10000) #convert to per hectare - divide by 500 because 500 m&2 per transect, multiple by 10000 for m^2 to hectare
+ # mutate(biomass_kg_ha2 = Density_ha*(Body_mass_HBW/1000)) #THIS IS EQUIVALENT TO BIOMASS_KG_HA CALCULATION
  
- 
-
+sb_dat_focal_nests_side_sp
 
 ```
 Random notes: interesting that rimatuu exposed and protected BOTH equally low in birds based on transect data - so these birds are likely NOT what's driving difference in N15 between exposed and protected side.  I think it's some residual effect of all the birds on iti that's making the exposed side of Rimatuu have higher N15**
@@ -719,6 +722,25 @@ seabird_focal_all%>%
   theme_bw()
 #interesting - 100 and 200 m scales closely matchfor breeding , but motu and 100 m do not!
 
+
+seabird_focal_all%>%
+  mutate(Motu_exposure = str_c(Motu, Exposure, sep ="_"))%>%
+  ggplot(aes(x = breeding_biomass_kgha_100m, y = breeding_biomass_kgha_side, fill = Motu_exposure, color = Motu_exposure))+
+  geom_point(size = 5, alpha= .6)+
+  theme_bw()
+
+seabird_focal_all%>%
+  mutate(Motu_exposure = str_c(Motu, Exposure, sep ="_"))%>%
+  ggplot(aes(x = breeding_biomass_kgha_200m, y = breeding_biomass_kgha_side, fill = Motu_exposure, color = Motu_exposure))+
+  geom_point(size = 5, alpha= .6)+
+  theme_bw()
+
+seabird_focal_all%>%
+  mutate(Motu_exposure = str_c(Motu, Exposure, sep ="_"))%>%
+  ggplot(aes(x = breeding_biomass_kgha_motu, y = breeding_biomass_kgha_side, fill = Motu_exposure, color = Motu_exposure))+
+  geom_point(size = 5, alpha= .6)+
+  theme_bw()
+
 #adult birds: 
 seabird_focal_all%>%
   mutate(Motu_exposure = str_c(Motu, Exposure, sep ="_"))%>%
@@ -871,7 +893,7 @@ sb_dat_iti_nests_sp<-
   sb_dat_iti_nests%>%
   group_by(Motu, Number_transects, SpeciesName, Body_mass_HBW)%>%
   summarize(BreedingPairs = sum(Nb),
-            Abundance = BreedingPairs*2)%>% #- multiply by 2 assuming 2 adults per nest (so # of seabirds rather than # nests or breeding pairs)
+            Abundance = BreedingPairs)%>% #Original breeding density/biomass estimates are assuming 2 birds per nest, as per one of my previous papers. But, Jayna suggested only 1 bird per nest because typically only one there pooping at a time. So changed.
   mutate(Density_m2 = Abundance/(500*Number_transects)) %>% #5 x 100 m transects, so each transect = 500 m, times the number of transects
   mutate(Density_ha = Density_m2*10000) %>% #and convert to hectares because that's used a lot
  mutate(biomass_kg = Abundance*Body_mass_HBW/1000, #calculate biomass per species  - divide by 1000 to go from grams to kg
@@ -962,17 +984,17 @@ sb_dat_iti_nests_sp
 seabird_focal_all
 seabird_side_w_iti
 
-#save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,sb_dat_focal_nests_side_sp,
-  #   sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, sb_dat_focal_adults_200m_sp,sb_dat_focal_adults_side_sp,
- #    sb_dat_iti_adults_sp, sb_dat_iti_nests_sp,
-  #   seabird_focal_all, seabird_side_w_iti, file = "outputs/seabird_dens_bio_data.RData")
+save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,sb_dat_focal_nests_side_sp,
+     sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, sb_dat_focal_adults_200m_sp,sb_dat_focal_adults_side_sp,
+     sb_dat_iti_adults_sp, sb_dat_iti_nests_sp,
+     seabird_focal_all, seabird_side_w_iti, file = "outputs/seabird_dens_bio_data.RData")
 
 
 ##also save all aggregated as .csv to make it easy to email/share----
-#write.csv(seabird_focal_all, "outputs/seabird_dens_bio_focal_data.csv")
+write.csv(seabird_focal_all, "outputs/seabird_dens_bio_focal_data.csv")
 
 #save as .csv - w/ Iti:
-#write.csv(seabird_side_w_iti, "outputs/seabird_dens_bio_by_side_iti_rimatuu_exposed_combined.csv")
+write.csv(seabird_side_w_iti, "outputs/seabird_dens_bio_by_side_iti_rimatuu_exposed_combined.csv")
 
 
 ```
