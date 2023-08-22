@@ -820,6 +820,71 @@ seabird_focal_all_r<-
  
 
  ##all very highly correlated, esp breeding biomass at 100-200-side scales, and breeding with adult biomass at 100-200 scales.  
+ 
+#conduct actual correlation test----
+cor(seabird_focal_all_r[,3:18])
+
+#try wtih rstatix package:
+library(rstatix)
+cor_test(seabird_focal_all_r[,3:18]) 
+
+#pick out most important comparisons:
+#compare breeding biomass across all spatial scales:
+br_bio_cor<-cor_test(seabird_focal_all_bio[,3:6]) 
+br_bio_cor
+
+
+#compare adult biomass across all spatial scales:
+adult_bio_cor<-cor_test(seabird_focal_all_bio[,7:10]) 
+adult_bio_cor
+
+#compare breeding versus adult biomass, density vs. biomass within each spatial scale:
+#100 m:
+seabird_focal_all_r_100<-
+seabird_focal_all_r%>%
+    select(contains("100m"))
+seabird_focal_all_r_100
+
+cor_100<-cor_test(seabird_focal_all_r_100[,2:5]) 
+  cor_100
+
+#200 m:
+seabird_focal_all_r_200<-
+seabird_focal_all_r%>%
+    select(contains("200m"))
+seabird_focal_all_r_200
+
+cor_200<-cor_test(seabird_focal_all_r_200[,2:5]) 
+  cor_200
+  
+#side:
+seabird_focal_all_r_side<-
+seabird_focal_all_r%>%
+    select(contains("side"))
+seabird_focal_all_r_side
+
+cor_side<-cor_test(seabird_focal_all_r_side[,2:5]) 
+  cor_side
+  
+  
+#motu:
+seabird_focal_all_r_motu<-
+  seabird_focal_all_r%>%
+    select(contains("motu"))
+seabird_focal_all_r_motu
+
+cor_motu<-cor_test(seabird_focal_all_r_motu[,2:5]) 
+  cor_motu
+  
+  
+
+#save cor test outputs----
+#write.csv(cor_motu, "outputs/seabird_corr_by_motu.csv")
+#write.csv(cor_side, "outputs/seabird_corr_by_side.csv")
+#write.csv(cor_200, "outputs/seabird_corr_by_200m.csv")
+#write.csv(cor_100, "outputs/seabird_corr_by_100m.csv")
+#write.csv(br_bio_cor, "outputs/seabird_corr_breeding_biomass.csv")
+#write.csv(adult_bio_cor, "outputs/seabird_corr_adult_biomass.csv")
 
 ```
 
@@ -960,6 +1025,59 @@ seabird_side_w_iti
 
 ```
 
+#repeat corr tests, with Iti data:
+```{r}
+cor_test(seabird_side_w_iti[,3:6]) 
+
+#pick out most important comparisons:
+#compare all within spatial scales (side for iti):
+cor_iti<-cor_test(seabird_side_w_iti[,3:6]) 
+cor_iti
+#still highly correlated
+
+#combine iti data with full data, then compare within spatial scales:
+seabird_focal_all
+seabird_side_w_iti
+
+seabird_side_w_iti_c<-
+  seabird_side_w_iti%>%
+  rename_with(~paste0("iti_", .x, recycle0 = TRUE), contains("side"))
+
+
+seabird_focal_all_and_iti<-
+  full_join(seabird_focal_all, seabird_side_w_iti_c, by = c("Motu", "Exposure"))
+seabird_focal_all_and_iti
+
+#more corr tests:
+
+#side:
+seabird_focal_all_and_iti_side<-
+seabird_focal_all_and_iti%>%
+    select(contains("side"))
+seabird_focal_all_and_iti_side
+
+cor_iti_side<-cor_test(seabird_focal_all_and_iti_side[,2:9]) 
+  cor_iti_side
+#correlation goes away***
+
+#compare breeding biomass across scales:
+seabird_focal_all_and_iti_br_bio<-
+  seabird_focal_all_and_iti%>%
+    select(contains("breeding_biomass"))
+seabird_focal_all_and_iti_br_bio
+  
+cor_br_bio_w_iti<-cor_test(seabird_focal_all_and_iti_br_bio[,2:6]) 
+  cor_br_bio_w_iti
+  
+#yup, correlations with iti side are really bad**
+
+#save additional cor test outputs----
+#write.csv(cor_br_bio_w_iti, "outputs/seabird_corr_br_bio_w_iti.csv")
+#write.csv(cor_iti_side, "outputs/seabird_corr_by_side_w_iti.csv")
+#write.csv(cor_iti, "outputs/seabird_corr_side_iti_only.csv")
+
+```
+
 
 
 #save data as .Rdata:
@@ -984,17 +1102,17 @@ sb_dat_iti_nests_sp
 seabird_focal_all
 seabird_side_w_iti
 
-save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,sb_dat_focal_nests_side_sp,
-     sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, sb_dat_focal_adults_200m_sp,sb_dat_focal_adults_side_sp,
-     sb_dat_iti_adults_sp, sb_dat_iti_nests_sp,
-     seabird_focal_all, seabird_side_w_iti, file = "outputs/seabird_dens_bio_data.RData")
+#save(sb_dat_focal_nests_motu_sp, sb_dat_focal_nests_100m_sp, sb_dat_focal_nests_200m_sp,sb_dat_focal_nests_side_sp,
+ #    sb_dat_focal_adults_motu_sp, sb_dat_focal_adults_100m_sp, #sb_dat_focal_adults_200m_sp,sb_dat_focal_adults_side_sp,
+#     sb_dat_iti_adults_sp, sb_dat_iti_nests_sp,
+#     seabird_focal_all, seabird_side_w_iti, file = "outputs/seabird_dens_bio_data.RData")
 
 
 ##also save all aggregated as .csv to make it easy to email/share----
-write.csv(seabird_focal_all, "outputs/seabird_dens_bio_focal_data.csv")
+#write.csv(seabird_focal_all, "outputs/seabird_dens_bio_focal_data.csv")
 
 #save as .csv - w/ Iti:
-write.csv(seabird_side_w_iti, "outputs/seabird_dens_bio_by_side_iti_rimatuu_exposed_combined.csv")
+#write.csv(seabird_side_w_iti, "outputs/seabird_dens_bio_by_side_iti_rimatuu_exposed_combined.csv")
 
 
 ```
