@@ -24,12 +24,15 @@ algae <- read.csv("../../algae_isotopes/data/Tetiaroa_Turbinaria_Transects_Novem
 View(algae)
 algae$Distance_to_shore <- as.factor(algae$Distance_to_shore)
 
-#manipulate algae data frame to get average N15 per mote, site and distance from shore
+#manipulate algae data frame to get average N15 per motu, site and distance from shore
 library(plyr)
 
 
-sum.algae
+sum.algae <- ddply(algae, c("Motu", "Site", "Distance_to_shore"),summarise,
+                      mean.N15 = mean(N15)
+)
 
+sum.algae
 #spread data to get values for each distance from shore
 library(tidyverse)
 sum.algae <- sum.algae %>% spread(Distance_to_shore, mean.N15)
@@ -65,10 +68,14 @@ data.matrix <- as.data.frame(algae.seabirds[,2:21])
 
 #Run a correlation test using the library corrplot
 library(corrplot)
+?corrplot()
 
 cor.mtest(data.matrix)
 cor(data.matrix)
 
+pdf(file = "../output/seabird_v_N15_incl_iti.pdf")
+
 corrplot(cor(data.matrix), type = "upper", 
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", title = "seabirds vs. N15")
 
+dev.off()
