@@ -81,8 +81,13 @@ library(corrplot)
 cor.mtest(data.matrix)
 cor(data.matrix)
 
+pdf(file = "../output/seabirds_v_microbes.pdf")
+
 corrplot(cor(data.matrix), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "seabirds vs. Microbes")
 
-?corrplot()
+dev.off()
+
+
+
 
