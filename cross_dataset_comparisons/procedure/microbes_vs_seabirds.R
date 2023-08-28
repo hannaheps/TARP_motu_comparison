@@ -2,7 +2,8 @@
 
 #Bring in Microbes and seabird data
 
-seabirds <- read.csv("../output/seabirds.iti.combined.csv", strip.white = T, header = T)
+seabirds <- read.csv("../output/n15_seabirds_combined_with_iti.csv", strip.white = T, header = T)
+#seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
 microbes <- read.csv("../../microbiome_analyses/downstream_analyses/integration/output/nov2021_microbiome_metrics.csv")
 
 #combine microbes into site averages
@@ -69,21 +70,23 @@ View(microbes.all)
 ##Combine microbes with seabirds from the seabirds_vs_n15 script *** This is a change in the code - double check & come back
 
 microbes.seabirds <- merge(microbes.all, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
-microbes.seabirds <- microbes.seabirds[, -31]
+colnames(microbes.seabirds) #column 31 is an accidental "X" rownames column, need to remove:
+microbes.seabirds <- microbes.seabirds[, -31] #removes column 31
 
 ##Create a matrix
-data.matrix <- as.data.frame(microbes.seabirds[,2:46])
+data.matrix <- as.data.frame(microbes.seabirds[,2:50]) #Use only the numerical values
 
 
 #Run a correlation test using the library corrplot
 library(corrplot)
 
 cor.mtest(data.matrix)
-cor(data.matrix)
+correlation.matrix <- cor(data.matrix, use = "pairwise.complete.obs")
+write.csv(correlation.matrix, "../output/seabirds_mmicrobes_corrmatrix_with_iti.csv") #change to "_no_iti" if removing iti
 
-pdf(file = "../output/seabirds_v_microbes.pdf")
+pdf(file = "../output/seabirds_v_microbes_with_iti.pdf")
 
-corrplot(cor(data.matrix), type = "upper",
+corrplot(cor(data.matrix, use = "pairwise.complete.obs"), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "seabirds vs. Microbes")
 
 dev.off()
