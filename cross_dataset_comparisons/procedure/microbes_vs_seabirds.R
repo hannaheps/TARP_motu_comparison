@@ -1,9 +1,11 @@
 ##Microbiome data vs. seabirds and N15
+library(plyr)
+library(tidyverse)
 
 #Bring in Microbes and seabird data
 
-seabirds <- read.csv("../output/n15_seabirds_combined_with_iti.csv", strip.white = T, header = T)
-#seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+#seabirds <- read.csv("../output/n15_seabirds_combined_with_iti.csv", strip.white = T, header = T)
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
 microbes <- read.csv("../../microbiome_analyses/downstream_analyses/integration/output/nov2021_microbiome_metrics.csv")
 
 #combine microbes into site averages
@@ -13,7 +15,6 @@ microbes <- microbes %>% mutate(site.name = recode(site.name, "A1" = "Aie_Protec
                                                    "Rm1" = "Rimatuu_Protected", "Rm2" = "Rimatuu_Exposed"))
 
 
-library(plyr)
 microbes.sum <- ddply(microbes, c("sample.type", "site.name"), summarise,
                                    mean.richness = mean(Observed),
                       mean.shannon = mean(Shannon),
@@ -66,12 +67,12 @@ microbes.sum.water <- microbes.sum.water[, -c(1,13:18,20)]
 
 microbes.all <- merge(microbes.sum.coral, microbes.sum.water, by = "site.name", all = TRUE, no.dups = TRUE)
 View(microbes.all)
+write.csv(microbes.all, "../output/microbes_summary_bysite.csv", row.names = FALSE)
 
 ##Combine microbes with seabirds from the seabirds_vs_n15 script *** This is a change in the code - double check & come back
 
 microbes.seabirds <- merge(microbes.all, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
-colnames(microbes.seabirds) #column 31 is an accidental "X" rownames column, need to remove:
-microbes.seabirds <- microbes.seabirds[, -31] #removes column 31
+colnames(microbes.seabirds) 
 
 ##Create a matrix
 data.matrix <- as.data.frame(microbes.seabirds[,2:50]) #Use only the numerical values
