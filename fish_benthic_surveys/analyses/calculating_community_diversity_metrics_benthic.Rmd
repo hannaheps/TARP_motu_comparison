@@ -61,18 +61,21 @@ tet_video_raw_meta
 #broad groupings: hard coral, other inverts (sea_cucumber, tridacna_giant_clam, corallimorpharia), pavement, dead_coral, fish, rubble (rubble, sand_rubble), sand, cca, turf (turf_algae, turf_rubble), macroalgae
 #transect_tape
 
+#NEW broad groupings: hard coral, other inverts (sea_cucumber, tridacna_giant_clam, corallimorpharia), pavement.turf (pavement, turf_algae), dead_coral, fish, rubble (rubble, sand_rubble, turf_rubble), sand, cca, macroalgae
+#transect_tape
+
 colnames(tet_video_raw_meta)
 
 tet_video_raw_meta_broad<-
   tet_video_raw_meta%>%
-  mutate(total_hard_coral = rowSums(across(c(acropora_arborescent:porites_submassive))))%>%
+  mutate(hard_coral = rowSums(across(c(acropora_arborescent:porites_submassive))))%>%
   mutate(other_fish_inverts = rowSums(across(c(sea_cucumber, tridacna_giant_clam, fish, corallimorpharia ))))%>%
-  mutate(turf = rowSums(across(c(turf_algae, turf_rubble))))%>%
-  mutate(rubble = rowSums(across(c(rubble, sand_rubble))))%>%
+  mutate(pavement = rowSums(across(c(turf_algae, pavement))))%>%
+  mutate(rubble = rowSums(across(c(rubble, sand_rubble, turf_rubble))))%>%
   select(motu, site.name, wind.exposure, rat.eradication.status, protection, transect, 
-         total_hard_coral, other_fish_inverts, sand, dead_coral, pavement, rubble, turf, cca, macroalgae,
+         hard_coral, other_fish_inverts, sand, dead_coral, pavement, rubble, cca, macroalgae,
          transect_tape)%>%
-  mutate(total = rowSums(across(c(total_hard_coral:transect_tape))))
+  mutate(total = rowSums(across(c(hard_coral:transect_tape))))
 
 tet_video_raw_meta_broad
 #looks good, rowsums to 100, but can ignore transect tape. 
@@ -100,7 +103,7 @@ tet_video_raw_meta_coral_sp
 tet_video_raw_meta_broad_sp<-
   tet_video_raw_meta_broad%>%
   ungroup()%>%
-  select(total_hard_coral:macroalgae)
+  select(hard_coral:macroalgae)
 tet_video_raw_meta_broad_sp
 
 
@@ -148,24 +151,25 @@ tet_video_coral_diversity%>%
 
 ```
 
+
 ###run nmds (broad groupings)-----
 ```{r}
 #run nmds----
-nmds_video_log<-metaMDS(tet_video_raw_meta_broad_sp, distance = "bray", trymax=200, k=2, autotransform = FALSE)
-nmds_video_log
-#2 axes stress = 0.09865958, so all good
+nmds_video<-metaMDS(tet_video_raw_meta_broad_sp, distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds_video
+#2 axes stress = 0.06125085, so all good
 
-plot(nmds_video_log)
-scores(nmds_video_log, display="species")
+plot(nmds_video)
+scores(nmds_video, display="species")
 
 
 #look at plot and centroids, for now just motu and exposure (so sitename). will need to add explanatory variables
-plot(nmds_video_log)
-ord.fit<-envfit(nmds_video_log~site.name, data = tet_video_raw_meta_broad, na.rm=TRUE)
+plot(nmds_video)
+ord.fit<-envfit(nmds_video~site.name, data = tet_video_raw_meta_broad, na.rm=TRUE)
 ord.fit #looks like some differences among motu
 plot(ord.fit)
 #draw polygons
-ordihull(nmds_video_log, tet_video_raw_meta_broad$site.name, pty=3)
+ordihull(nmds_video, tet_video_raw_meta_broad$site.name, pty=3)
 
 
 #PERMANOVA
@@ -173,12 +177,12 @@ ordihull(nmds_video_log, tet_video_raw_meta_broad$site.name, pty=3)
 #run analysis
 ad_video1<-adonis2(tet_video_raw_meta_broad_sp ~ site.name, data = tet_video_raw_meta_broad, method="euclidean")
 ad_video1
-#site explains ~36% of variance
+#site explains ~38% of variance
 
 
 ad_video2<-adonis2(tet_video_raw_meta_broad_sp ~ motu*wind.exposure, data = tet_video_raw_meta_broad, method="euclidean")
 ad_video2
-#motu only significant - explains 27.7%
+#motu only significant - explains 31%
 
 
 #test dispersion using PERMDISP
@@ -218,13 +222,13 @@ summary(sim_video_exp)
 
 
 ##extract site/transect scores----
-video_spp.sc <- as.data.frame(scores(nmds_video_log, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+video_spp.sc <- as.data.frame(scores(nmds_video, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
 video_spp.sc<-
   video_spp.sc%>%
   rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
 
 
-video_site.sc <- scores(nmds_video_log, display = "sites", shrink = FALSE) 
+video_site.sc <- scores(nmds_video, display = "sites", shrink = FALSE) 
 video_site.sc
 
 #merge site.sc with metadata and dispersion
@@ -304,8 +308,8 @@ tet_video_div_comm_dat_w_cover
 #round % cover data, and make it clear what it is....
 tet_video_div_comm_dat_w_cover<-
   tet_video_div_comm_dat_w_cover%>%
-  mutate(across(c(total_hard_coral:transect_tape), round, 2))%>%
-  rename_with(.fn = ~ paste0(.x, "_percent_cover"), .cols = c("total_hard_coral":"total"))
+  mutate(across(c(hard_coral:transect_tape), round, 2))%>%
+  rename_with(.fn = ~ paste0(.x, "_percent_cover"), .cols = c("hard_coral":"total"))
 tet_video_div_comm_dat_w_cover
 
 #write.csv(tet_video_div_comm_dat_w_cover, "../output/data/tet_video_div_comm_dat.csv")
@@ -405,7 +409,7 @@ tet_insitu_raw_meta%>%
 
 ##combine some categories-----
 
-#clam + sea cucmbur to other invert
+#clam + sea cucumber to other invert
 tet_insitu_raw_meta<-
   tet_insitu_raw_meta%>%
   mutate(category = case_when(benthos == "clam" ~ "other_invert",
@@ -415,15 +419,18 @@ tet_insitu_raw_meta<-
 
 tet_insitu_raw_meta
 
-#pavement + turf (because some observer differences - I called more turf, but only did Rimatuu Exposed and Reiono Protected. Rosie called pavement)
+#pavement + turf (because some observer differences - I called more turf, but only did Rimatuu Exposed and Reiono Protected. Rosie called pavement. Also includes pavement/sand)
 tet_insitu_raw_meta<-
   tet_insitu_raw_meta%>%
   mutate(category = case_when(benthos == "turf" ~ "pavement",
+                              benthos == "pavement/sand" ~ "pavement",
                            TRUE ~ as.character(category)))%>%
   mutate(category = as.factor(category))
 
 tet_insitu_raw_meta
 levels(tet_insitu_raw_meta$category)
+
+
 
 ```
 
@@ -536,21 +543,21 @@ tet_insitu_coral_diversity%>%
 ###run nmds (broad groupings)-----
 ```{r}
 #run nmds----
-nmds_insitu_log<-metaMDS(tet_insitu_raw_meta_broad_sp, distance = "bray", trymax=200, k=2, autotransform = FALSE)
-nmds_insitu_log
+nmds_insitu<-metaMDS(tet_insitu_raw_meta_broad_sp, distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds_insitu
 #2 axes stress = 0.06666792, so all good
 
-plot(nmds_insitu_log)
-scores(nmds_insitu_log, display="species")
+plot(nmds_insitu)
+scores(nmds_insitu, display="species")
 
 
 #look at plot and centroids, for now just motu and exposure (so sitename). will need to add explanatory variables
-plot(nmds_insitu_log)
-ord.fit<-envfit(nmds_insitu_log~site.name, data = tet_insitu_raw_meta_cat_wide, na.rm=TRUE)
+plot(nmds_insitu)
+ord.fit<-envfit(nmds_insitu~site.name, data = tet_insitu_raw_meta_cat_wide, na.rm=TRUE)
 ord.fit #looks like some differences among motu
 plot(ord.fit)
 #draw polygons
-ordihull(nmds_insitu_log, tet_insitu_raw_meta_cat_wide$site.name, pty=3)
+ordihull(nmds_insitu, tet_insitu_raw_meta_cat_wide$site.name, pty=3)
 
 
 #PERMANOVA
@@ -603,13 +610,13 @@ summary(sim_insitu_exp)
 
 
 ##extract site/transect scores----
-insitu_spp.sc <- as.data.frame(scores(nmds_insitu_log, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+insitu_spp.sc <- as.data.frame(scores(nmds_insitu, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
 insitu_spp.sc<-
   insitu_spp.sc%>%
   rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
 
 
-insitu_site.sc <- scores(nmds_insitu_log, display = "sites", shrink = FALSE) 
+insitu_site.sc <- scores(nmds_insitu, display = "sites", shrink = FALSE) 
 insitu_site.sc
 
 #merge site.sc with metadata and dispersion
@@ -709,7 +716,7 @@ tet_insitu_div_comm_dat_w_cover
 ```{r}
 
 #hard coral
-cor.test(tet_insitu_div_comm_dat_w_cover$coral_prop_cover, tet_video_div_comm_dat_w_cover$total_hard_coral_percent_cover)
+cor.test(tet_insitu_div_comm_dat_w_cover$coral_prop_cover, tet_video_div_comm_dat_w_cover$hard_coral_percent_cover)
 #0.7463035 
 
 
@@ -720,14 +727,12 @@ cor.test(tet_insitu_div_comm_dat_w_cover$macroalgae_prop_cover, tet_video_div_co
 
 #pavement
 cor.test(tet_insitu_div_comm_dat_w_cover$pavement_prop_cover, tet_video_div_comm_dat_w_cover$pavement_percent_cover)
-#0.4166722
-#but, no turf category in in situ:
-cor.test(tet_insitu_div_comm_dat_w_cover$pavement_prop_cover, (tet_video_div_comm_dat_w_cover$pavement_percent_cover+ tet_video_div_comm_dat_w_cover$turf_percent_cover))
-#0.3118573 - that's actually worse....
+#0.3124796
+
 
 #rubble
 cor.test(tet_insitu_div_comm_dat_w_cover$rubble_prop_cover, tet_video_div_comm_dat_w_cover$rubble_percent_cover)
-#0.4603791
+#0.4638508
 
 
 #sand
@@ -745,13 +750,95 @@ cor.test(tet_insitu_div_comm_dat_w_cover$other_invert_prop_cover, tet_video_div_
 ```
 
 
+##check corrs - re-group:
+```{r}
+tet_video_raw_meta_broad<-
+  tet_video_raw_meta%>%
+  mutate(total_hard_coral = rowSums(across(c(acropora_arborescent:porites_submassive))))%>%
+  mutate(other_fish_inverts = rowSums(across(c(sea_cucumber, tridacna_giant_clam, fish, corallimorpharia ))))%>%
+  mutate(turf = rowSums(across(c(turf_algae, turf_rubble))))%>%
+  mutate(rubble = rowSums(across(c(rubble, sand_rubble))))%>%
+  select(motu, site.name, wind.exposure, rat.eradication.status, protection, transect, 
+         total_hard_coral, other_fish_inverts, sand, dead_coral, pavement, rubble, turf, cca, macroalgae,
+         transect_tape)%>%
+  mutate(total = rowSums(across(c(total_hard_coral:transect_tape))))
+
+
+str(tet_insitu_raw_meta_benthos_wide)
+str(tet_video_raw_meta)
+
+
+tet_benthos_wide_for_corr<-
+  full_join(tet_insitu_raw_meta_benthos_wide, tet_video_raw_meta, by = 
+              c("motu",  "site.name", "transect", "rat.eradication.status"), suffix = c("_insitu", "_video"))
+
+tet_benthos_wide_for_corr
+
+cor.test(tet_benthos_wide_for_corr$turf, tet_benthos_wide_for_corr$turf_algae) #-0.1389805 
+
+
+cor.test((tet_benthos_wide_for_corr$turf+tet_benthos_wide_for_corr$pavement_insitu), #in situ
+         (tet_benthos_wide_for_corr$turf_algae + tet_benthos_wide_for_corr$pavement_video)) #video
+#0.04224298 
+
+cor.test((tet_benthos_wide_for_corr$turf+tet_benthos_wide_for_corr$pavement_insitu), #in situ
+         (tet_benthos_wide_for_corr$turf_algae + tet_benthos_wide_for_corr$pavement_video + tet_benthos_wide_for_corr$turf_rubble)) 
+#0.02968842
+
+tet_benthos_wide_for_corr<-
+  tet_benthos_wide_for_corr%>%
+  rename("pavement.sand" = "pavement/sand")
+
+cor.test((tet_benthos_wide_for_corr$turf+tet_benthos_wide_for_corr$pavement_insitu + tet_benthos_wide_for_corr$pavement.sand), #in situ
+         (tet_benthos_wide_for_corr$turf_algae + tet_benthos_wide_for_corr$pavement_video)) #video
+#0.411273 **BEST AND SIGNIFICANT*** can make sense because pavement/sand implies lots of turf trapping sediment** 
+
+
+cor.test((tet_benthos_wide_for_corr$turf+tet_benthos_wide_for_corr$pavement_insitu + tet_benthos_wide_for_corr$pavement.sand), #in situ
+         (tet_benthos_wide_for_corr$turf_algae + tet_benthos_wide_for_corr$pavement_video + tet_benthos_wide_for_corr$turf_rubble))
+#0.4056352 - also fine, but probably keep turf/rubble with rubble because otherwise confusing with pavement...
+
+
+#try including cca, because not counted in situ
+cor.test((tet_benthos_wide_for_corr$turf+tet_benthos_wide_for_corr$pavement_insitu + tet_benthos_wide_for_corr$pavement.sand), #in situ
+         (tet_benthos_wide_for_corr$turf_algae + tet_benthos_wide_for_corr$pavement_video + tet_benthos_wide_for_corr$cca))
+#0.4222163 - technically best, but weird to not keep cca seperate....
+
+
+#check cca - none in situ, but always <1% in video**
+ggplot(tet_benthos_wide_for_corr, aes(x = motu, y = cca))+
+         geom_point(alpha = .2)
+       
+       #check for rubble:
+       cor.test((tet_benthos_wide_for_corr$rubble_insitu), #in situ
+                (tet_benthos_wide_for_corr$rubble_video))
+       #0.06882663 
+       
+       
+       
+       cor.test((tet_benthos_wide_for_corr$rubble_insitu), #in situ
+                (tet_benthos_wide_for_corr$rubble_video + tet_benthos_wide_for_corr$sand_rubble))
+       #0.4549847
+       
+       
+       cor.test((tet_benthos_wide_for_corr$rubble_insitu), #in situ
+                (tet_benthos_wide_for_corr$rubble_video + tet_benthos_wide_for_corr$sand_rubble+tet_benthos_wide_for_corr$turf_rubble))
+       #0.453607
+       
+```
+
+
+##
+
+
+
 #save all as .Rdata
 ```{r}
 tet_video_div_comm_dat_w_cover #video
 tet_insitu_div_comm_dat_w_cover #in situ
 
 
-#save(tet_video_div_comm_dat_w_cover, tet_insitu_div_comm_dat_w_cover, nmds_fish_diet_log_site_scores, file = "../output/data/benthic_community_data.Rdata")
+#save(tet_video_div_comm_dat_w_cover, tet_insitu_div_comm_dat_w_cover, file = "../output/data/benthic_community_data.Rdata")
 
 
 ```

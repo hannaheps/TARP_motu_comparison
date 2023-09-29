@@ -1,0 +1,341 @@
+---
+title: "seabirds_vs_benthos"
+author: "CEB"
+date: '2023-09-29'
+output: html_document
+---
+
+#load packages
+```{r}
+library(tidyverse)
+
+library(lme4)
+library(car)
+library(jtools)
+
+library(emmeans)
+
+library(corrplot)
+
+library(vegan)
+
+```
+
+
+#load data
+```{r}
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+load("../../fish_benthic_surveys/output/data/benthic_community_data.Rdata")
+
+benthic_vid<-tet_video_div_comm_dat_w_cover
+benthic_situ<-tet_insitu_div_comm_dat_w_cover
+
+```
+
+
+##start with video data----
+#merge data
+```{r}
+benthic_vid
+
+#make combined site name column in benthic data
+benthic_vid_dat<-
+  benthic_vid%>%
+  mutate(motu = str_to_title(motu),
+         protection = str_to_title(protection))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+benthic_vid_dat
+
+benthic.vid.seabirds<-left_join(benthic_vid_dat,
+                            select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                   by = "site.name")%>%
+  mutate(site.name = as.factor(site.name))
+benthic.vid.seabirds
+
+```
+
+
+
+#do some quick plots of data:
+```{r}
+
+benthic.vid.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = hard_coral_percent_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+benthic.vid.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+benthic.vid.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+benthic.vid.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = coral_shannon))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+
+##stacked bar plot
+benthic.vid.seabirds%>%
+  select(-c(total_percent_cover))%>%
+  pivot_longer(cols = ends_with("_percent_cover"),
+                                          names_to = "group",
+                                          values_to = "percent_cover")%>%
+  mutate(group = str_remove(group, '_percent_cover'))%>%
+  group_by(group, site.name)%>%
+  summarize(mean_percent_cover = mean(percent_cover))%>%
+  ggplot(aes(fill = group, y = mean_percent_cover, x = site.name))+
+  geom_bar(position = "stack", stat =  "identity")
+
+#doesn't look like much happening....
+
+
+```
+
+#do corrplots:
+```{r}
+benthic.vid.seabirds
+
+corr_mat_benth_vid_sb<-as.data.frame(benthic.vid.seabirds[,7:23])
+
+
+cor.mtest(corr_mat_benth_vid_sb)
+correlation.matrix <- cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs")
+write.csv(correlation.matrix, "../output/seabirds_benthic_video_corrmatrix.csv")
+
+
+corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+
+pdf(file = "../output/seabirds_benthic_video.pdf")
+
+corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+
+dev.off()
+```
+
+##do NMDS with seabird biomass as overlay
+```{r}
+tet_video_raw_meta_broad_sp<-
+  benthic.vid.seabirds%>%
+  ungroup()%>%
+  select(hard_coral_percent_cover:macroalgae_percent_cover)
+tet_video_raw_meta_broad_sp
+
+
+#run nmds----
+nmds_video<-metaMDS(tet_video_raw_meta_broad_sp, distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds_video
+#2 axes stress = 0.06113269, so all good
+
+plot(nmds_video)
+scores(nmds_video, display="species")
+
+
+#look at plot and centroids, for now just motu and exposure (so sitename). will need to add explanatory variables
+plot(nmds_video)
+ord.fit<-envfit(nmds_video~breeding_biomass_kgha_side+protection, data = benthic.vid.seabirds, na.rm=TRUE)
+ord.fit #looks like some differences among motu
+plot(ord.fit)
+#draw polygons and arrows
+ordihull(nmds_video, benthic.vid.seabirds$breeding_biomass_kgha_side, pty=3)
+## p = 0.1 for seabirds, actually some trends...
+
+#maybe rotate by breeding seabird biomass so can more easily interpret
+nmds_video.rotate<-MDSrotate(nmds_video, benthic.vid.seabirds$breeding_biomass_kgha_side)
+nmds_video.rotate
+plot(nmds_video.rotate)
+
+ord.fit<-envfit(nmds_video.rotate~breeding_biomass_kgha_side+protection, data = benthic.vid.seabirds, na.rm=TRUE)
+ord.fit #looks like some differences among motu
+plot(ord.fit)
+#draw polygons and arrows
+ordihull(nmds_video.rotate, benthic.vid.seabirds$breeding_biomass_kgha_side, pty=3)
+
+
+##extract site/transect scores----
+video_spp.sc <- as.data.frame(scores(nmds_video.rotate, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+video_spp.sc<-
+  video_spp.sc%>%
+  rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
+
+
+video_site.sc <- scores(nmds_video.rotate, display = "sites", shrink = FALSE) 
+video_site.sc
+
+#merge site.sc with metadata and dispersion
+nmds_video_site_scores<-
+  bind_cols(benthic.vid.seabirds$site.name,
+                    as_tibble(video_site.sc))%>%
+  rename('site.name' = '...1')
+nmds_video_site_scores
+
+
+#plot just to see----
+
+#get hull data:
+site.A1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Aie_Exposed", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Aie_Exposed", c("NMDS1", "NMDS2")]), ]
+
+site.A2 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Aie_Protected", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Aie_Protected", c("NMDS1", "NMDS2")]), ]  
+
+site.Re1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Reiono_Protected", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Reiono_Protected", c("NMDS1", "NMDS2")]), ]
+
+site.Re2<- nmds_video_site_scores[nmds_video_site_scores$site.name == "Reiono_Exposed", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Reiono_Exposed", c("NMDS1", "NMDS2")]), ]  
+
+site.Rm1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Rimatuu_Protected", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Rimatuu_Protected", c("NMDS1", "NMDS2")]), ]
+
+site.Rm2<- nmds_video_site_scores[nmds_video_site_scores$site.name == "Rimatuu_Exposed", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+    "Rimatuu_Exposed", c("NMDS1", "NMDS2")]), ]  
+
+hull.data <- rbind(site.A1, site.A2, site.Re1, site.Re2, site.Rm1, site.Rm2)  #combine
+hull.data
+
+ggplot() + 
+  geom_text(data=video_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
+  geom_point(data=nmds_video_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
+  geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.30) + # add the convex hulls
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), #remove gray boxes
+        text = element_text(size=20))
+        #legend.title = element_blank()) #remove legend title
+        #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
+       # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
+
+##add arrows
+sb.scrs <- as.data.frame(scores(ord.fit, display = "vectors"))
+sb.scrs <- cbind(sb.scrs, Species = rownames(sb.scrs))
+
+ggplot() + 
+  geom_text(data=video_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
+  geom_point(data=nmds_video_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
+  geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.30) + # add the convex hulls
+  coord_fixed() + ## need aspect ratio of 1!
+  geom_segment(data = sb.scrs,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "black") +
+    geom_text(data = sb.scrs, aes(x = NMDS1, y = NMDS2, label = Species),
+            size = 3)+
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), #remove gray boxes
+        text = element_text(size=20))
+        #legend.title = element_blank()) #remove legend title
+        #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
+       # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
+
+```
+
+**May need to also account for exposure, distance from shore, depth???  Weird that seabirds positive with sand - but also sand isn't true representation of what's there (swam between channels when extra shallow)
+
+
+
+##repeat with in situ ----
+#merge data
+```{r}
+benthic_situ
+
+#make combined site name column in benthic data
+benthic_situ_dat<-
+  benthic_situ%>%
+  mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  mutate(motu = str_to_title(motu),
+         protection = str_to_title(protection))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)%>%
+  select(-protection)
+
+benthic_situ_dat
+
+benthic.situ.seabirds<-left_join(benthic_situ_dat,
+                            select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                   by = "site.name")%>%
+  mutate(site.name = as.factor(site.name))
+benthic.situ.seabirds
+
+```
+
+
+
+#do some quick plots of data:
+```{r}
+
+benthic.situ.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = coral_prop_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+benthic.situ.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_prop_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+benthic.situ.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = pavement_prop_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+benthic.situ.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = coral_shannon))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+
+##stacked bar plot
+benthic.situ.seabirds%>%
+  pivot_longer(cols = ends_with("_prop_cover"),
+                                          names_to = "group",
+                                          values_to = "prop_cover")%>%
+  mutate(group = str_remove(group, '_prop_cover'))%>%
+  group_by(group, site.name)%>%
+  summarize(mean_prop_cover = mean(prop_cover))%>%
+  ggplot(aes(fill = group, y = mean_prop_cover, x = site.name))+
+  geom_bar(position = "stack", stat =  "identity")
+
+#doesn't look like much happening....
+
+
+```
+
+#do corrplots:
+```{r}
+benthic.situ.seabirds
+
+corr_mat_benth_situ_sb<-as.data.frame(benthic.situ.seabirds[,6:19])
+
+
+cor.mtest(corr_mat_benth_situ_sb)
+correlation.matrix <- cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs")
+write.csv(correlation.matrix, "../output/seabirds_benthic_situ_corrmatrix.csv")
+
+
+corrplot(cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+
+pdf(file = "../output/seabirds_benthic_situ.pdf")
+
+corrplot(cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic In Situ")
+
+dev.off()
+```
+
+
+
