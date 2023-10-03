@@ -10,6 +10,10 @@ output: html_document
 library(tidyverse) #for everything
 library(vegan) # for diversity and community analyses
 
+
+library(corrplot)
+
+
 ```
 
 
@@ -827,8 +831,56 @@ ggplot(tet_benthos_wide_for_corr, aes(x = motu, y = cca))+
        
 ```
 
+##combine in situ and video, and create corr-plots
+```{r}
+tet_video_div_comm_dat_w_cover #video
+tet_insitu_div_comm_dat_w_cover 
 
-##
+tet_video_div_comm_dat_w_cover_for_cor<-
+  tet_video_div_comm_dat_w_cover%>%
+  rename_with(~paste0(.,"_video"), -c(motu, site.name, wind.exposure, rat.eradication.status, 
+                                      protection, transect))
+
+tet_video_div_comm_dat_w_cover_for_cor
+
+
+tet_insitu_div_comm_dat_w_cover_for_cor<-
+  tet_insitu_div_comm_dat_w_cover%>%
+  rename_with(~paste0(.,"_insitu"), -c(motu, site.name, wind.exposure, rat.eradication.status, 
+                                       transect))
+
+tet_insitu_div_comm_dat_w_cover_for_cor
+
+tet_benthic_all_for_cor<-full_join(tet_video_div_comm_dat_w_cover_for_cor,
+                                   tet_insitu_div_comm_dat_w_cover_for_cor, 
+                                   by = c("motu", "site.name", "wind.exposure", "rat.eradication.status", "transect"))
+
+tet_benthic_all_for_cor
+
+
+#now do correlations:
+tet_benthic_all_for_cor_mat<-as.data.frame(tet_benthic_all_for_cor[,7:35])
+
+
+cor.mtest(tet_benthic_all_for_cor_mat)
+correlation.matrix <- cor(tet_benthic_all_for_cor_mat, use = "pairwise.complete.obs")
+write.csv(correlation.matrix, "../output/benthic_video_vs_in_situ_corrmatrix.csv")
+
+
+corrplot(cor(tet_benthic_all_for_cor_mat, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Benthic Video- In situ")
+
+pdf(file = "../output/benthic_video_vs_in_situ_corrplot.pdf")
+
+corrplot(cor(tet_benthic_all_for_cor_mat, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Benthic Video- In situ")
+
+dev.off()
+
+#actually for things we expect to be correlated, looks pretty good....
+
+```
+
 
 
 

@@ -193,12 +193,12 @@ corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "up
 
 
 ##save outputs----
-write.csv(cor.mat_sb_fishn15, "../output/seabirds_fish_n15_corrmatrix.csv")
-write.csv(cor.mat_sb_fishn15_byspp, "../output/seabirds_fish_n15_by_species_corrmatrix.csv")
+write.csv(cor.mat_sb_fishn15, "../output/seabird-fishn15/seabirds_fish_n15_corrmatrix.csv")
+write.csv(cor.mat_sb_fishn15_byspp, "../output/seabird-fishn15/seabirds_fish_n15_by_species_corrmatrix.csv")
 
 
 #chunk 2
-pdf(file = "../output/seabirds_fishn15_corr_plot.pdf")
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot.pdf")
 
 corrplot(cor(corr_mat_fish_n15_sb, use = "pairwise.complete.obs"), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds Fish N15")
@@ -206,7 +206,7 @@ corrplot(cor(corr_mat_fish_n15_sb, use = "pairwise.complete.obs"), type = "upper
 dev.off()
 
 #chunk 3
-pdf(file = "../output/seabirds_fishn15_by_species_corr_plot.pdf")
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_by_species_corr_plot.pdf")
 
 corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds Fish N15")
@@ -653,7 +653,7 @@ emm_plot+
 emm_plot_sb_n15
 
 
-ggsave(emm_plot_sb_n15, file = "../output/seabirds_fishn15_interaction_plot.pdf",
+ggsave(emm_plot_sb_n15, file = "../output/seabird-fishn15/seabirds_fishn15_interaction_plot.pdf",
        width = 7, height = 5)
 
 
@@ -671,7 +671,7 @@ fish_n15_biplots<-
         strip.background = element_blank()
         )
 
-ggsave(fish_n15_biplots, file = "../output/fishn15_biplot.pdf",
+ggsave(fish_n15_biplots, file = "../output/seabird-fishn15/fishn15_biplot.pdf",
        width = 9, height = 6)
 
 
