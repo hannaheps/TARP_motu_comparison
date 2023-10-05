@@ -494,6 +494,67 @@ tet_fish_raw_trans_wide_biomass%>%
 
 
 
+###create stacked bar plot----
+#by biomass:
+fish_top10_sp_bio_stack_barplot<-
+tet_fish_raw_trans_wide_biomass%>%
+  select(c(motu, wind.exposure, site.name, transect, 
+           Scarus.psittacus, Ctenochaetus.striatus, Acanthurus.nigricauda, Chlorurus.spilurus,
+           Stegastes.nigricans, Crenimugil.crenilabis, Lutjanus.fulvus, Hipposcarus.longiceps, 
+           Acanthurus.triostegus, Caranx.melampygus))%>%
+  pivot_longer(cols = c(Scarus.psittacus:Caranx.melampygus),
+                                          names_to = "species",
+                                          values_to = "biomass_kg_ha")%>%
+  group_by(species, site.name)%>%
+  summarize(mean_biomass = mean(biomass_kg_ha))%>%
+  ggplot(aes(fill = species, y = mean_biomass, x = site.name))+
+  geom_bar(position = "stack", stat =  "identity")+
+  #scale_fill_brewer(palette = "Set2")+
+  xlab("")+
+  ylab("mean biomass (kg/ha)")+
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+  
+fish_top10_sp_bio_stack_barplot
+  
+ggsave(fish_top10_sp_bio_stack_barplot, file = "../output/seabird-fish/fish_top10_sp_bio_stack_barplot.jpg",
+       width = 7, height = 5)
+
+
+##by density:
+fish_top10_sp_dens_stack_barplot<-
+tet_fish_raw_trans_wide_density%>%
+  select(c(motu, wind.exposure, site.name, transect, 
+           Stegastes.nigricans, Pomacentrus.pavo, Chrysiptera.brownriggii, Acanthurus.triostegus,
+           Stegastes.albifasciatus, Thalassoma.hardwicke, Dascyllus.aruanus, Chlorurus.spilurus, 
+           Scarus.psittacus, Ctenochaetus.striatus))%>%
+  pivot_longer(cols = c(Stegastes.nigricans:Ctenochaetus.striatus),
+                                          names_to = "species",
+                                          values_to = "density")%>%
+  group_by(species, site.name)%>%
+  summarize(mean_density = mean(density))%>%
+  ggplot(aes(fill = species, y = mean_density, x = site.name))+
+  geom_bar(position = "stack", stat =  "identity")+
+  #scale_fill_brewer(palette = "Set2")+
+  xlab("")+
+  ylab("mean density (kind/ha)")+
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+
+fish_top10_sp_dens_stack_barplot
+
+ggsave(fish_top10_sp_dens_stack_barplot, file = "../output/seabird-fish/fish_top10_sp_dens_stack_barplot.jpg",
+       width = 7, height = 5)
+
+
 ```
 
 ###look at trophic levels by transect----
