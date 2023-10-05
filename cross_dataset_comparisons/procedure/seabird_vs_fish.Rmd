@@ -22,6 +22,8 @@ library(vegan)
 ```
 
 
+
+
 #load data
 ```{r}
 seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
@@ -33,88 +35,95 @@ fish_bio_dat<-nmds_fish_diet_log_bio_site_scores
 
 
 
-##NOTE STOPPED HERE - REST IS JUST COPIED FROM BENTHIC ANALYSIS-----
-
-
 #merge data
 ```{r}
 fish_bio_dat
 
 #make combined site name column in fish data
-benthic_vid_dat<-
-  benthic_vid%>%
-  mutate(motu = str_to_title(motu),
-         protection = str_to_title(protection))%>%
+fish_bio_dat2<-
+  fish_bio_dat%>%
+  mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+    mutate(motu = str_to_title(motu))%>%
   unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
 
-benthic_vid_dat
 
-benthic.vid.seabirds<-left_join(benthic_vid_dat,
+fish_bio_dat2
+
+fish.bio.seabirds<-left_join(fish_bio_dat2,
                             select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
                                    by = "site.name")%>%
   mutate(site.name = as.factor(site.name))
-benthic.vid.seabirds
+fish.bio.seabirds
 
 ```
 
+###------SEABIRDS VS. FISH BIOMASS (BY FEEDING GROUP)----------------
 
 #do some quick plots of data:
 ```{r}
 
-benthic.vid.seabirds%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = hard_coral_percent_cover))+
+fish.bio.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = Herb))+
   geom_point()+
   geom_smooth(method = "lm")
 
-benthic.vid.seabirds%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
+fish.bio.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = InvMob))+
   geom_point()+
   geom_smooth(method = "lm")
 
-benthic.vid.seabirds%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-
-benthic.vid.seabirds%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = coral_shannon))+
+fish.bio.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = Omnivr))+
   geom_point()+
   geom_smooth(method = "lm")
 
 
+fish.bio.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = Plktiv))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+fish.bio.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = FisCep))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+fish.bio.seabirds%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = InvSes))+
+  geom_point()+
+  geom_smooth(method = "lm")
 
 ##stacked bar plot
-benthic.vid.seabirds%>%
-  select(-c(total_percent_cover))%>%
-  pivot_longer(cols = ends_with("_percent_cover"),
-                                          names_to = "group",
-                                          values_to = "percent_cover")%>%
-  mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, site.name)%>%
-  summarize(mean_percent_cover = mean(percent_cover))%>%
-  ggplot(aes(fill = group, y = mean_percent_cover, x = site.name))+
+fish.bio.seabirds%>%
+  pivot_longer(cols = c(Herb:InvSes),
+                                          names_to = "feeding_group",
+                                          values_to = "biomass_kg_ha")%>%
+  group_by(feeding_group, site.name)%>%
+  summarize(mean_biomass = mean(biomass_kg_ha))%>%
+  ggplot(aes(fill = feeding_group, y = mean_biomass, x = site.name))+
   geom_bar(position = "stack", stat =  "identity")
 
-#doesn't look like much happening....
+#some variation
 
-#limit stacked bar to most interesting groups: 
-benthic_vid_stack_barplot<-
-benthic.vid.seabirds%>%
-  select(-c(total_percent_cover, transect_tape_percent_cover))%>%
-  pivot_longer(cols = ends_with("_percent_cover"),
-                                          names_to = "group",
-                                          values_to = "percent_cover")%>%
-  mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, site.name)%>%
-  summarize(mean_percent_cover = mean(percent_cover))%>%
-  mutate(group = as.factor(group))%>%
-  mutate(group = fct_relevel(group, c("hard_coral", "macroalgae", "pavement", "rubble", "sand", "cca", "dead_coral",   "other_fish_inverts")))%>%
-  ggplot(aes(fill = group, y = mean_percent_cover, x = site.name))+
+
+##format stacked bar: ----
+fish_fg_bio_stack_barplot<-
+fish.bio.seabirds%>%
+  pivot_longer(cols = c(Herb:InvSes),
+                                          names_to = "feeding_group",
+                                          values_to = "biomass_kg_ha")%>%
+  group_by(feeding_group, site.name)%>%
+  summarize(mean_biomass = mean(biomass_kg_ha))%>%
+  mutate(feeding_group = as.factor(feeding_group))%>%
+  mutate(feeding_group = fct_relevel(feeding_group, c("Herb", "Omnivr", "Plktiv", "InvSes", "InvMob", "FisCep")))%>%
+  ggplot(aes(fill = feeding_group, y = mean_biomass, x = site.name))+
   geom_bar(position = "stack", stat =  "identity")+
   scale_fill_brewer(palette = "Set2")+
   xlab("")+
-  ylab("% cover")+
+  ylab("mean biomass (kg/ha)")+
     theme_bw()+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
@@ -122,34 +131,38 @@ benthic.vid.seabirds%>%
         axis.text.x = element_text(angle = 45, hjust = 1)
         )
   
-  benthic_vid_stack_barplot
+fish_fg_bio_stack_barplot
   
-ggsave(benthic_vid_stack_barplot, file = "../output/seabird-benthic/benthic_vid_stack_barplot.jpg",
+ggsave(fish_fg_bio_stack_barplot, file = "../output/seabird-fish/fish_fg_bio_stack_barplot.jpg",
        width = 7, height = 5)
 
 
 
 ```
 
+
+
 #do corrplots:
 ```{r}
-benthic.vid.seabirds
+fish.bio.seabirds
 
-corr_mat_benth_vid_sb<-as.data.frame(benthic.vid.seabirds[,7:23])
-
-
-cor.mtest(corr_mat_benth_vid_sb)
-correlation.matrix <- cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs")
-write.csv(correlation.matrix, "../output/seabird-benthic/seabirds_benthic_video_corrmatrix.csv")
+corr_mat_fish_bio_sb<-as.data.frame(fish.bio.seabirds[,7:16])
 
 
-corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+cor.mtest(corr_mat_fish_bio_sb)
+correlation.matrix <- cor(corr_mat_fish_bio_sb, use = "pairwise.complete.obs")
+correlation.matrix
+write.csv(correlation.matrix, "../output/seabird-fish/seabirds_fish_bio_fg_corrmatrix.csv")
 
-pdf(file = "../output/seabird-benthic/seabirds_benthic_video.pdf")
 
-corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+corrplot(cor(corr_mat_fish_bio_sb, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Fish FG")
+
+
+pdf(file = "../output/seabird-fish/seabirds_fish_bio_fg_corrplot.pdf")
+
+corrplot(cor(corr_mat_fish_bio_sb, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Fish FG")
 
 dev.off()
 
@@ -157,83 +170,315 @@ dev.off()
 ```
 
 
-
-##do NMDS with seabird biomass as overlay
+##need to also add in transect metadata
 ```{r}
-tet_video_raw_meta_broad_sp<-
-  benthic.vid.seabirds%>%
-  ungroup()%>%
-  select(hard_coral_percent_cover:macroalgae_percent_cover)
-tet_video_raw_meta_broad_sp
 
+#load data-----
+tet_trans_meta<-read.csv("../../metadata/fish_benthic_focal_transect_metadata.csv", stringsAsFactors = TRUE)
+str(tet_trans_meta)
+
+#make site name to do easy merge:----
+tet_trans_meta2<-
+  tet_trans_meta%>%
+  rename_all(str_to_lower)%>%
+  mutate(protection = if_else(exposure == "Leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = exposure)%>%
+    mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+tet_trans_meta2
+
+fish.bio.seabirds.trans<-right_join(select(tet_trans_meta2, c("site.name", "transect", "start_distance_to_shore_m",
+                                                             "end_distance_to_shore_m", "depth_min_m", "depth_max_m", "structural_complexity_0to5",
+                                                             "transect.location")),
+                                          fish.bio.seabirds,
+                                          by = c("site.name", "transect"))%>%
+  relocate(breeding_biomass_kgha_side, .after = rat.eradication.status)
+  
+fish.bio.seabirds.trans
+
+```
+
+#do simple linear models for feeding groups biomass
+```{r}
+
+
+#each group seperately:----
+sb_fish_fg_bio_mod1<-lmer(Herb~breeding_biomass_kgha_side + wind.exposure + structural_complexity_0to5 + depth_max_m + start_distance_to_shore_m + (1|site.name), data = fish.bio.seabirds.trans)
+#SINGULAR
+summary(sb_fish_fg_bio_mod1)
+plot(sb_fish_fg_bio_mod1)
+vif(sb_fish_fg_bio_mod1)
+
+
+sb_fish_fg_bio_mod2<-lmer(Herb~breeding_biomass_kgha_side + (1|site.name), data = fish.bio.seabirds.trans)
+#STILL SINGULAR
+
+
+sb_fish_fg_bio_mod3<-lmer(Herb~breeding_biomass_kgha_side + wind.exposure + structural_complexity_0to5 + depth_max_m + start_distance_to_shore_m + (1|motu), data = fish.bio.seabirds.trans)
+#now okay
+
+summary(sb_fish_fg_bio_mod3)
+plot(sb_fish_fg_bio_mod3)
+vif(sb_fish_fg_bio_mod3)
+
+plot_summs(sb_fish_fg_bio_mod3)
+#nothing happening....
+
+
+sb_fish_fg_bio_log_mod3<-lmer(log(Herb)~log(breeding_biomass_kgha_side) + wind.exposure + structural_complexity_0to5 + depth_max_m + start_distance_to_shore_m + (1|motu), data = fish.bio.seabirds.trans)
+#now okay
+
+summary(sb_fish_fg_bio_log_mod3)
+plot(sb_fish_fg_bio_log_mod3)
+vif(sb_fish_fg_bio_log_mod3)
+
+plot_summs(sb_fish_fg_bio_log_mod3)
+#looks slightly better, but still nothing happening....
+
+
+##all groups together-----
+fish.bio.seabirds.trans.long<-
+  fish.bio.seabirds.trans%>%
+  select(-c(Distance_to_centroid, NMDS1, NMDS2))%>%
+   pivot_longer(cols = c(Herb:InvSes),
+                                          names_to = "feeding_group",
+                                          values_to = "biomass_kg_ha")
+fish.bio.seabirds.trans.long
+
+
+
+sb_fish_fg_bio_all_mod<-lmer(biomass_kg_ha~breeding_biomass_kgha_side*feeding_group + wind.exposure*feeding_group + structural_complexity_0to5*feeding_group + depth_max_m*feeding_group + start_distance_to_shore_m*feeding_group + (1|motu), data = fish.bio.seabirds.trans.long)
+#now okay
+
+summary(sb_fish_fg_bio_all_mod)
+plot(sb_fish_fg_bio_all_mod) #not great
+vif(sb_fish_fg_bio_all_mod)
+Anova(sb_fish_fg_bio_all_mod)
+#feeding group and seabird*feeding group sig
+
+plot_summs(sb_fish_fg_bio_all_mod)
+
+#use emmeans
+emmip(sb_fish_fg_bio_all_mod, feeding_group ~ breeding_biomass_kgha_side, cov.reduce = range)
+
+
+#do log-log
+sb_fish_fg_bio_all_log_mod<-lmer(log(biomass_kg_ha+1)~log(breeding_biomass_kgha_side)*feeding_group + wind.exposure*feeding_group + structural_complexity_0to5*feeding_group + depth_max_m*feeding_group + start_distance_to_shore_m*feeding_group + (1|motu), data = fish.bio.seabirds.trans.long)
+#now okay
+
+summary(sb_fish_fg_bio_all_log_mod)
+plot(sb_fish_fg_bio_all_log_mod) #better
+vif(sb_fish_fg_bio_all_log_mod)
+Anova(sb_fish_fg_bio_all_log_mod)
+#feeding group only thing sig
+
+plot_summs(sb_fish_fg_bio_all_log_mod)
+
+#use emmeans
+emmip(sb_fish_fg_bio_all_log_mod, feeding_group ~ breeding_biomass_kgha_side, cov.reduce = range)
+
+
+#avoid rest of interactions
+sb_fish_fg_bio_all_log_mod2<-lmer(log(biomass_kg_ha+1)~log(breeding_biomass_kgha_side)*feeding_group  + (1|site.name), data = fish.bio.seabirds.trans.long)
+#now okay
+
+summary(sb_fish_fg_bio_all_log_mod2)
+plot(sb_fish_fg_bio_all_log_mod2) #better
+vif(sb_fish_fg_bio_all_log_mod2)
+Anova(sb_fish_fg_bio_all_log_mod2)
+#feeding group only thing sig
+
+plot_summs(sb_fish_fg_bio_all_log_mod2)
+
+#use emmeans
+emmip(sb_fish_fg_bio_all_log_mod2, feeding_group ~ breeding_biomass_kgha_side, cov.reduce = range)
+
+##-----run one model for total biomass----
+fish.bio.seabirds.trans.tot<-
+  fish.bio.seabirds.trans%>%
+  rowwise%>%
+  mutate(total_fish_bio = sum(c_across(Herb:InvSes)))%>%
+  ungroup
+fish.bio.seabirds.trans.tot
+
+fish.bio.seabirds.trans.tot%>%
+  ggplot(aes(x = breeding_biomass_kgha_side, y = total_fish_bio))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+fish.bio.seabirds.trans.tot%>%
+  ggplot(aes(x = log(breeding_biomass_kgha_side), y = log(total_fish_bio)))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+fish.bio.seabirds.trans.tot%>%
+  ggplot(aes(x = structural_complexity_0to5, y = total_fish_bio))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+##run model---
+sb_fish_fg_bio_tot_mod<-lmer(total_fish_bio~breeding_biomass_kgha_side  + wind.exposure + structural_complexity_0to5 + depth_max_m + start_distance_to_shore_m + (1|site.name), data = fish.bio.seabirds.trans.tot)
+summary(sb_fish_fg_bio_tot_mod)
+plot(sb_fish_fg_bio_tot_mod)
+Anova(sb_fish_fg_bio_tot_mod)
+
+
+sb_fish_fg_bio_tot_mod2<-lmer(total_fish_bio~breeding_biomass_kgha_side  + wind.exposure + structural_complexity_0to5 + depth_max_m + start_distance_to_shore_m + (1|motu), data = fish.bio.seabirds.trans.tot)
+summary(sb_fish_fg_bio_tot_mod2)
+plot(sb_fish_fg_bio_tot_mod2)
+Anova(sb_fish_fg_bio_tot_mod2)
+
+plot_summs(sb_fish_fg_bio_tot_mod)
+plot_summs(sb_fish_fg_bio_tot_mod2)
+
+
+sb_fish_fg_bio_tot_log_mod2<-lmer(log(total_fish_bio)~breeding_biomass_kgha_side  + wind.exposure + structural_complexity_0to5 + depth_max_m + start_distance_to_shore_m + (1|motu), data = fish.bio.seabirds.trans.tot)
+summary(sb_fish_fg_bio_tot_log_mod2)
+plot(sb_fish_fg_bio_tot_log_mod2)
+Anova(sb_fish_fg_bio_tot_log_mod2)
+vif(sb_fish_fg_bio_tot_log_mod2)
+
+plot_summs(sb_fish_fg_bio_tot_log_mod2)
+
+
+##remove seabird as predictor and see-----
+sb_fish_bio_tot_mod3<-lmer(total_fish_bio ~   wind.exposure + structural_complexity_0to5 + depth_max_m + start_distance_to_shore_m   + (1|site.name), data = fish.bio.seabirds.trans.tot)
+summary(sb_fish_bio_tot_mod3)
+plot(sb_fish_bio_tot_mod3)
+Anova(sb_fish_bio_tot_mod3)
+vif(sb_fish_bio_tot_mod3)
+
+plot_summs(sb_fish_bio_tot_mod3)
+
+#still not much happening, although if run model with ONLY structure then trend to significant...
+
+###REALLY NOTHING HAPPENING HERE WITH ANY BIOMASS FEEDING GROUP, OR BIOMASS IN GENERAL METRIC. NOT SURE WHY EVEN STRUCTURE NOT SIG. --------
+
+```
+
+
+##-----------------do NMDS with seabird biomass as overlay - FEEDING GROUP, DENSITY------
+
+#need to load and combine data
+```{r}
+
+fish_fg_dens_dat<-nmds_fish_diet_log_site_scores
+fish_fg_dens_dat
+
+#make combined site name column in fish data
+fish_fg_dens_dat2<-
+  fish_fg_dens_dat%>%
+  mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+    mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+
+fish_fg_dens_dat2
+
+fish.dens.seabirds<-left_join(fish_fg_dens_dat2,
+                            select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                   by = "site.name")%>%
+  mutate(site.name = as.factor(site.name))
+fish.dens.seabirds
+
+#and combine with transect metadata
+
+fish.dens.seabirds.trans<-right_join(select(tet_trans_meta2, c("site.name", "transect", "start_distance_to_shore_m",
+                                                             "end_distance_to_shore_m", "depth_min_m", "depth_max_m", "structural_complexity_0to5",
+                                                             "transect.location")),
+                                          fish.dens.seabirds,
+                                          by = c("site.name", "transect"))%>%
+  relocate(breeding_biomass_kgha_side, .after = rat.eradication.status)
+
+fish.dens.seabirds.trans
+
+```
+
+#run nmds
+```{r}
+
+#create species matrix, and log
+fish.log.dens.seabirds.trans_sp<-
+  fish.dens.seabirds.trans%>%
+  ungroup()%>%
+  select(Herb:InvSes)
+
+fish.log.dens.seabirds.trans_sp
+
+fish.log.dens.seabirds.trans_sp_log<-
+  log(fish.log.dens.seabirds.trans_sp+1)
 
 #run nmds----
-nmds_video<-metaMDS(tet_video_raw_meta_broad_sp, distance = "bray", trymax=200, k=2, autotransform = FALSE)
-nmds_video
-#2 axes stress = 0.06113269, so all good
+nmds_fish_log_dens<-metaMDS(fish.log.dens.seabirds.trans_sp_log, distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds_fish_log_dens
+#2 axes stress = 0.09476996, so all good
 
-plot(nmds_video)
-scores(nmds_video, display="species")
+plot(nmds_fish_log_dens)
+scores(nmds_fish_log_dens, display="species")
 
 
 #look at plot and centroids, for now just motu and exposure (so sitename). will need to add explanatory variables
-plot(nmds_video)
-ord.fit<-envfit(nmds_video~breeding_biomass_kgha_side+protection, data = benthic.vid.seabirds, na.rm=TRUE)
-ord.fit #looks like some differences among motu
+plot(nmds_fish_log_dens)
+ord.fit<-envfit(nmds_fish_log_dens~breeding_biomass_kgha_side+protection + start_distance_to_shore_m + depth_max_m + structural_complexity_0to5, data = fish.dens.seabirds.trans, na.rm=TRUE)
+ord.fit #looks like nothing sig
 plot(ord.fit)
 #draw polygons and arrows
-ordihull(nmds_video, benthic.vid.seabirds$breeding_biomass_kgha_side, pty=3)
-## p = 0.1 for seabirds, actually some trends...
+ordihull(nmds_fish_log_dens, fish.dens.seabirds.trans$breeding_biomass_kgha_side, pty=3)
+
 
 #rotate by breeding seabird biomass so can more easily interpret----
-nmds_video.rotate<-MDSrotate(nmds_video, benthic.vid.seabirds$breeding_biomass_kgha_side)
-nmds_video.rotate
-plot(nmds_video.rotate)
+nmds_fish_log_dens.rotate<-MDSrotate(nmds_fish_log_dens, fish.dens.seabirds.trans$breeding_biomass_kgha_side)
+nmds_fish_log_dens.rotate
 
-ord.fit<-envfit(nmds_video.rotate~breeding_biomass_kgha_side+protection, data = benthic.vid.seabirds, na.rm=TRUE)
+plot(nmds_fish_log_dens.rotate)
+ord.fit<-envfit(nmds_fish_log_dens.rotate~breeding_biomass_kgha_side+protection + start_distance_to_shore_m + depth_max_m + structural_complexity_0to5, data = fish.dens.seabirds.trans, na.rm=TRUE)
 ord.fit #marginal effect of seabirds, no effect of protection. 
 plot(ord.fit)
 #draw polygons and arrows
-ordihull(nmds_video.rotate, benthic.vid.seabirds$breeding_biomass_kgha_side, pty=3)
+ordihull(nmds_fish_log_dens.rotate, fish.dens.seabirds.trans$breeding_biomass_kgha_side, pty=3)
 
 
 ##extract site/transect scores----
-video_spp.sc <- as.data.frame(scores(nmds_video.rotate, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
-video_spp.sc<-
-  video_spp.sc%>%
+nmds_fish_log_dens_spp.sc <- as.data.frame(scores(nmds_fish_log_dens.rotate, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+nmds_fish_log_dens_spp.sc<-
+  nmds_fish_log_dens_spp.sc%>%
   rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
 
 
-video_site.sc <- scores(nmds_video.rotate, display = "sites", shrink = FALSE) 
-video_site.sc
+nmds_fish_log_dens_site.sc <- scores(nmds_fish_log_dens.rotate, display = "sites", shrink = FALSE) 
+nmds_fish_log_dens_site.sc
 
 #merge site.sc with metadata and dispersion
-nmds_video_site_scores<-
-  bind_cols(benthic.vid.seabirds$site.name,
-                    as_tibble(video_site.sc))%>%
+nmds_fish_log_dens_site_scores<-
+  bind_cols(fish.dens.seabirds.trans$site.name,
+                    as_tibble(nmds_fish_log_dens_site.sc))%>%
   rename('site.name' = '...1')
-nmds_video_site_scores
+nmds_fish_log_dens_site_scores
 
 
 #plot just to see----
 
 #get hull data:
-site.A1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Aie_Exposed", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+site.A1 <- nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == "Aie_Exposed", ][chull(nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == 
     "Aie_Exposed", c("NMDS1", "NMDS2")]), ]
 
-site.A2 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Aie_Protected", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+site.A2 <- nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == "Aie_Protected", ][chull(nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == 
     "Aie_Protected", c("NMDS1", "NMDS2")]), ]  
 
-site.Re1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Reiono_Protected", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+site.Re1 <- nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == "Reiono_Protected", ][chull(nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == 
     "Reiono_Protected", c("NMDS1", "NMDS2")]), ]
 
-site.Re2<- nmds_video_site_scores[nmds_video_site_scores$site.name == "Reiono_Exposed", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+site.Re2<- nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == "Reiono_Exposed", ][chull(nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == 
     "Reiono_Exposed", c("NMDS1", "NMDS2")]), ]  
 
-site.Rm1 <- nmds_video_site_scores[nmds_video_site_scores$site.name == "Rimatuu_Protected", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+site.Rm1 <- nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == "Rimatuu_Protected", ][chull(nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == 
     "Rimatuu_Protected", c("NMDS1", "NMDS2")]), ]
 
-site.Rm2<- nmds_video_site_scores[nmds_video_site_scores$site.name == "Rimatuu_Exposed", ][chull(nmds_video_site_scores[nmds_video_site_scores$site.name == 
+site.Rm2<- nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == "Rimatuu_Exposed", ][chull(nmds_fish_log_dens_site_scores[nmds_fish_log_dens_site_scores$site.name == 
     "Rimatuu_Exposed", c("NMDS1", "NMDS2")]), ]  
 
 hull.data <- rbind(site.A1, site.A2, site.Re1, site.Re2, site.Rm1, site.Rm2)  #combine
@@ -241,7 +486,7 @@ hull.data
 
 ggplot() + 
   geom_text(data=video_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
-  geom_point(data=nmds_video_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
+  geom_point(data=nmds_fish_log_dens_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
   geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.30) + # add the convex hulls
   theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
@@ -256,21 +501,20 @@ ggplot() +
 sb.scrs <- as.data.frame(scores(ord.fit, display = "vectors"))
 sb.scrs <- cbind(sb.scrs, Species = rownames(sb.scrs))
 
-
-video_spp.sc2<-
-  video_spp.sc%>%
+nmds_fish_log_dens_spp.sc2<-
+  nmds_fish_log_dens_spp.sc%>%
   mutate(Species= str_remove_all(Species, "_percent_cover"))
 
-benthic_video_nmds_plot<-
+fish_dens_log_nmds_plot<-
 ggplot() + 
-  geom_text(data=video_spp.sc2,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
-  geom_point(data=nmds_video_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
+  geom_text(data=nmds_fish_log_dens_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .2) +  # add the species labels - 
+  geom_point(data=nmds_fish_log_dens_site_scores,aes(x=NMDS1,y=NMDS2,colour=site.name, fill = site.name, pch = site.name), stat="identity", size=5, alpha = .9) +
   geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.30) + # add the convex hulls
   coord_fixed() + ## need aspect ratio of 1!
   geom_segment(data = sb.scrs,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm")), colour = "black") +
-    geom_text(data = sb.scrs, aes(x = NMDS1, y = NMDS2, label = "seabirds"),
+    geom_text(data = sb.scrs, aes(x = NMDS1, y = NMDS2, label = sb.scrs$Species),
             size = 3, vjust = 2)+
   theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
@@ -281,13 +525,143 @@ ggplot() +
         #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
        # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
 
-benthic_video_nmds_plot
+fish_dens_log_nmds_plot
 
 
 #save plot
   
-ggsave(benthic_video_nmds_plot, file = "../output/seabird-benthic/benthic_video_nmds_plot.jpg",
+ggsave(fish_dens_log_nmds_plot, file = "../output/seabird-fish/fish_log_dens_fg_nmds_plot.jpg",
+       width = 7, height = 5)
+
+```
+
+
+###--------------------LOOK AT FISH DIVERSITY METRICS (and overall density, biomass, etc.) VS. SEABIRD BIOMASS-----------
+
+#Combine relevant data:
+```{r}
+tet_fish_dens_div_comm_dat
+tet_fish_div_comm_tl_dat
+nmds_fish_diet_log_site_scores
+nmds_fish_diet_log_bio_site_scores
+
+#total density, and diversity stats based on density:
+fish_dens_div_dat<-
+  tet_fish_dens_div_comm_dat%>%
+  select(c(motu, site.name, wind.exposure, transect, shannon, evenness, sum_dens, PD, SR))%>%
+  mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+  mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+
+#relative biomass by trophic level:
+fish_tl_bio_dat<-
+  tet_fish_div_comm_tl_dat%>%
+  select(c(motu, site.name, wind.exposure, transect, rel_bio_TL1, rel_bio_TL2, rel_bio_TL3, rel_bio_TL4, rel_bio_TL5))%>%
+   mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+  mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+
+#density by feeding group/diet:
+fish_fg_dens_dat<-
+  nmds_fish_diet_log_site_scores%>%
+  select(c(motu, site.name, wind.exposure, transect, Herb, InvMob, Omnivr, Plktiv, FisCep, InvSes))%>%
+  rename_with(~paste0(.,"_density"), Herb:InvSes)%>%
+   mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+  mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+fish_fg_dens_dat
+
+
+#biomass by feeding group/diet, and keep in metadata from above:
+fish_fg_bio_dat<-
+  fish.bio.seabirds.trans%>%
+  select(c(motu, site.name,wind.exposure, transect, start_distance_to_shore_m, end_distance_to_shore_m, 
+           depth_min_m, depth_max_m, structural_complexity_0to5, breeding_biomass_kgha_side, 
+           Herb, InvMob, Omnivr, Plktiv, FisCep, InvSes))%>%
+  rename_with(~paste0(.,"_biomass"), Herb:InvSes)%>%
+    rowwise%>%
+  mutate(sum_fish_biomass = sum(c_across(Herb_biomass:InvSes_biomass)))%>%
+  ungroup
+
+fish_fg_bio_dat
+
+
+#now combine----
+fish_comb_dat_1<- full_join(fish_dens_div_dat, fish_tl_bio_dat, by = c("motu", "site.name", "wind.exposure", "protection", "transect"))
+fish_comb_dat_1
+
+fish_comb_dat_2<- full_join(fish_comb_dat_1, fish_fg_dens_dat, by = c("motu", "site.name", "wind.exposure", "protection", "transect"))
+fish_comb_dat_2
+
+
+fish_comb_dat<- full_join(fish_fg_bio_dat, select(fish_comb_dat_2,-protection), by = c("motu", "site.name", "wind.exposure",  "transect"))
+fish_comb_dat
+
+
+##now do corr matrix----
+fish_comb_dat_for_corr<-
+  fish_comb_dat%>%
+  select()
+
+fish.bio.seabirds
+
+fish_comb_dat_for_corr<-as.data.frame(fish_comb_dat[,5:33])
+
+
+cor.mtest(fish_comb_dat_for_corr)
+correlation.matrix <- cor(fish_comb_dat_for_corr, use = "pairwise.complete.obs")
+correlation.matrix
+write.csv(correlation.matrix, "../output/seabird-fish/seabirds_fish_all_corrmatrix.csv")
+
+
+corrplot(cor(fish_comb_dat_for_corr, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Fish FG")
+
+
+pdf(file = "../output/seabird-fish/seabirds_fish_all_corrplot.pdf")
+
+corrplot(cor(fish_comb_dat_for_corr, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Fish FG")
+
+dev.off()
+
+#pretty weak corr's, not much happening...
+
+```
+
+
+####-------make bar plot of relative trophic levels------
+```{r}
+
+fish_tl_bio_stack_barplot<-
+fish_comb_dat%>%
+  pivot_longer(cols = c(rel_bio_TL1:rel_bio_TL5),
+                                          names_to = "trophic_level",
+                                          values_to = "relative_biomass")%>%
+  group_by(trophic_level, site.name)%>%
+  summarize(mean_rel_bio = mean(relative_biomass))%>%
+  ggplot(aes(fill = trophic_level, y = mean_rel_bio, x = site.name))+
+  geom_bar(position = "stack", stat =  "identity")+
+  scale_fill_brewer(palette = "Set2")+
+  xlab("")+
+  ylab("mean relative biomass")+
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+  
+fish_tl_bio_stack_barplot
+  
+ggsave(fish_tl_bio_stack_barplot, file = "../output/seabird-fish/fish_trophic_level_rel_bio_stack_barplot.jpg",
        width = 7, height = 5)
 
 
 ```
+
