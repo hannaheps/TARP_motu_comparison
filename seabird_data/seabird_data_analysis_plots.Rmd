@@ -24,6 +24,8 @@ library(RColorBrewer)
 library(cowplot)
 
 
+library(corrplot)
+
 ```
 
 
@@ -445,4 +447,34 @@ ggsave(filename = "outputs/seabird_stack_plots.pdf",
 
 
 ```
+
+
+
+#make and save corrplots - repeat to match crossdata files
+
+```{r}
+
+
+seabird_focal_all_meta_for_corr<-as.data.frame(seabird_focal_all_meta[,7:21])
+
+
+cor.mtest(seabird_focal_all_meta_for_corr)
+correlation.matrix <- cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs")
+write.csv(correlation.matrix, "outputs/seabird_metrics_corrmatrix.csv")
+
+
+corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds")
+
+pdf(file = "outputs/seabirds_corrplot.pdf")
+
+corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds")
+
+dev.off()
+
+#all strong corrs....
+```
+
+
 
