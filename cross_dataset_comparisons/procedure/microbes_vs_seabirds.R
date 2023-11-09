@@ -92,6 +92,77 @@ corrplot(cor(data.matrix, use = "pairwise.complete.obs"), type = "upper",
 
 dev.off()
 
+###### Linear Models ######
+
+#Linear models, using breeding biomass as a predictor 
+#this is going to be column 37 "breeding_biomass_kgha_side"
+
+microbes <- read.csv("../../microbiome_analyses/downstream_analyses/integration/output/nov2021_microbiome_metrics.csv")
+
+#Frankenstein the breeding biomass with full microbe data (so we can get confidence intervals)
+
+microbes <- microbes %>% mutate(site.name = recode(site.name, "A1" = "Aie_Protected", "A2" = 'Aie_Exposed',
+                                                   "Re1" = "Reiono_Protected", "Re2" = "Reiono_Exposed", 
+                                                   "Rm1" = "Rimatuu_Protected", "Rm2" = "Rimatuu_Exposed"))
+
+breeding.biomass <- seabirds[, c(1, 8)]
+
+microbes.seabird.merge <- merge(microbes, breeding.biomass, by = "site.name", all = TRUE)
+
+microbes.seabird.merge %>%
+  ggplot(aes(x = site.name, y = alagae.N15, color = species, fill = species))+
+  facet_wrap(~species, scales = "free")+
+  geom_boxplot(alpha = .5)+
+  geom_point(alpha = .7)
+
+library(lme4)
+library(car)
+library(jtools)
+library(emmeans)
+
+microbesn15.mod <- lmer(RelAbund_Endozoicomonas ~ algae.N15 + (1|site.name), 
+                            data = microbes.seabird.merge)
+
+summary(microbesn15.mod)
+vif(microbesn15.mod)
+plot(microbesn15.mod)
+
+plot_summs(microbesn15.mod)
+summ(microbesn15.mod)
+anova(microbesn15.mod)
+Anova(microbesn15.mod)
+
+microbesbirds.mod <- lmer(RelAbund_Endozoicomonas ~ breeding_biomass_kgha_side + (1|site.name), 
+                        data = microbes.seabird.merge)
+
+summary(microbesbirds.mod)
+vif(microbesbirds.mod)
+plot(microbesbirds.mod)
+
+plot_summs(microbesbirds.mod)
+summ(microbesbirds.mod)
+anova(microbesbirds.mod)
+Anova(microbesbirds.mod)
+
+
+##Attempt a for loop to run through the columns I want
+print(colnames(microbes.seabird.merge))
+columns <- c( "Observed" , "Shannon", "FaithPD", "algae.N15", "Evenness", "algae.C13.not.acid", 
+             "algae.N.percent", "RelAbund_Endozoicomonas","RelAbund_Synechococcus", "RelAbund_Prochlorococcus", "RelAbund_Litoricola",
+             "NMDS1", "NMDS2","beta_dispersion_motu_islandside")
+dat <- microbes.seabird.merge
+models <- list()
+models2 <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ breeding_biomass_kgha_side + (1|site.name)"))
+  models[[i]] <- lmer(f, data=dat)
+  f2 <- formula(paste(i, "~ algae.N15 + (1|site.name)"))
+  models2[[i]] <- lmer(f2, data = dat)
+  print(Anova(models[[i]])) 
+  print(Anova(models2[[i]]))
+}
+
+##This is great but what about N15 @ 10m? Need to sort out data
 
 
 
