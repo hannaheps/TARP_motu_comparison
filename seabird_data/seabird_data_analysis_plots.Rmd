@@ -202,6 +202,8 @@ anova(mod_sb)
 
 ```
 
+
+
 #re-run analysis with spatial scale as a predictor
 ```{r}
 seabird_focal_all_meta
@@ -242,6 +244,11 @@ Anova(sb_br_bio_space_mod2)
 #yup, I think not working to have random effects.....
 
 
+sb_br_bio_space_mod_full<-lmer(breeding_biomass~ rat.eradication.status * protection * spatial_scale + (1|motu), 
+                          data = seabird_focal_all_meta_long)
+#doesn't work
+
+
 #run regular lm----
 sb_br_bio_space_mod_lm<-lm(breeding_biomass~ rat.eradication.status + protection + spatial_scale, 
                           data = seabird_focal_all_meta_long)
@@ -250,6 +257,7 @@ plot_summs(sb_br_bio_space_mod_lm)
 Anova(sb_br_bio_space_mod_lm)
 ##THIS LOOKS PROMISING - hierarchy in seabird biomass by rat status, protected sides also tend to have higher biomass...
 #no trends by spatial scale...
+plot(sb_br_bio_space_mod_lm)
 
 #do post-hoc test for rat eradication? - Tukey HSD didn't work, use emmeans for estiamtes:
 sb_br_bio_space_mod_lm %>% 
@@ -272,6 +280,7 @@ sb_br_bio_space_mod_log_lm<-lm(log(breeding_biomass+1)~ rat.eradication.status +
 summary(sb_br_bio_space_mod_log_lm)
 plot_summs(sb_br_bio_space_mod_log_lm)
 Anova(sb_br_bio_space_mod_log_lm)
+plot(sb_br_bio_space_mod_log_lm)
 
 sb_br_bio_space_mod_log_lm %>% 
   emmeans(~ rat.eradication.status,
@@ -292,6 +301,38 @@ sb_br_bio_space_mod_log_lm %>%
   emmeans(~ rat.eradication.status|spatial_scale + protection,
           type = "response") 
 
+#do lrt
+sb_br_bio_space_mod_log_lm_r<-lm(log(breeding_biomass+1)~ protection + spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+anova(sb_br_bio_space_mod_log_lm, sb_br_bio_space_mod_log_lm_r)
+
+
+#run interaction model
+sb_br_bio_space_mod_log_lm_int<-lm(log(breeding_biomass+1)~ rat.eradication.status * protection * spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+summary(sb_br_bio_space_mod_log_lm_int)
+Anova(sb_br_bio_space_mod_log_lm_int)
+#doens't work - not enough power...
+
+
+sb_br_bio_space_mod_log_lm_int<-lm(log(breeding_biomass+1)~ rat.eradication.status * protection + spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+summary(sb_br_bio_space_mod_log_lm_int)
+Anova(sb_br_bio_space_mod_log_lm_int)
+#marginal interaction
+
+
+sb_br_bio_space_mod_log_lm_int<-lm(log(breeding_biomass+1)~ rat.eradication.status * protection + spatial_scale*rat.eradication.status + protection*spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+summary(sb_br_bio_space_mod_log_lm_int)
+Anova(sb_br_bio_space_mod_log_lm_int)
+#marginal interaction between protectoin*eradication status.  eradication status also significant
+
+sb_br_bio_space_mod_log_lm_int %>% 
+  emmeans(~ protection|rat.eradication.status,
+          type = "response") 
+#where rats present, similar low densities across both sides
+#but where no rats, trend towards higher biomass on protected sides within each motu. Strongest pattern on Aie....Really this is because RFB's nest on north side but not south side of motu. 
 
 ```
 
