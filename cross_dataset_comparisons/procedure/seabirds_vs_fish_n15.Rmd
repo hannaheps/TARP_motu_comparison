@@ -408,6 +408,41 @@ Anova(seabird_fish_n15_mod1B)
 #BUT DOESNT LOOK LIKE IT MATTERS****
 
 
+#try just regular lm----
+seabird_fish_n15_mod_lm<-lm(n15~ breeding_biomass_kgha_side*species, 
+                          data = fishn15.seabirds)
+
+summary(seabird_fish_n15_mod_lm)
+Anova(seabird_fish_n15_mod_lm)
+plot_summs(seabird_fish_n15_mod_lm)
+plot(seabird_fish_n15_mod_lm)
+
+
+emtrends(seabird_fish_n15_mod_lm,  ~ species, var = "breeding_biomass_kgha_side")
+# plot
+range(fishn15.seabirds$breeding_biomass_kgha_side)
+levels(fishn15.seabirds$species)
+(mylist <- list(
+    breeding_biomass_kgha_side = seq(5, 380, by = 100),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,    "Cephalopholis argus"   ,    "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+
+emmip(seabird_fish_n15_mod_lm, species ~ breeding_biomass_kgha_side, at = mylist, CIs = TRUE)
+
+
+
+seabird_fish_n15_mod_lm_log<-lm(n15~ log(breeding_biomass_kgha_side)*species, 
+                          data = fishn15.seabirds)
+
+summary(seabird_fish_n15_mod_lm_log)
+Anova(seabird_fish_n15_mod_lm_log)
+plot_summs(seabird_fish_n15_mod_lm_log)
+plot(seabird_fish_n15_mod_lm_log)
+
+emtrends(seabird_fish_n15_mod_lm_log,  ~ species, var = "breeding_biomass_kgha_side")
+
+
 
 ```
 
@@ -623,6 +658,8 @@ Anova(seabird_fish_n15_levels_mod4) #here have 0 df for protection, so can't use
 
 
 #okay, so these don't work....
+
+
 
 
 
