@@ -47,3 +47,33 @@ View(algae.by.site)
 
 write.csv(algae.by.site, "../output/algae_div_summary_bysite.csv", row.names = F)
 
+#Stacked barchart
+#1. Make the matrix into a long dataframe
+colnames(algae.matrix[,3:33])
+library(dplyr)
+algae.long <- algae.matrix %>% gather(key=species,value=abundance, c(colnames(algae.matrix[,3:33])))
+
+#2. Build a stacked bar by species relative abundance & save as pdf
+pdf(file = "../output/algae_species_stackedbar.pdf")
+ggplot(algae.long, aes(fill=species, y=abundance, x=site.name)) + 
+  geom_bar(position="fill", stat="identity")
+dev.off()
+
+#3. differences among sites (PERMANOVAs)
+vegdist.algae <- vegdist(algae.matrix[,3:33], method = "bray")
+bc.algae <- as.matrix(vegdist.algae) 
+perm.algae <- adonis2(bc.algae ~ site.name, data = algae.matrix)
+#adonis2(formula = bc.algae ~ site.name, data = algae.matrix)
+#           Df  SumOfSqs  R2     F    Pr(>F)    
+#site.name  5   2.7515 0.32601 4.063  0.001 ***
+#Residual  42   5.6885 0.67399                 
+#Total     47   8.4399 1.00000 
+disp.algae <- betadisper(vegdist.algae, algae.matrix$site.name, type = "centroid")
+pdf(file = "../output/algae_dispersion.pdf")
+boxplot(disp.algae)
+dev.off()
+disp.algae.test <- permutest(disp.algae)
+#Response: Distances
+#           Df  Sum Sq  Mean Sq   F     N.Perm Pr(>F)   
+#Groups     5 0.31373 0.062746 4.5943    999  0.004 **
+# Residuals 42 0.57361 0.013657 

@@ -137,7 +137,8 @@ View(algae.seabirds)
 
 ##Save the combined data, unsummarized for future analyses (or to come back to)
 write.csv(algae.seabirds, "../output/seabird-algaen15/seabird_algaen15_noiti_totaldata.csv")
-
+algae.seabirds <- read.csv("../output/seabird-algaen15/seabird_algaen15_noiti_totaldata.csv", header = TRUE, strip.white = TRUE)
+algae.seabirds$Distance_to_shore <- as.character(algae.seabirds$Distance_to_shore)
 
 ##Run lmers 
 library(lme4)
@@ -213,8 +214,8 @@ algae.seabirds %>%
 ##Because of variability, combine into low medium high (following the fish vs seabird data)
 algaen15.seabirds <-
   algae.seabirds%>%
-  mutate(seabird_level = case_when(breeding_biomass_kgha_side<7 ~"low",
-                                   breeding_biomass_kgha_side>7&breeding_biomass_kgha_side <200 ~"mid",
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
                                    breeding_biomass_kgha_side>200 ~"high"))%>%
   mutate(seabird_level = as.factor(seabird_level))%>%
   mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
@@ -222,7 +223,7 @@ algaen15.seabirds <-
 
 ##re-plot----
 
-pdf(file = "../output/seabird-algaen15/N15vsBreedBiomass_levels.pdf")
+pdf(file = "../output/seabird-algaen15/N15vsBreedBiomass_levels_10_200_plus.pdf")
 
 algaen15.seabirds%>%
   group_by(Distance_to_shore, seabird_level)%>%
@@ -237,6 +238,24 @@ algaen15.seabirds%>%
 
 dev.off()
 
+#What about stats
+
+mod.sb.level <- lmer(N15 ~ seabird_level*Distance_to_shore + (1|site.name), 
+            data = algaen15.seabirds)
+Anova(mod.sb.level)
+summary(mod.sb.level)
+vif(mod.sb.level)
+plot(mod.sb.level)
+plot_summs(mod.sb.level)
+summ(mod.sb.level)
+anova(mod.sb.level)
+
+#Can we tease apart what's going on?
+library(multcompView)
+library(multcomp)
+library(emmeans)
+marginal.level <- lsmeans(mod.sb.level, ~Distance_to_shore*seabird_level)
+cld(marginal.level, alpha = 0.05, Letters = letters, adjust = "sidak")
 
 
 
