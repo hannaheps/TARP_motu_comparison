@@ -336,7 +336,166 @@ sb_br_bio_space_mod_log_lm_int %>%
 
 ```
 
-#maybe show plots of raw values and model estimates
+#re-run and extract interaction estimates
+```{r}
+
+sb_br_bio_space_mod_log_lm_3int<-lm(log(breeding_biomass+1)~ rat.eradication.status * protection * spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+summary(sb_br_bio_space_mod_log_lm_3int)
+#can't do 3-way interaction - not enough power.  So proceed with 2-way interactions:
+
+
+sb_br_bio_space_mod_log_lm_2int<-lm(log(breeding_biomass+1)~ rat.eradication.status * protection + spatial_scale*rat.eradication.status + protection*spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+summary(sb_br_bio_space_mod_log_lm_2int)
+plot(sb_br_bio_space_mod_log_lm_2int) #plots/assumptions look okay
+
+
+anova(sb_br_bio_space_mod_log_lm_2int)
+Anova(sb_br_bio_space_mod_log_lm_2int)#same as anova
+#marginal interaction between protection*eradication status.  eradication status also significant
+
+#get estimates using emmeans:
+sb_br_bio_space_mod_log_lm_2int %>% 
+  emmeans(~ protection|rat.eradication.status,
+          type = "response") 
+#where rats present, similar low densities across both sides
+#but where no rats, trend towards higher biomass on protected sides within each motu. Strongest pattern on Aie....Really this is because RFB's nest on north side but not south side of motu. 
+
+sb_br_bio_space_mod_log_lm_2int %>% 
+  emmeans(~ rat.eradication.status,
+          type = "response") 
+
+#re-run non-logged model just to check: 
+sb_br_bio_space_mod_lm_2int<-lm(breeding_biomass~ rat.eradication.status * protection + spatial_scale*rat.eradication.status + protection*spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+summary(sb_br_bio_space_mod_lm_2int)
+anova(sb_br_bio_space_mod_lm_2int)
+#now interaction between rats*protection p = .05325, protection = .04, rat status = .001
+plot(sb_br_bio_space_mod_lm_2int) #plots/assumptions actually look okay
+
+sb_br_bio_space_mod_lm_2int %>% 
+  emmeans(~ protection|rat.eradication.status,
+          type = "response") 
+#doesn't make much sense because CIs falling below 0, not biologically realistic.  So go with log model:
+
+
+sb_br_bio_space_mod_log_lm_2int %>% 
+  emmeans(~ rat.eradication.status|protection,
+          type = "response") 
+
+
+sb_br_bio_space_mod_log_lm_2int %>% 
+  emmeans(~ protection|rat.eradication.status,
+          type = "response") 
+
+
+EMM_rat <- emmeans(sb_br_bio_space_mod_log_lm_2int, ~ protection * rat.eradication.status)
+pairs(EMM_rat, simple = "rat.eradication.status", type = "response")
+#so when split by side, actually eradicated 2018 and rat-free are the same (p = 0.16).  But on protected side all 3 levels different.
+
+pairs(EMM_rat, simple = "protection", type = "response")
+#and when split by rat status, only rat-free has sig different exposed versus protected....
+
+
+test(pairs(EMM_rat, by = "rat.eradication.status"), by = NULL, adjust = "mvt")
+test(pairs(EMM_rat, by = "rat.eradication.status"), by = NULL, adjust = "none")
+
+
+
+test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "mvt")
+test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "none")
+
+
+#need to decide best method for extracting p-values**** Currently using ANOVA table for overall p-values, and emmeans for estimates and pairwise comparisons****
+
+```
+
+
+#maybe show plots of raw values and model estimates - WITH INTERACTIONS
+```{r}
+
+#emmeans plot----
+plot(emmeans(sb_br_bio_space_mod_log_lm_2int, ~ rat.eradication.status*protection,
+          type = "response"))
+
+
+#response plot----
+plot_data<-emmip(sb_br_bio_space_mod_log_lm_2int, ~ rat.eradication.status*protection,
+          type = "response", CIs = TRUE, plotit=FALSE)%>%
+  mutate(rat.eradication.status = fct_relevel(rat.eradication.status, c("None", "eradicated_2018", "eradicated_2022")))
+plot_data
+
+#my_colors <- RColorBrewer::brewer.pal(9, "Blues")[c(2, 4, 6, 8)]
+
+seabird_rat_response_int_plot<-
+  ggplot(data = plot_data, aes(x = rat.eradication.status, y = yvar, color = protection))+
+  geom_point(pch = 4)+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0) + 
+  geom_point(data = seabird_focal_all_meta_long, 
+             aes(y = breeding_biomass, x = rat.eradication.status, shape = spatial_scale,                  
+                 color = protection, fill = protection), size = 2.5, alpha = .5)+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab("Seabird breeding biomass (kg/ha)")+
+  xlab("")+
+    scale_x_discrete(labels = c('no rats','rats eradicated 2018','rats'))+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.9,.7) )
+
+seabird_rat_response_int_plot
+
+
+#log plot----
+plot_data_log<-emmip(sb_br_bio_space_mod_log_lm_2int, ~ rat.eradication.status*protection,
+           CIs = TRUE, plotit=FALSE)%>%
+  mutate(rat.eradication.status = fct_relevel(rat.eradication.status, c("None", "eradicated_2018", "eradicated_2022")))
+plot_data_log
+
+
+seabird_focal_all_meta_long2<-
+  seabird_focal_all_meta_long%>%
+  mutate(spatial_scale = fct_relevel(spatial_scale, c("100m", "200m", "side", "motu")))
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+
+seabird_rat_log_int_plot<-
+  ggplot(data = plot_data_log, aes(x = rat.eradication.status, y = yvar, color = protection, fill = protection, group = protection))+
+  geom_point(pch = 4, position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0, fatten = 0, position = position_dodge(.3)) + 
+  geom_point(data = seabird_focal_all_meta_long2,  position = position_dodge(.3),
+             aes(y = log(breeding_biomass+1), x = rat.eradication.status, shape = spatial_scale), size = 2.5, alpha = .5)+
+  scale_fill_manual(values = my_colors)+
+  scale_color_manual(values = my_colors) +
+  scale_shape_manual(values = c(22, 24, 23, 21))+
+  ylab("Seabird breeding biomass (log kg/ha)")+
+  xlab("")+
+    scale_x_discrete(labels = c('no rats','rats eradicated 2018','rats'))+
+   theme_bw()+
+  labs(shape = "spatial scale")+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.8,.8),
+        axis.text = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        legend.box = "horizontal",
+        legend.box.background = element_rect(colour = "black"))
+seabird_rat_log_int_plot
+  
+
+#ggsave("outputs/seabird_rat_log_int_plot.pdf", plot = seabird_rat_log_int_plot)
+#ggsave("outputs/seabird_rat_log_int_plot.jpg", plot = seabird_rat_log_int_plot)
+
+
+```
+
+
+
+#maybe show plots of raw values and model estimates - NO INTERACTIONS
 ```{r}
 
 #emmeans plot----
@@ -407,14 +566,14 @@ seabird_rat_log_plot
   
 ```
 
-##save/print plots
+##save/print plots - OLD
 ```{r}
 seabird_rat_log_plot
 seabird_rat_response_plot
 
 #go with log-plot to see everything - save plot
 
-ggsave("outputs/seabird_vs_rat_log_plot.pdf", plot = seabird_rat_log_plot)
+#ggsave("outputs/seabird_vs_rat_log_plot.pdf", plot = seabird_rat_log_plot)
 
 ```
 

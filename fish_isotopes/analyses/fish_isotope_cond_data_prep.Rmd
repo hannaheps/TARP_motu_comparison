@@ -1,0 +1,61 @@
+---
+title: "fish_isotope_condition_data_prep"
+author: "CEB"
+date: '2024-02-02'
+output: html_document
+---
+
+#load packages
+```{r}
+library(tidyverse) #for everything
+
+```
+
+
+#load data
+```{r}
+fish_n15 <- read.csv("../raw_data/fish_isotopes_focal_spp_only.csv", stringsAsFactors = TRUE)
+fish_cond <- read.csv("../raw_data/fish_capture_data_focal_motu_spp_only.csv", stringsAsFactors = TRUE)
+
+```
+
+
+#merge data
+```{r}
+#make combined site name column in fish_n15
+
+fish_n15_dat<-
+  fish_n15%>%
+  mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+fish_n15_dat
+
+
+fish.n15.cond<-left_join(fish_n15_dat, 
+                                 select(fish_cond, c("fish.id", "TL.cm", "FL.cm", "SL.cm", "whole.weight.g", 
+                                                     "gonad.weight.g", "sex", "stage.coarse", 
+                                                     "stage.detailed", "liver.weight.g")), 
+                                   by = "fish.id") 
+
+fish.n15.cond
+
+```
+
+
+#eliminate 2022 data because different timepoint and makes it uneven sampling design:
+```{r}
+
+fish.n15.cond.r<-
+  fish.n15.cond%>%
+  filter(site.name != "Aie_Exposed")%>%
+  droplevels()
+
+fish.n15.cond.r
+
+#save as csv----
+#write.csv(fish.n15.cond.r, "../output/fish_n15_condition.csv")
+
+
+```
+
+
