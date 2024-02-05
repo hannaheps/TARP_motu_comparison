@@ -31,9 +31,16 @@ coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
 water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
 
 #This should allow for any downstream analyses 
-mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ breeding_biomass_kgha_side + (1|site.name), 
+library(lme4)
+library(car)
+library(jtools)
+library(emmeans)
+
+mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ algae.N.percent + (1|site.name), 
                      data = coral.microbes.seabirds)
-anova(mod.micro.birds)
+mod.micro.birds <- lm(RelAbund_Endozoicomonas ~ breeding_biomass_kgha_side, 
+                        data = coral.microbes.seabirds)
+Anova(mod.micro.birds)
 summary(mod.micro.birds)
 
 #Run a loop now for coral and water : 
@@ -119,6 +126,64 @@ microbes.seabirds%>%
   theme_bw() 
 
 dev.off()
+
+
+###Test among seabird groups
+#First break into coral vs. water again
+
+coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
+water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
+
+mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ seabird_level*algae.N15 + (1|site.name), 
+                        data = coral.microbes.seabirds)
+mod.micro.birds <- lm(RelAbund_Endozoicomonas ~ seabird_level*algae.N15, 
+                      data = coral.microbes.seabirds)
+Anova(mod.micro.birds)
+summary(mod.micro.birds)
+
+#Loop it around the following columns & data
+
+columns <- c( "Observed" , "Shannon", "FaithPD", "algae.N15", "Evenness", "algae.C13.not.acid", 
+              "algae.N.percent", "RelAbund_Endozoicomonas","RelAbund_Cellvibrionales_Aestuariicella",
+              "RelAbund_Alteromonadales_Agaribacter", "RelAbund_Cytophagales_Candidatus_Amoebophilus",
+              "RelAbund_Alteromonadales_Glaciecola","RelAbund_Oceanospirillales_Neptuniibacter",
+              "RelAbund_Cellvibrionales_Porticoccus","RelAbund_Woesearchaeales_SCGC_AAA286E23",
+              "RelAbund_Litoricola","RelAbund_Uncultured_Alteromonadaceaeae",
+              "NMDS1", "NMDS2","beta_dispersion_motu_islandside")
+dat <- coral.microbes.seabirds
+models <- list()
+models2 <- list()
+
+for (i in columns) {
+  f <- formula(paste(i, "~ seabird_level + (1|site.name)"))
+  models[[i]] <- lmer(f, data=dat)
+  f2 <- formula(paste(i, "~ algae.N15 + (1|site.name)"))
+  models2[[i]] <- lmer(f2, data = dat)
+  print(Anova(models[[i]])) 
+  print(Anova(models2[[i]]))
+}
+
+
+#Water
+columns <- c( "Observed" , "Shannon", "FaithPD", "algae.N15", "Evenness", "algae.C13.not.acid", 
+              "algae.N.percent", "RelAbund_Rhodospirillales_AEGEAN_169_marine_group","RelAbund_SAR11_CladeIa",
+              "RelAbund_SAR11_CladeIb", "RelAbund_SAR11_CladeII", "RelAbund_Prochlorococcus", "RelAbund_SAR116_Clade",
+              "RelAbund_SAR86_Clade", "RelAbund_Synechococcus",
+              "RelAbund_Litoricola","NMDS1", "NMDS2","beta_dispersion_motu_islandside")
+dat <- water.microbes.seabirds
+models <- list()
+models2 <- list()
+
+for (i in columns) {
+  f <- formula(paste(i, "~ seabird_level + (1|site.name)"))
+  models[[i]] <- lmer(f, data=dat)
+  f2 <- formula(paste(i, "~ algae.N15 + (1|site.name)"))
+  models2[[i]] <- lmer(f2, data = dat)
+  print(Anova(models[[i]])) 
+  print(Anova(models2[[i]]))
+}
+
+#SAR11, SAR86, Synecchococcus all significant with N15 but not seabird level. 
 
 #combine microbes into site averages
 microbes.sum <- ddply(microbes, c("sample.type", "site.name"), summarise,
