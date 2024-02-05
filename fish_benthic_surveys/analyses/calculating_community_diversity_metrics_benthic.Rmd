@@ -879,6 +879,46 @@ dev.off()
 
 #actually for things we expect to be correlated, looks pretty good....
 
+
+
+##re-do corrplot and only comapre things we expect to be correlated----
+#not working easily:
+tet_benthic_all_for_cor_mat<-as.data.frame(tet_benthic_all_for_cor[,7:35])
+tet_benthic_all_for_cor_mat.r<-as.data.frame(tet_benthic_all_for_cor[,c(13:20,29:35)])
+correlation.matrix.r1<-cor(tet_benthic_all_for_cor[,13:22], tet_benthic_all_for_cor[,29:35], use = "pairwise.complete.obs")
+correlation.matrix.r1
+
+correlation_df_sig<-cor.mtest(tet_benthic_all_for_cor_mat.r, conf.level = 0.95, method = "spearman")
+correlation_df_sig
+
+corrplot(corr=cor(tet_benthic_all_for_cor_mat.r, use = "pairwise.complete.obs"),
+       #  p.mat=correlation_df_sig$p, sig.level=0.05, 
+         type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Benthic Video- In situ")
+
+corrplot(corr=correlation.matrix.r1,
+       #  p.mat=correlation_df_sig$p, sig.level=0.05, 
+         type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Benthic Video- In situ")
+
+c_df <- Hmisc::rcorr(cor(tet_benthic_all_for_cor_mat.r), type='spearman')
+corrplot(corr=c_df$r[1:11,10:16],  sig.level=0.05, 
+         method='color', diag=FALSE, addCoef.col=1, type='upper', insig='blank',
+         number.cex=.8)
+
+#SO: just copied and pasted from corrmatrix:
+corrs_reduced<-read.csv("../output/benthic_video_vs_in_situ_corrmatix_extracted.csv", stringsAsFactors = TRUE)
+corrs_reduced
+
+ggplot(data = corrs_reduced, aes(x = group, y = corr, size = corr, colour = corr))+
+  geom_point()+
+    scale_size_continuous(range = c(5, 10), limits = c(0,1))+
+  #scale_fill_continuous(type = "viridis")+
+scale_color_gradient2(low="red", mid="white", high="blue", 
+                        limits = c(-1, 1), oob = scales::squish)  +
+  theme_bw()+
+  ylim(c(0,1))
+
 ```
 
 
