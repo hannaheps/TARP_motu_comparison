@@ -8,13 +8,119 @@ library(tidyverse)
 seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
 microbes <- read.csv("../../microbiome_analyses/downstream_analyses/integration/output/nov2021_microbiome_metrics.csv")
 
+#recode the site.name category so we can combine with seabird data
+
+microbes$site.name[microbes$site.name == "A1"] <- "Aie_Protected"
+microbes$site.name[microbes$site.name == "A2"] <- "Aie_Exposed"
+microbes$site.name[microbes$site.name == "Re1"] <- "Reiono_Protected"
+microbes$site.name[microbes$site.name == "Re2"] <- "Reiono_Exposed"
+microbes$site.name[microbes$site.name == "Rm1"] <- "Rimatuu_Protected"
+microbes$site.name[microbes$site.name == "Rm2"] <- "Rimatuu_Exposed"
+
+microbes$site.name <- as.factor(microbes$site.name)
+levels(microbes$site.name)
+
+
+#Combine with seabird data:
+microbes.seabirds <- merge(microbes, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
+head(microbes.seabirds)
+
+
+#Slit into water and coral 
+coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
+water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
+
+#This should allow for any downstream analyses 
+mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ breeding_biomass_kgha_side + (1|site.name), 
+                     data = coral.microbes.seabirds)
+anova(mod.micro.birds)
+summary(mod.micro.birds)
+
+#Run a loop now for coral and water : 
+
+columns <- c( "Observed" , "Shannon", "FaithPD", "algae.N15", "Evenness", "algae.C13.not.acid", 
+              "algae.N.percent", "RelAbund_Endozoicomonas",
+              "NMDS1", "NMDS2","beta_dispersion_motu_islandside")
+dat <- coral.microbes.seabirds
+models <- list()
+models2 <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ breeding_biomass_kgha_side + (1|site.name)"))
+  models[[i]] <- lmer(f, data=dat)
+  f2 <- formula(paste(i, "~ algae.N15 + (1|site.name)"))
+  models2[[i]] <- lmer(f2, data = dat)
+  print(Anova(models[[i]])) 
+  print(Anova(models2[[i]]))
+}
+
+
+columns <- c( "Observed" , "Shannon", "FaithPD", "algae.N15", "Evenness", "algae.C13.not.acid", 
+              "algae.N.percent","RelAbund_Synechococcus", "RelAbund_Prochlorococcus", "RelAbund_Litoricola",
+              "NMDS1", "NMDS2","beta_dispersion_motu_islandside")
+dat <- water.microbes.seabirds
+models <- list()
+models2 <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ breeding_biomass_kgha_side + (1|site.name)"))
+  models[[i]] <- lmer(f, data=dat)
+  f2 <- formula(paste(i, "~ algae.N15 + (1|site.name)"))
+  models2[[i]] <- lmer(f2, data = dat)
+  print(Anova(models[[i]])) 
+  print(Anova(models2[[i]]))
+}
+
+
+
+##How about adding a seabird level to the dataset?
+
+microbes.seabirds <-
+  microbes.seabirds%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+
+str(microbes.seabirds$distance.along.transect)
+microbes.seabirds$Distance_to_shore <- as.factor(microbes.seabirds$distance.along.transect)
+
+str(microbes.seabirds$seabird_level)
+
+##plot----
+
+#pdf(file = "../output/seabird-algaen15/N15vsBreedBiomass_levels_10_200_plus.pdf")
+
+
+microbes.sum <- ddply(microbes.seabirds, c("sample.type", "Distance_to_shore", "seabird_level"), summarise,
+                       mean_richness = mean(Observed),
+                       n_richness = length(Observed),
+                       se_richness = sd(Observed)/sqrt(n_richness)
+)
+
+microbes.sum%>%
+  ggplot(aes(x = seabird_level, y = mean_richness, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore)) +
+  geom_point(alpha = 0.5)+
+  geom_errorbar(aes(ymin= (mean_richness - se_richness), ymax = (mean_richness + se_richness)), alpha = 0.5, width = 0)+
+  geom_line(alpha = 0.5) +
+  theme_bw()+
+  facet_wrap(~sample.type)
+
+
+
+microbes.seabirds%>%
+  group_by(Distance_to_shore, seabird_level)%>%
+  summarize(mean_richness = mean(Observed),
+            n_richness = length(Observed),
+            se_richness = sd(Observed)/sqrt(n_richness))%>%
+  ggplot(aes(x = seabird_level, y = mean_richness, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+  geom_errorbar(aes(ymin = (mean_richness-se_richness), ymax = (mean_richness+se_richness)), alpha = .5, width = 0)+
+  geom_line(alpha = .5)+
+  theme_bw() 
+
+dev.off()
+
 #combine microbes into site averages
-
-microbes <- microbes %>% mutate(site.name = recode(site.name, "A1" = "Aie_Protected", "A2" = 'Aie_Exposed',
-                                                   "Re1" = "Reiono_Protected", "Re2" = "Reiono_Exposed", 
-                                                   "Rm1" = "Rimatuu_Protected", "Rm2" = "Rimatuu_Exposed"))
-
-
 microbes.sum <- ddply(microbes, c("sample.type", "site.name"), summarise,
                                    mean.richness = mean(Observed),
                       mean.shannon = mean(Shannon),
