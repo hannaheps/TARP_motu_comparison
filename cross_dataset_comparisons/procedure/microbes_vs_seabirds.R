@@ -183,6 +183,11 @@ for (i in columns) {
   print(Anova(models2[[i]]))
 }
 
+
+
+
+
+
 #SAR11, SAR86, Synecchococcus all significant with N15 but not seabird level. 
 
 #combine microbes into site averages
