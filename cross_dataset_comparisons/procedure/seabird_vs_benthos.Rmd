@@ -578,7 +578,150 @@ ggsave(benthic_situ_nmds_plot, file = "../output/seabird-benthic/benthic_insitu_
 
 
 ##use seabird levels----
+#video:
 ```{r}
+
+#add levels to data----
+benthic.vid.seabirds.levels<-
+  benthic.vid.seabirds%>%
+    mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+
+##try manova----
+benthic_video.manova <- manova(cbind(hard_coral_percent_cover, sand_percent_cover, pavement_percent_cover, rubble_percent_cover, cca_percent_cover, macroalgae_percent_cover) ~ seabird_level + wind.exposure, data = benthic.vid.seabirds.levels)
+summary(benthic_video.manova)
+#nothing significant
+
+benthic_video.manova2 <- manova(cbind(hard_coral_percent_cover, sand_percent_cover, pavement_percent_cover, rubble_percent_cover, cca_percent_cover, macroalgae_percent_cover) ~ seabird_level, data = benthic.vid.seabirds.levels)
+summary(benthic_video.manova2)
+
+#nope, still not significant. And this is not including random effects, so if anything less likely to be sig when use lmm's below: 
+
+EMM_benthic_video_manova <- emmeans(benthic_video.manova, ~seabird_level*rep.meas)
+pairs(EMM_benthic_video_manova, simple = "seabird_level", type = "response")
+test(pairs(EMM_benthic_video_manova, by = "rep.meas"), by = NULL, adjust = "mvt")
+
+
+#plot:
+plot_data_manova_video<-emmip(benthic_video.manova, ~ seabird_level*rep.meas,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+ggplot(data = plot_data_manova_video, aes(x = rep.meas, y = yvar, color = seabird_level, fill = seabird_level))+
+  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0,  position = position_dodge(.3)) + 
+ # geom_point(data = fishn15.seabirds.cond.r, 
+    #         aes(y = n15, x = species), size = 2.5, alpha = .5,  position = position_dodge(.3))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab("% cover video")+
+  xlab("")+
+  labs(color = "seabird level", fill = "seabird level")+
+  scale_x_discrete(label = c("hard coral", "sand", "pavement", "rubble", "cca", "macroalgae"))+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.8,.92),
+        legend.direction = "horizontal",
+        legend.box.background = element_rect(colour = "black"))
+
+
+
+#run individual lmms----
+hard_coral.lmm<-lmer(hard_coral_percent_cover~seabird_level*wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels)
+summary(hard_coral.lmm)
+Anova(hard_coral.lmm)
+#can't use interaction because rank-deficient....
+
+hard_coral.lmm<-lmer(hard_coral_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels)
+summary(hard_coral.lmm)
+Anova(hard_coral.lmm)
+#marginal effect of seabird level:
+
+plot_summs(hard_coral.lmm)
+#looks like low seabirds have higher coral cover than mid (and marginal than high)
+
+benthic.vid.seabirds.levels%>%
+  ggplot(aes(x = seabird_level, y = hard_coral_percent_cover))+
+  geom_boxplot()
+
+
 
 ```
 
+
+
+#in situ with levels:
+```{r}
+
+#add levels to data----
+benthic.situ.seabirds.levels<-
+  benthic.situ.seabirds%>%
+    mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+
+##try manova----
+benthic_situ.manova <- manova(cbind(coral_prop_cover, pavement_prop_cover, rubble_prop_cover, sand_prop_cover, macroalgae_prop_cover) ~ seabird_level + wind.exposure, data = benthic.situ.seabirds.levels)
+summary(benthic_situ.manova)
+#seabird level is marginal****
+
+benthic_situ.manova2 <- manova(cbind(coral_prop_cover, pavement_prop_cover, rubble_prop_cover, sand_prop_cover, macroalgae_prop_cover) ~ seabird_level, data = benthic.situ.seabirds.levels)
+summary(benthic_situ.manova2)
+#seabird level is still marginal****
+
+EMM_benthic_situ_manova <- emmeans(benthic_situ.manova, ~seabird_level*rep.meas)
+pairs(EMM_benthic_situ_manova, simple = "seabird_level", type = "response")
+test(pairs(EMM_benthic_situ_manova, by = "rep.meas"), by = NULL, adjust = "mvt")
+
+
+#plot:
+plot_data_manova_situ<-emmip(benthic_situ.manova, ~ seabird_level*rep.meas,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+ggplot(data = plot_data_manova_situ, aes(x = rep.meas, y = yvar*100, color = seabird_level, fill = seabird_level))+
+  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 5, size = 0,  position = position_dodge(.3)) + 
+ # geom_point(data = fishn15.seabirds.cond.r, 
+    #         aes(y = n15, x = species), size = 2.5, alpha = .5,  position = position_dodge(.3))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+    ylab("% cover in situ")+
+  xlab("")+
+  labs(color = "seabird level", fill = "seabird level")+
+  scale_x_discrete(label = c("hard coral", "pavement", "rubble", "sand", "macroalgae"))+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.23,.92),
+        legend.direction = "horizontal",
+        legend.box.background = element_rect(colour = "black"))
+
+
+#run individual lmms----
+hard_coral.lmm<-lmer(hard_coral_percent_cover~seabird_level*wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels)
+summary(hard_coral.lmm)
+Anova(hard_coral.lmm)
+#can't use interaction because rank-deficient....
+
+hard_coral.lmm<-lmer(hard_coral_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels)
+summary(hard_coral.lmm)
+Anova(hard_coral.lmm)
+#marginal effect of seabird level:
+
+plot_summs(hard_coral.lmm)
+#looks like low seabirds have higher coral cover than mid (and marginal than high)
+
+benthic.vid.seabirds.levels%>%
+  ggplot(aes(x = seabird_level, y = hard_coral_percent_cover))+
+  geom_boxplot()
+
+
+
+```

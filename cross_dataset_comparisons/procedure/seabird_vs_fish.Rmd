@@ -851,3 +851,56 @@ fish_dens_log_nmds_plot
 
 
 ```
+
+
+
+
+##manovas/individual lmms with seabird levels-----
+```{r}
+fish.dens.seabirds.trans.level
+
+##try manova----
+fish_comm.manova <- manova(cbind(Herb, InvMob, Omnivr, Plktiv, FisCep, InvSes) ~ seabird_level + wind.exposure + structural_complexity_0to5 + start_distance_to_shore_m + depth_min_m, data = fish.dens.seabirds.trans.level)
+summary(fish_comm.manova)
+#nothing is sig
+
+fish_comm.manova2 <-  manova(cbind(Herb, InvMob, Omnivr, Plktiv, FisCep, InvSes) ~ seabird_level, data = fish.dens.seabirds.trans.level)
+summary(fish_comm.manova2)
+#seabird level is still not sig
+
+
+fish_comm.manova2.log <-  manova(cbind(log(Herb+1), log(InvMob + 1), log(Omnivr+1), log(Plktiv+1), log(FisCep+1), log(InvSes+1)) ~ seabird_level, data = fish.dens.seabirds.trans.level)
+summary(fish_comm.manova2.log)
+#seabird level is still not sig
+
+EMM_fish_comm_manova <- emmeans(fish_comm.manova2, ~seabird_level*rep.meas)
+pairs(EMM_fish_comm_manova, simple = "seabird_level", type = "response")
+test(pairs(EMM_fish_comm_manova, by = "rep.meas"), by = NULL, adjust = "mvt")
+
+
+#plot:
+plot_data_manova_fish<-emmip(fish_comm.manova2, ~ seabird_level*rep.meas,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+ggplot(data = plot_data_manova_fish, aes(x = rep.meas, y = yvar, color = seabird_level, fill = seabird_level))+
+  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0,  position = position_dodge(.3)) + 
+ # geom_point(data = fishn15.seabirds.cond.r, 
+    #         aes(y = n15, x = species), size = 2.5, alpha = .5,  position = position_dodge(.3))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+    ylab("biomass (kg/ha")+
+  xlab("")+
+  labs(color = "seabird level", fill = "seabird level")+
+#  scale_x_discrete(label = c("hard coral", "pavement", "rubble", "sand", "macroalgae"))+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.83,.92),
+        legend.direction = "horizontal",
+        legend.box.background = element_rect(colour = "black"))
+
+
+```
+
