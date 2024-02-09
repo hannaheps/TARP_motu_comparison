@@ -134,12 +134,56 @@ dev.off()
 coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
 water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
 
-mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ seabird_level*algae.N15 + (1|site.name), 
+mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ algae.N15*Distance_to_shore + (1|site.name), 
                         data = coral.microbes.seabirds)
-mod.micro.birds <- lm(RelAbund_Endozoicomonas ~ seabird_level*algae.N15, 
+mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ seabird_level + (1|site.name), 
                       data = coral.microbes.seabirds)
 Anova(mod.micro.birds)
 summary(mod.micro.birds)
+#Plot endo - no differences according to distance from shore but definitely trending toward higher at low seabird_levels (confounded by site though)
+
+pdf(file = "../output/seabird-microbes/endo_true_data_by_seabirds.pdf")
+coral.microbes.seabirds %>%
+  group_by(seabird_level)%>%
+  summarize(mean_endo = mean(RelAbund_Endozoicomonas),
+            n_endo = length(RelAbund_Endozoicomonas),
+            se_endo = sd(RelAbund_Endozoicomonas)/sqrt(n_endo))%>%
+  ggplot(aes(x = seabird_level, y = mean_endo))+
+  geom_point(alpha = .5)+
+  geom_errorbar(aes(ymin = (mean_endo-se_endo), ymax = (mean_endo+se_endo)), alpha = .5, width = 0)+
+  geom_line(alpha = .5)+
+  theme_bw() 
+dev.off()
+
+#Can we plot the model
+plot(mod.micro.birds)
+
+emm.summary.sb.endo<-
+  mod.micro.birds %>% 
+  emmeans(~ seabird_level) 
+
+emm_plot<-emmip(mod.micro.birds,  ~ seabird_level, CIs = TRUE, level = c(0.75),
+                CIarg = list(lwd = .9, alpha = .25), lwd = 2, linearg = list(lwd = 1.2, alpha = .8), dotarg = list(lwd = 1.2, alpha = .8))
+
+
+emm_plot_sb_endo<-
+  emm_plot+
+  ylab("Endozoicomonas Rel Abundance")+
+  xlab("seabid biomass")+
+  #labs(colour = "fish species")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        # text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+  )
+
+pdf(file = "../output/seabird-microbes/model_endo_by_seabirds.pdf")
+emm_plot_sb_endo
+dev.off()
+
 
 #Loop it around the following columns & data
 
@@ -157,11 +201,53 @@ models2 <- list()
 for (i in columns) {
   f <- formula(paste(i, "~ seabird_level + (1|site.name)"))
   models[[i]] <- lmer(f, data=dat)
-  f2 <- formula(paste(i, "~ algae.N15 + (1|site.name)"))
+  f2 <- formula(paste(i, "~ algae.N15 + Distance_to_shore + island.side  + (1|site.name)"))
   models2[[i]] <- lmer(f2, data = dat)
   print(Anova(models[[i]])) 
   print(Anova(models2[[i]]))
 }
+
+Anova(lmer(NMDS1 ~ algae.N15 + Distance_to_shore + island.side + (1|site.name), data = coral.microbes.seabirds))
+
+#Beta dispersion_motu_islandside is significant but this is maybe irrelevant 
+#need to make a new NMDS and colour by seabird level??
+ggplot(coral.microbes.seabirds, aes (x = NMDS1, y = NMDS2))+
+  geom_point(aes(color = seabird_level, shape = island.side))+
+  stat_ellipse(aes(color = seabird_level)) +
+  #facet_wrap(~motu) +
+  theme_bw()
+
+ggplot(coral.microbes.seabirds, aes(x = NMDS1, y = algae.N15)) +
+  geom_point(aes(color = seabird_level, shape = island.side)) +
+  geom_smooth(method = lm) +
+  theme_bw()
+  
+
+emm_plot_sb_endo<-
+  emm_plot+
+  ylab("Endozoicomonas Rel Abundance")+
+  xlab("seabid biomass")+
+  #labs(colour = "fish species")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        # text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+  )
+
+pdf(file = "../output/seabird-microbes/model_endo_by_seabirds.pdf")
+emm_plot_sb_endo
+dev.off()
+
+
+ggplot(water.microbes.seabirds, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(color = seabird_level, shape = seabird_level)) +
+  stat_ellipse(aes(color = seabird_level)) +
+  facet_wrap(~motu) +
+  theme_bw()
+
 
 
 #Water
@@ -177,18 +263,47 @@ models2 <- list()
 for (i in columns) {
   f <- formula(paste(i, "~ seabird_level + (1|site.name)"))
   models[[i]] <- lmer(f, data=dat)
-  f2 <- formula(paste(i, "~ algae.N15 + (1|site.name)"))
+  f2 <- formula(paste(i, "~ algae.N15 + Distance_to_shore + island.side + (1|site.name)"))
   models2[[i]] <- lmer(f2, data = dat)
   print(Anova(models[[i]])) 
   print(Anova(models2[[i]]))
 }
 
 
+anova(lmer(RelAbund_Synechococcus ~ algae.N15 + Distance_to_shore + island.side + (1|site.name), data = water.microbes.seabirds))
+# Synecchococcus significant with N15 but not seabird level. 
 
 
+water.microbes.seabirds %>%
+  group_by(seabird_level)%>%
+  summarize(mean_syn = mean(RelAbund_Synechococcus),
+            n_syn = length(RelAbund_Synechococcus),
+            se_syn = sd(RelAbund_Synechococcus)/sqrt(n_syn))
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus)) +
+  geom_point(aes(color = seabird_level, shape = site.name))+
+  theme_bw()
+
+##What about removing Aie Protected and trying again if there is a strong relationship?
+water.microbes.seabirds.noaiepro <- filter(water.microbes.seabirds, site.name != "Aie_Protected")
+
+anova(lmer(RelAbund_Synechococcus ~ algae.N15 + Distance_to_shore + island.side + (1|site.name), data = water.microbes.seabirds.noaiepro))
+# Synecchococcus significant with N15 but not seabird level. 
 
 
-#SAR11, SAR86, Synecchococcus all significant with N15 but not seabird level. 
+water.microbes.seabirds.noaiepro %>%
+  group_by(seabird_level)%>%
+  summarize(mean_syn = mean(RelAbund_Synechococcus),
+            n_syn = length(RelAbund_Synechococcus),
+            se_syn = sd(RelAbund_Synechococcus)/sqrt(n_syn))
+
+ggplot(water.microbes.seabirds.noaiepro, aes(x = algae.N15, y = RelAbund_Synechococcus)) +
+  geom_point(aes(color = seabird_level, shape = site.name))+
+  theme_bw()
+
+
+#Can we do some NMDS at least for coral? 
+
 
 #combine microbes into site averages
 microbes.sum <- ddply(microbes, c("sample.type", "site.name"), summarise,
@@ -339,6 +454,5 @@ for (i in columns) {
 }
 
 ##This is great but what about N15 @ 10m? Need to sort out data
-
 
 
