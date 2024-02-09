@@ -138,7 +138,40 @@ View(algae.seabirds)
 ##Save the combined data, unsummarized for future analyses (or to come back to)
 write.csv(algae.seabirds, "../output/seabird-algaen15/seabird_algaen15_noiti_totaldata.csv")
 algae.seabirds <- read.csv("../output/seabird-algaen15/seabird_algaen15_noiti_totaldata.csv", header = TRUE, strip.white = TRUE)
-algae.seabirds$Distance_to_shore <- as.character(algae.seabirds$Distance_to_shore)
+algae.seabirds$Distance_to_shore <- as.factor(algae.seabirds$Distance_to_shore)
+
+##Supplementary correlation plots:
+
+#we want data from all the seabirds and all the N15 at each distance from shore
+#so we need to spread the data according to distance to shore & 15
+
+library(plyr)
+sum.n15<- ddply(algae.seabirds, c("site.name", "Transect", "Distance_to_shore"),summarise,
+                   mean.N15 = mean(N15),
+                  breeding_biomass_kgha_side = breeding_biomass_kgha_side
+)
+
+sum.n15 <- sum.n15 %>% spread(Distance_to_shore, mean.N15)
+
+sum.n15 <- sum.n15 %>% rename(c("N.15_at_10m" = "10", 
+                                    "N.15_at_20m" = "20", "N.15_at_30m" = "30",
+                                    "N.15_at_40m" = "40"))
+data.matrix <- as.data.frame(sum.n15[,3:7])
+View(data.matrix)
+library(corrplot)
+
+cor.mtest(data.matrix)
+correlation.matrix <- cor(data.matrix, use = "pairwise.complete.obs")
+write.csv(correlation.matrix, "../output/n15_seabirds_corrmatrix_with_iti.csv") #change to "_no_iti" if removing iti
+
+
+pdf(file = "../output/seabird-algaen15/corrplot_breedingbiomass_n15_no_iti.pdf") #change to "_no_iti" if removing iti
+
+corrplot(cor(data.matrix, use = "pairwise.complete.obs"), type = "upper", 
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", title = "seabirds vs. N15")
+
+dev.off()
+
 
 ##Run lmers 
 library(lme4)
@@ -146,7 +179,7 @@ library(car)
 library(jtools)
 library(emmeans)
 
-mod <- lmer(N15 ~ breeding_biomass_kgha_side*Distance_to_shore + (1|site.name), 
+mod <- lmer(N15 ~ breeding_biomass_kgha_side * Distance_to_shore + (1|site.name), 
             data = algae.seabirds)
 Anova(mod)
 
@@ -249,6 +282,28 @@ plot(mod.sb.level)
 plot_summs(mod.sb.level)
 summ(mod.sb.level)
 anova(mod.sb.level)
+
+#At 10m only: 
+algaen15.seabirds.10m <- filter(algaen15.seabirds, Distance_to_shore == "10")
+mod.10m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.10m)
+Anova(mod.10m.level)
+summary(mod.10m.level)
+anova(mod.10m.level)
+
+
+algaen15.seabirds.20m <- filter(algaen15.seabirds, Distance_to_shore == "20")
+mod.20m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.20m)
+Anova(mod.20m.level)
+summary(mod.20m.level)
+anova(mod.20m.level)
+
+algaen15.seabirds.30m <- filter(algaen15.seabirds, Distance_to_shore == "30")
+mod.30m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.30m)
+Anova(mod.30m.level)
+
+algaen15.seabirds.40m <- filter(algaen15.seabirds, Distance_to_shore == "40")
+mod.40m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.40m)
+Anova(mod.40m.level)
 
 #Can we tease apart what's going on?
 library(multcompView)
