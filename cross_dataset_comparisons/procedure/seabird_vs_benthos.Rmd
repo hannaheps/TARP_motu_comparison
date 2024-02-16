@@ -139,18 +139,18 @@ corr_mat_benth_vid_sb<-as.data.frame(benthic.vid.seabirds[,7:23])
 
 cor.mtest(corr_mat_benth_vid_sb)
 correlation.matrix <- cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs")
-write.csv(correlation.matrix, "../output/seabird-benthic/seabirds_benthic_video_corrmatrix.csv")
+#write.csv(correlation.matrix, "../output/seabird-benthic/seabirds_benthic_video_corrmatrix.csv")
 
 
-corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+#corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
+#         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
 
-pdf(file = "../output/seabird-benthic/seabirds_benthic_video.pdf")
+#pdf(file = "../output/seabird-benthic/seabirds_benthic_video.pdf")
 
-corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+#corrplot(cor(corr_mat_benth_vid_sb, use = "pairwise.complete.obs"), type = "upper",
+#         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
 
-dev.off()
+#dev.off()
 
 #pretty weak corr's, not much happening...
 ```
@@ -283,8 +283,8 @@ benthic_video_nmds_plot
 
 #save plot
   
-ggsave(benthic_video_nmds_plot, file = "../output/seabird-benthic/benthic_video_nmds_plot.jpg",
-       width = 7, height = 5)
+#ggsave(benthic_video_nmds_plot, file = "../output/seabird-benthic/benthic_video_nmds_plot.jpg",
+#       width = 7, height = 5)
 
 
 ```
@@ -385,8 +385,8 @@ benthic.situ.seabirds%>%
   
 benthic_insitu_stack_barplot
   
-ggsave(benthic_insitu_stack_barplot, file = "../output/seabird-benthic/benthic_insitu_stack_barplot.jpg",
-       width = 7, height = 5)
+#ggsave(benthic_insitu_stack_barplot, file = "../output/seabird-benthic/benthic_insitu_stack_barplot.jpg",
+#       width = 7, height = 5)
 
 
 ```
@@ -401,18 +401,18 @@ corr_mat_benth_situ_sb<-as.data.frame(benthic.situ.seabirds[,6:19])
 
 cor.mtest(corr_mat_benth_situ_sb)
 correlation.matrix <- cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs")
-write.csv(correlation.matrix, "../output/seabird-benthic/seabirds_benthic_situ_corrmatrix.csv")
+#write.csv(correlation.matrix, "../output/seabird-benthic/seabirds_benthic_situ_corrmatrix.csv")
 
 
-corrplot(cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
+#corrplot(cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs"), type = "upper",
+#         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic")
 
-pdf(file = "../output/seabird-benthic/seabirds_benthic_situ.pdf")
+#pdf(file = "../output/seabird-benthic/seabirds_benthic_situ.pdf")
 
-corrplot(cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic In Situ")
+#corrplot(cor(corr_mat_benth_situ_sb, use = "pairwise.complete.obs"), type = "upper",
+#         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Benthic In Situ")
 
-dev.off()
+#dev.off()
 ```
 
 ##do NMDS with seabird biomass as overlay - IN SITU
@@ -441,6 +441,10 @@ plot(ord.fit)
 #draw polygons and arrows
 ordihull(nmds_situ, benthic.situ.seabirds$breeding_biomass_kgha_side, pty=3)
 ## p = 0.036 for seabirds, actually some trends...
+
+scores(nmds_situ, display = "sites", shrink = FALSE) 
+#check species scores with nmds1:
+cor(tet_situ_raw_meta_broad_sp, scores(nmds_situ, dis="si"))
 
 #rotate by breeding seabird biomass so can more easily interpret----
 nmds_situ.rotate<-MDSrotate(nmds_situ, benthic.situ.seabirds$breeding_biomass_kgha_side)
@@ -569,8 +573,8 @@ benthic_situ_nmds_plot
 
 #save plot
   
-ggsave(benthic_situ_nmds_plot, file = "../output/seabird-benthic/benthic_insitu_nmds_plot.jpg",
-       width = 7, height = 5)
+#ggsave(benthic_situ_nmds_plot, file = "../output/seabird-benthic/benthic_insitu_nmds_plot.jpg",
+     #  width = 7, height = 5)
 
 
 ```
@@ -723,5 +727,113 @@ benthic.vid.seabirds.levels%>%
   geom_boxplot()
 
 
+
+```
+
+
+##run lms with algae n15: VIDEO-----
+```{r}
+
+#now add algae n15:
+algae_n15<-read.csv("../output/n15_seabirds_combined_no_iti.csv")
+algae_n15
+
+
+benthic.vid.seabirds.levels.algae<-left_join(benthic.vid.seabirds.levels, 
+                                            select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
+                                            by = "site.name")
+
+benthic.vid.seabirds.levels.algae
+
+
+##hard coral-----
+hard_coral.vid.algae.lmm<-lmer(hard_coral_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(hard_coral.vid.algae.lmm)
+Anova(hard_coral.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+##macroalgael-----
+macro.vid.algae.lmm<-lmer(macroalgae_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(macro.vid.algae.lmm)
+Anova(macro.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+##pavement-----
+pave.vid.algae.lmm<-lmer(pavement_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(pave.vid.algae.lmm)
+Anova(pave.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+##cca-----
+cca.vid.algae.lmm<-lmer(cca_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(cca.vid.algae.lmm)
+Anova(cca.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+
+#NMDS1----
+nmds.vid.algae.lmm<-lmer(NMDS1~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(nmds.vid.algae.lmm)
+Anova(nmds.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+#NMDS2----
+nmds2.vid.algae.lmm<-lmer(NMDS2~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(nmds2.vid.algae.lmm)
+Anova(nmds2.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+```
+
+
+
+##run lms with algae n15: IN SITU-----
+```{r}
+
+#now add algae n15:
+algae_n15
+
+
+benthic.situ.seabirds.levels.algae<-left_join(benthic.situ.seabirds.levels, 
+                                            select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
+                                            by = "site.name")
+
+benthic.situ.seabirds.levels.algae
+
+
+##hard coral-----
+hard_coral.situ.algae.lmm<-lmer(coral_prop_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(hard_coral.situ.algae.lmm)
+Anova(hard_coral.situ.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+##macroalgael-----
+macro.situ.algae.lmm<-lmer(macroalgae_prop_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(macro.situ.algae.lmm)
+Anova(macro.situ.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+##pavement-----
+pave.situ.algae.lmm<-lmer(pavement_prop_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(pave.situ.algae.lmm)
+Anova(pave.situ.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+##no cca-----
+
+
+#NMDS1----
+nmds.situ.algae.lmm<-lmer(NMDS1~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(nmds.situ.algae.lmm)
+Anova(nmds.situ.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+#NMDS2----
+nmds2.situ.algae.lmm<-lmer(NMDS2~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(nmds2.situ.algae.lmm)
+Anova(nmds2.situ.algae.lmm) #MARGINAL POSITIVE EFFECT OF N15 ON NMDS2****
+#looks like sand is positive NMNDS2, hard coral and rubble are negative....
+
+algae_n15
 
 ```
