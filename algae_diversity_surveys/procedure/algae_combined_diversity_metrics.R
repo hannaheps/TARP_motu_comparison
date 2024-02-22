@@ -4,7 +4,7 @@ head(algae.all)
 
 library(tidyverse)
 library(plyr)
-algae.sum <- ddply(algae.all, c("site.name", "transect.id.Maya", "algal.species"), summarise,
+algae.sum <- ddply(algae.all, c("site.name", "distance.along.transect", "transect.id.Maya", "algal.species"), summarise,
                       abundance = sum(abundance.cm2))
 
 algae.matrix <- algae.sum %>% spread(algal.species,abundance)
@@ -16,12 +16,14 @@ View(algae.matrix)
 #remove spaces in the variable names in dataframe
 algae.matrix <- algae.matrix %>% rename_all(make.names)
 View(algae.matrix)
+
+
 #Use Vegan to run alpha div metrics on the data matrix
 library(vegan)
 
-shannon <- diversity(algae.matrix[,3:33], index = "shannon")
+shannon <- diversity(algae.matrix[,4:34], index = "shannon")
 algae.matrix$shannon <- shannon
-richness <- specnumber(algae.matrix[,3:33])
+richness <- specnumber(algae.matrix[,4:34])
 algae.matrix$richness <- richness
 evenness <- shannon/log(richness)
 algae.matrix$evenness <- evenness
@@ -30,8 +32,7 @@ View(algae.matrix)
 algae.matrix <- algae.matrix %>% mutate(site.name = recode(site.name, "A1" = "Aie_Protected", "A2" = 'Aie_Exposed',
                                                    "Re1" = "Reiono_Protected", "Re2" = "Reiono_Exposed", 
                                                    "Rm1" = "Rimatuu_Protected", "Rm2" = "Rimatuu_Exposed"))
-
-head(algae.matrix)
+algae.matrix$distance.along.transect <- as.factor(algae.matrix$distance.along.transect)
 write.csv(algae.matrix, "../output/algae_div_summary_all.csv", row.names = F)
 
 algae.by.site <- ddply(algae.matrix, c("site.name"), summarise,
@@ -49,18 +50,21 @@ write.csv(algae.by.site, "../output/algae_div_summary_bysite.csv", row.names = F
 
 #Stacked barchart
 #1. Make the matrix into a long dataframe
-colnames(algae.matrix[,3:33])
+colnames(algae.matrix[,4:34])
 library(dplyr)
-algae.long <- algae.matrix %>% gather(key=species,value=abundance, c(colnames(algae.matrix[,3:33])))
+algae.long <- algae.matrix %>% gather(key=species,value=abundance, c(colnames(algae.matrix[,4:34])))
 
 #2. Build a stacked bar by species relative abundance & save as pdf
 pdf(file = "../output/algae_species_stackedbar.pdf")
 ggplot(algae.long, aes(fill=species, y=abundance, x=site.name)) + 
-  geom_bar(position="fill", stat="identity")
+  geom_bar(position="fill", stat="identity") +
+  ylab("Relative Abundance") +
+  xlab("Site Name") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 
 #3. differences among sites (PERMANOVAs)
-vegdist.algae <- vegdist(algae.matrix[,3:33], method = "bray")
+vegdist.algae <- vegdist(algae.matrix[,4:34], method = "bray")
 bc.algae <- as.matrix(vegdist.algae) 
 perm.algae <- adonis2(bc.algae ~ site.name, data = algae.matrix)
 #adonis2(formula = bc.algae ~ site.name, data = algae.matrix)
