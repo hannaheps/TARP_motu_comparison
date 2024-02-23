@@ -55,22 +55,21 @@ algae.sum <- ddply(algae.div.seabirds.lvl, c("distance.along.transect", "seabird
                     se_richness = sd(richness)/sqrt(n_richness))
              
 pdf(file = "../output/seabird-algaediv/RichnessvsSeabirdLevel.pdf")
-
-
 ggplot(algae.sum, aes(x = seabird_level, y = mean_richness, color = distance.along.transect, 
               group = distance.along.transect))+
-  geom_point(alpha = 0.5, size  = 3)+
-  geom_errorbar(aes(ymin = (mean_richness-se_richness), ymax = (mean_richness+se_richness)), alpha = .5, width = 0)+
+  geom_point(alpha = 0.5, size  = 4)+
+  geom_errorbar(aes(ymin = (mean_richness-se_richness), ymax = (mean_richness+se_richness)), alpha = .5, width = 0.1)+
   geom_line(alpha = 0.5)+
   ylab("Mean Species Richness \n") +
   xlab("\n Seabird Biomass") +
   labs(color='Distance \nFrom Shore (m)') +
   scale_color_manual(labels = c("10", "40")
-                     ,values = c("forestgreen", "blue3")) +
-  theme_classic()
+                     ,values = c("orangered", "purple3")) +
+  theme_classic() +
+  theme(legend.position = c(0.8, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
 
 dev.off()
-
 
 ##Let's model this
 
@@ -161,11 +160,14 @@ ggplot(algae.div.seabirds.lvl.n15, aes(x = N15, y = richness, color = distance.a
   geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_smooth(method = lm, alpha = 0.2, aes(group = distance.along.transect))+
   ylab("Mean Species Richness \n") +
-  xlab(bquote("\n \u03b415N")) +
+  xlab(expression(italic(delta)^15*N))+
   labs(color='Distance \nFrom Shore (m)') +
   scale_color_manual(labels = c("10", "40")
-                     ,values = c("forestgreen", "blue3")) +
-  theme_classic()
+                     ,values = c("orangered", "purple3")) +
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
+
 
 dev.off()
 ##Not perfect because this removes the points at 40m from Aie exposed where there were no algal collections
@@ -258,7 +260,8 @@ ggplot(nmds.scores, aes(x = NMDS1, y= NMDS2)) +
   geom_polygon(data = hull_nmds, aes(x=NMDS1,y=NMDS2,fill=seabird_level),alpha=0.30) +
   labs(color = 'Seabird Biomass', fill = 'Seabird Biomass', shape = 'Distance from Shore') +
   theme_classic() +
-  theme(legend.position = c(0.8, 0.75))
+  theme(legend.position = c(0.8, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
 dev.off()
 
 #how about a permanova?
@@ -290,7 +293,10 @@ ggplot(nmds.scores, aes(x = NMDS1, y= NMDS2)) +
   geom_text(data = n15.arrow, aes(x = NMDS1, y = NMDS2 - 0.1, label = "N15"), size = 4) +
   labs(color = 'Seabird Biomass', fill = 'Seabird Biomass', shape = 'Distance from Shore') +
   theme_classic() +
-  theme(legend.position = c(0.8, 0.75))
+  #theme(legend.position = c(0.8, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
+
+ggsave("../output/seabird-algaediv/nmds_seabirdlevel_envfit.pdf", plot = last_plot())
 dev.off()
 
 

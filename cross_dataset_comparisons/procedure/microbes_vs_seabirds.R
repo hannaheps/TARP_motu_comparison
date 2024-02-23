@@ -36,6 +36,7 @@ library(car)
 library(jtools)
 library(emmeans)
 
+
 mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ algae.N.percent + (1|site.name), 
                      data = coral.microbes.seabirds)
 mod.micro.birds <- lm(RelAbund_Endozoicomonas ~ breeding_biomass_kgha_side, 
@@ -98,7 +99,7 @@ str(microbes.seabirds$seabird_level)
 #pdf(file = "../output/seabird-algaen15/N15vsBreedBiomass_levels_10_200_plus.pdf")
 
 
-microbes.sum <- ddply(microbes.seabirds, c("sample.type", "Distance_to_shore", "seabird_level"), summarise,
+microbes.sum <- ddply(microbes.seabirds, c("sample.type", "Distance_to_shore","seabird_level"), summarise,
                        mean_richness = mean(Observed),
                        n_richness = length(Observed),
                        se_richness = sd(Observed)/sqrt(n_richness)
@@ -113,49 +114,259 @@ microbes.sum%>%
   facet_wrap(~sample.type)
 
 
-
-microbes.seabirds%>%
-  group_by(Distance_to_shore, seabird_level)%>%
-  summarize(mean_richness = mean(Observed),
-            n_richness = length(Observed),
-            se_richness = sd(Observed)/sqrt(n_richness))%>%
-  ggplot(aes(x = seabird_level, y = mean_richness, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_richness-se_richness), ymax = (mean_richness+se_richness)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-
 dev.off()
 
 
 ###Test among seabird groups
 #First break into coral vs. water again
+names(microbes.seabirds)[names(microbes.seabirds) == "island.side"] <- "Exposure"
+microbes.seabirds$Exposure <- as.factor(microbes.seabirds$Exposure)
+
+
 
 coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
 water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
 
-mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ algae.N15*Distance_to_shore + (1|site.name), 
-                        data = coral.microbes.seabirds)
-mod.micro.birds <- lmer(RelAbund_Endozoicomonas ~ seabird_level + (1|site.name), 
-                      data = coral.microbes.seabirds)
-Anova(mod.micro.birds)
-summary(mod.micro.birds)
+
+hist(coral.microbes.seabirds$Observed)
+plot(Observed ~ seabird_level, coral.microbes.seabirds)
+#Not at all normally distributed
+
+#Therefore, probably can't just loop over the same thing a bunch of times. 
+#How to split this up? What do we want to look at? 
+
+#load all the relevant packages
+library(MASS) #for glmms
+library(nlme) #for linear mixed effects models
+library(lme4) #for linear mixed effects models
+library(emmeans) #for multiple comparisons
+library(car) #for qqplots
+library(vcd) #for distplots of non gaussian distributions
+ 
+####CORALS FIRST #######
+#1. Observed Species Richness
+hist(coral.microbes.seabirds$Observed) #not normal
+qqPlot(coral.microbes.seabirds$Observed) #terrible fit
+
+#Check poisson and nbinomial because these are count data
+distplot(coral.microbes.seabirds$Observed, type="poisson") #looks pretty good!
+distplot(coral.microbes.seabirds$Observed, typ = "nbinomial") #not good, let's go with Poisson
+#using a Posison distribution
+
+mod.glmm <- glmmPQL(Observed~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family="poisson")
+summary(mod.glmm)
+Anova(mod.glmm)
+mod.glmm2 <- glmmPQL(Observed~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family="poisson")
+summary(mod.glmm2)
+Anova(mod.glmm2)
+
+#Okay these are significant????!!!
+#Multiple comparisons can't pull anything out. 
+emmeans(mod.glmm, list(pairwise ~ seabird_level*Distance_to_shore), adjust = "fdr")
+emmeans(mod.glmm2, list(pairwise~ algae.N15*Distance_to_shore), adjust = "fdr")
+
+
+#Let's plot yeah
+
+cor.obs.sum <- ddply(coral.microbes.seabirds, c("Distance_to_shore","seabird_level"), summarise,
+                      mean_richness = mean(Observed),
+                      n_richness = length(Observed),
+                      se_richness = sd(Observed)/sqrt(n_richness)
+)
+
+pdf(file = "../output/seabird-microbes/richness_by_seabird_facet.pdf")
+ggplot(cor.obs.sum, aes(x = seabird_level, y = mean_richness, color = Distance_to_shore, group = Distance_to_shore)) +
+  geom_point(alpha = 0.5, size = 4)+
+  geom_errorbar(aes(ymin= (mean_richness - se_richness), ymax = (mean_richness + se_richness)), alpha = 0.5, width = .1)+
+  geom_line(alpha = 0.5) +
+  ylab("Mean Microbial Species Richness") +
+  xlab("Seabird Biomass Level") +
+  theme_classic() +
+  theme(legend.position = c(1.2, 0.8)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))  +
+  facet_wrap (~Distance_to_shore)
+dev.off()
+
+
+#2. Shannon Div - Not significant
+hist(coral.microbes.seabirds$Shannon)
+plot(Shannon ~ seabird_level, coral.microbes.seabirds)
+qqPlot(coral.microbes.seabirds$Shannon) #not good
+
+##Can't use poisson though because it isn't count data
+#can we use a log link?
+y <- coral.microbes.seabirds$Shannon
+log.gauss.glm <-glmmPQL(y~ seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm)
+Anova(log.gauss.glm)
+plot(log.gauss.glm)
+library(sjPlot)
+plot_grid(plot_model(log.gauss.glm, type = "diag")) #not bad
+
+log.gauss.glm2<-glmmPQL(y ~ algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm2)
+Anova(log.gauss.glm2)
+plot(log.gauss.glm2)
+library(sjPlot)
+plot_grid(plot_model(log.gauss.glm2, type = "diag")) #not bad
+
+
+#3. Faith's Phylogenetic Diversity
+hist(coral.microbes.seabirds$FaithPD)
+plot(FaithPD ~ seabird_level, coral.microbes.seabirds)
+qqPlot(coral.microbes.seabirds$FaithPD )#not a good <- fit
+
+#skewed toward 0 
+#again can't use poisson because it is not count data. but perhaps a gaussian log link
+
+y <- coral.microbes.seabirds$FaithPD
+log.gauss.glm <-glmmPQL(y~ seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm)
+Anova(log.gauss.glm)
+plot(log.gauss.glm)
+plot_grid(plot_model(log.gauss.glm, type = "diag")) #not bad
+
+log.gauss.glm2<-glmmPQL(y ~ algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm2)
+Anova(log.gauss.glm2)
+plot(log.gauss.glm2)
+plot_grid(plot_model(log.gauss.glm2, type = "diag")) #its okay
+
+#significant effect of N15 on faith's PD
+#residuals vs fitted look fine
+
+#4. Evenness 
+hist((coral.microbes.seabirds$Evenness))
+plot(Eveness ~ seabird_level, coral.microbes.seabirds)
+qqPlot(coral.microbes.seabirds$Evenness) #not bad
+
+#use standard linear model
+mod.lme<- lme(Evenness~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML")
+summary(mod.lme)
+Anova(mod.lme)
+plot(mod.lme) #looks great
+
+mod.lme2 <- lme(Evenness~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML", na.action = na.omit)
+summary(mod.lme2)
+Anova(mod.lme2)
+plot(mod.lme2) #also looks great 
+
+#Nothing significant
+
+##Next is beta div: NMDS1, NMDS2
+#5. NMDS1
+hist(coral.microbes.seabirds$NMDS1)
+plot(NMDS1 ~ seabird_level, coral.microbes.seabirds)
+qqPlot(coral.microbes.seabirds$NMDS1) #horrible
+#Problem with negative numbers since it's a coordinate????
+
+
+##ASK casey????
+
+
+#6.NMDS2
+hist(coral.microbes.seabirds$NMDS2) #looks normal
+qqPlot(coral.microbes.seabirds$NMDS2) # not bad, not great though
+
+mod.lme<- lme(NMDS1~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML")
+summary(mod.lme)
+Anova(mod.lme)
+plot(mod.lme) #looks great
+
+mod.lme2 <- lme(NMDS2~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML", na.action = na.omit)
+summary(mod.lme2)
+Anova(mod.lme2)
+plot(mod.lme2) #also looks fine
+
+#Nothing Significant
+
+##Next are all of the individual taxa: 
+#But this is super annoying because I can't loop. Try Endoz? 
+hist(coral.microbes.seabirds$RelAbund_Endozoicomonas)
+qqPlot(coral.microbes.seabirds$RelAbund_Endozoicomonas)#terrible
+#Hmmm can't use log-link because it is skewed the opposite way. 
+#What about proportional data?
+#Ask casey????
+
+
+####WATER NEXT#####
+#Okay cool let's break and do this all for water 
+#1. Observed Species Richness
+hist(water.microbes.seabirds$Observed) #not normal
+qqPlot(water.microbes.seabirds$Observed) #not bad
+
+#Check poisson and nbinomial
+distplot(water.microbes.seabirds$Observed, type="poisson") #looks literally perfect
+#using a Poisson distribution
+
+mod.glmm <- glmmPQL(Observed~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family="poisson")
+summary(mod.glmm)
+Anova(mod.glmm)
+mod.glmm2 <- glmmPQL(Observed~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family="poisson")
+summary(mod.glmm2)
+Anova(mod.glmm2)
+
+#not significant 
+
+
+##2. Shannon 
+hist(water.microbes.seabirds$Shannon) #not normal
+qqPlot(water.microbes.seabirds$Shannon) #oof
+#
+
+#3. Faith's Phylogenetic Diversity 
+hist(water.microbes.seabirds$FaithPD)
+qqPlot(water.microbes.seabirds$FaithPD) #also bad
+
+
+#4. Evenness
+hist(water.microbes.seabirds$Evenness)
+qqPlot(water.microbes.seabirds$Evenness) #NOOoooooo
+
+
+#5. Synnechococcus 
+hist(log(water.microbes.seabirds$RelAbund_Synechococcus))
+qqPlot(log(water.microbes.seabirds$RelAbund_Synechococcus))
+
+
+###Need to stop here or I might throw my computer out the window. 
+########
+
+
+
 #Plot endo - no differences according to distance from shore but definitely trending toward higher at low seabird_levels (confounded by site though)
 
 pdf(file = "../output/seabird-microbes/endo_true_data_by_seabirds.pdf")
-coral.microbes.seabirds %>%
-  group_by(seabird_level)%>%
-  summarize(mean_endo = mean(RelAbund_Endozoicomonas),
-            n_endo = length(RelAbund_Endozoicomonas),
-            se_endo = sd(RelAbund_Endozoicomonas)/sqrt(n_endo))%>%
-  ggplot(aes(x = seabird_level, y = mean_endo))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_endo-se_endo), ymax = (mean_endo+se_endo)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
+endo.sum <- ddply(coral.microbes.seabirds, c("seabird_level"), summarise,
+                  mean_endo = mean(RelAbund_Endozoicomonas),
+                  n_endo = length(RelAbund_Endozoicomonas),
+                  se_endo = sd(RelAbund_Endozoicomonas)/sqrt(n_endo) )
+pdf(file = "../output/seabird-microbes/endo_truedata_seabirdlevel.pdf")
+ggplot(endo.sum, aes(x = seabird_level, y = mean_endo))+
+  geom_point(alpha = .5, size = 4, aes(color = seabird_level))+
+  geom_errorbar(aes(ymin = (mean_endo-se_endo), ymax = (mean_endo+se_endo), color = seabird_level), alpha = .5, width = 0.2)+
+  xlab("Seabird Biomass Level")+
+  ylab("Mean Relative Abundance of Endozoicomonas \nin Coral Tissue") +
+  labs(color='Seabird Biomass \nLevel') +
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
 dev.off()
 
+#What about a plot that is like a barplot or boxplot or something
+ggplot(endo.sum, aes(x = seabird_level, y = mean_endo, fill = Distance_to_shore))+
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = (mean_endo-se_endo), ymax = (mean_endo+se_endo)), position = "dodge", alpha = .5, width = 0.2)+
+  #geom_line(alpha = .5)+
+  theme_bw() 
+#omg totally not interesting 
+
+
+
+######Deprecated###########
 #Can we plot the model
+##Just be aware this model has bad fit!!!
 plot(mod.micro.birds)
 
 emm.summary.sb.endo<-
@@ -185,6 +396,10 @@ emm_plot_sb_endo
 dev.off()
 
 
+
+
+
+########DEPRECATED MAYBE - INCLUDES FOR LOOP######
 #Loop it around the following columns & data
 
 columns <- c( "Observed" , "Shannon", "FaithPD", "algae.N15", "Evenness", "algae.C13.not.acid", 
@@ -212,16 +427,29 @@ Anova(lmer(NMDS1 ~ algae.N15 + Distance_to_shore + island.side + (1|site.name), 
 #Beta dispersion_motu_islandside is significant but this is maybe irrelevant 
 #need to make a new NMDS and colour by seabird level??
 ggplot(coral.microbes.seabirds, aes (x = NMDS1, y = NMDS2))+
-  geom_point(aes(color = seabird_level, shape = island.side))+
+  geom_point(aes(color = seabird_level, shape = Exposure), size = 4, alpha = 0.8)+
   stat_ellipse(aes(color = seabird_level)) +
   #facet_wrap(~motu) +
   theme_bw()
 
 ggplot(coral.microbes.seabirds, aes(x = NMDS1, y = algae.N15)) +
-  geom_point(aes(color = seabird_level, shape = island.side)) +
+  geom_point(aes(color = seabird_level, shape =Exposure)) +
   geom_smooth(method = lm) +
   theme_bw()
-  
+
+pdf(file = "../output/seabird-microbes/coral_richness_N15.pdf")
+ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed)) +
+  geom_point(aes(color = seabird_level), size = 4, alpha = 0.8) +
+  geom_smooth(aes(group = seabird_level, fill = seabird_level, color = seabird_level), method = "lm", linewidth = 0.5, alpha = 0.1) +
+  xlab(expression(italic(delta)^15*N))+
+  ylab("Coral Microbiome Species Richness") +
+  labs(color='Seabird Biomass \nLevel', fill = 'Seabird Biomass \nLevel') +
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.8)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
+dev.off()
+
+
 
 emm_plot_sb_endo<-
   emm_plot+
@@ -279,11 +507,17 @@ water.microbes.seabirds %>%
   summarize(mean_syn = mean(RelAbund_Synechococcus),
             n_syn = length(RelAbund_Synechococcus),
             se_syn = sd(RelAbund_Synechococcus)/sqrt(n_syn))
-
+pdf(file = "../output/synechococcus_N15.pdf")
 ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus)) +
-  geom_point(aes(color = seabird_level, shape = site.name))+
-  theme_bw()
+  geom_point(aes(color = seabird_level, shape = site.name), size = 4)+
+  ylab("Mean Relative Abundance Synechococcus") +
+  xlab(expression(italic(delta)^15*N))+
+  labs(color='Seabird Biomass \nLevel', fill = 'Seabird Biomass \nLevel') +
+  theme_classic() +
+  #theme(legend.position = c(0.15, 0.8)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
 
+dev.off()
 ##What about removing Aie Protected and trying again if there is a strong relationship?
 water.microbes.seabirds.noaiepro <- filter(water.microbes.seabirds, site.name != "Aie_Protected")
 

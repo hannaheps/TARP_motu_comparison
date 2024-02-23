@@ -51,14 +51,19 @@ sum.algae
 library(tidyverse)
 sum.algae <- sum.algae %>% spread(Distance_to_shore, mean.N15)
 
-sum.algae <- sum.algae %>% rename(c("N.15_at_10m" = "10", 
-                                    "N.15_at_20m" = "20", "N.15_at_30m" = "30",
-                                    "N.15_at_40m" = "40"))
+sum.algae <- sum.algae %>% rename(c("10" = "N.15_at_10m", 
+                                    "20" = "N.15_at_20m", "30" = "N.15_at_30m",
+                                    "40" = "N.15_at_40m"))
 
 
 #Rename Sites to match seabird data
+
 sum.algae$Site <- as.factor(sum.algae$Site)
-sum.algae <-sum.algae %>% mutate(Site = recode(Site, "1" = "Protected", "2" = 'Exposed'))
+levels(sum.algae$Site)
+sum.algae <-sum.algae %>% mutate(Site = recode(Site, "1" = "Protected","2"= 'Exposed'))
+
+
+
 
 sum.algae$Exposure <- sum.algae$Site
 sum.algae <- sum.algae[,-2]
@@ -153,9 +158,9 @@ sum.n15<- ddply(algae.seabirds, c("site.name", "Transect", "Distance_to_shore"),
 
 sum.n15 <- sum.n15 %>% spread(Distance_to_shore, mean.N15)
 
-sum.n15 <- sum.n15 %>% rename(c("N.15_at_10m" = "10", 
-                                    "N.15_at_20m" = "20", "N.15_at_30m" = "30",
-                                    "N.15_at_40m" = "40"))
+sum.n15 <- sum.n15 %>% rename(c("10" = "N.15_at_10m", 
+                                    "20" = "N.15_at_20m", "30" = "N.15_at_30m" ,
+                                    "40" = "N.15_at_40m"))
 data.matrix <- as.data.frame(sum.n15[,3:7])
 View(data.matrix)
 library(corrplot)
@@ -256,62 +261,47 @@ algaen15.seabirds <-
 
 ##re-plot----
 
+sum <- ddply(algaen15.seabirds, c("Distance_to_shore", "seabird_level"), summarise,
+             mean_n15 = mean(N15), 
+             n_n15 = length(N15), 
+             se_n15 = sd(N15)/sqrt(n_n15))
+
 pdf(file = "../output/seabird-algaen15/N15vsBreedBiomass_levels_10_200_plus.pdf")
 
-algaen15.seabirds%>%
-  group_by(Distance_to_shore, seabird_level)%>%
-  summarize(mean_n15 = mean(N15),
-            n_n15 = length(N15),
-            se_n15 = sd(N15)/sqrt(n_n15))%>%
-  ggplot(aes(x = seabird_level, y = mean_n15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_n15-se_n15), ymax = (mean_n15+se_n15)), alpha = .5, width = 0)+
+ggplot(sum, aes(x = seabird_level, y = mean_n15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5, size = 4)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  geom_errorbar(aes(ymin = (mean_n15-se_n15), ymax = (mean_n15+se_n15)), alpha = .5, width = 0.1)+
   geom_line(alpha = .5)+
-  theme_bw() 
+  ylab(expression(italic(delta)^15*N))+
+  xlab("\n Seabird Biomass Level") +
+  labs(color='Distance \nFrom Shore (m)', fill = 'Distance \nFrom Shore (m)') +
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.8)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
 
 dev.off()
 
 #What about stats
 
-mod.sb.level <- lmer(N15 ~ seabird_level*Distance_to_shore + (1|site.name), 
-            data = algaen15.seabirds)
-Anova(mod.sb.level)
-summary(mod.sb.level)
-vif(mod.sb.level)
-plot(mod.sb.level)
-plot_summs(mod.sb.level)
-summ(mod.sb.level)
-anova(mod.sb.level)
+hist(algaen15.seabirds$N15)
+plot(N15 ~ seabird_level, algaen15.seabirds)
+with(algaen15.seabirds, lines(lowess(N15 ~ seabird_level)))
 
-#At 10m only: 
-algaen15.seabirds.10m <- filter(algaen15.seabirds, Distance_to_shore == "10")
-mod.10m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.10m)
-Anova(mod.10m.level)
-summary(mod.10m.level)
-anova(mod.10m.level)
+#Trial the standard mixed effects model with seabird level/distance interaction effect and site as a random factor (REML)
+library(nlme)
+mod.lme <- lme(N15 ~ seabird_level*Distance_to_shore + Exposure, random = ~1|site.name, algaen15.seabirds, method = "REML")
+#Trial an optimized version (more complex)
+mod.lme1 <- lme(N15 ~ seabird_level*Distance_to_shore + Exposure, random = ~ seabird_level | site.name, algaen15.seabirds, 
+                         method = "REML",control = lmeControl(opt = "optim", method = "BFGS"))
+#Check AIC values
+anova(mod.lme, mod.lme1) 
 
+library(sjPlot)
+plot_grid(plot_model(mod.lme, type = "diag"))
+plot(mod.lme) #model fit = quite good
 
-algaen15.seabirds.20m <- filter(algaen15.seabirds, Distance_to_shore == "20")
-mod.20m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.20m)
-Anova(mod.20m.level)
-summary(mod.20m.level)
-anova(mod.20m.level)
-
-algaen15.seabirds.30m <- filter(algaen15.seabirds, Distance_to_shore == "30")
-mod.30m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.30m)
-Anova(mod.30m.level)
-
-algaen15.seabirds.40m <- filter(algaen15.seabirds, Distance_to_shore == "40")
-mod.40m.level <- lmer(N15 ~ seabird_level + (1|site.name), data = algaen15.seabirds.40m)
-Anova(mod.40m.level)
-
-#Can we tease apart what's going on?
-library(multcompView)
-library(multcomp)
-library(emmeans)
-marginal.level <- lsmeans(mod.sb.level, ~Distance_to_shore*seabird_level)
-cld(marginal.level, alpha = 0.05, Letters = letters, adjust = "sidak")
-
-
-
-
+anova(mod.lme)
+intervals(mod.lme)
+#Look at the pairwise comparisons using glht
+emmeans(mod.lme, list(pairwise ~ seabird_level*Distance_to_shore), adjust = "fdr")
