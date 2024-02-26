@@ -701,11 +701,12 @@ tet_insitu_div_comm_dat_w_cover<-
 
 tet_insitu_div_comm_dat_w_cover
 
-#round % cover data, and make it clear what it is....
+#round % cover data, and make it clear what it is....and convert in situ to percent to match video
 tet_insitu_div_comm_dat_w_cover<-
   tet_insitu_div_comm_dat_w_cover%>%
+  mutate(across(c(coral:cyano), ~.*100))%>%
   mutate(across(c(coral:cyano), round, 2))%>%
-  rename_with(.fn = ~ paste0(.x, "_prop_cover"), .cols = c("coral":"cyano"))
+  rename_with(.fn = ~ paste0(.x, "_percent_cover"), .cols = c("coral":"cyano"))
 tet_insitu_div_comm_dat_w_cover
 
 
@@ -720,31 +721,31 @@ tet_insitu_div_comm_dat_w_cover
 ```{r}
 
 #hard coral
-cor.test(tet_insitu_div_comm_dat_w_cover$coral_prop_cover, tet_video_div_comm_dat_w_cover$hard_coral_percent_cover)
+cor.test(tet_insitu_div_comm_dat_w_cover$coral_percent_cover, tet_video_div_comm_dat_w_cover$hard_coral_percent_cover)
 #0.7463035 
 
 
 #macroalgae
-cor.test(tet_insitu_div_comm_dat_w_cover$macroalgae_prop_cover, tet_video_div_comm_dat_w_cover$macroalgae_percent_cover)
+cor.test(tet_insitu_div_comm_dat_w_cover$macroalgae_percent_cover, tet_video_div_comm_dat_w_cover$macroalgae_percent_cover)
 #0.7884377
 
 
 #pavement
-cor.test(tet_insitu_div_comm_dat_w_cover$pavement_prop_cover, tet_video_div_comm_dat_w_cover$pavement_percent_cover)
+cor.test(tet_insitu_div_comm_dat_w_cover$pavement_percent_cover, tet_video_div_comm_dat_w_cover$pavement_percent_cover)
 #0.3124796
 
 
 #rubble
-cor.test(tet_insitu_div_comm_dat_w_cover$rubble_prop_cover, tet_video_div_comm_dat_w_cover$rubble_percent_cover)
+cor.test(tet_insitu_div_comm_dat_w_cover$rubble_percent_cover, tet_video_div_comm_dat_w_cover$rubble_percent_cover)
 #0.4638508
 
 
 #sand
-cor.test(tet_insitu_div_comm_dat_w_cover$sand_prop_cover, tet_video_div_comm_dat_w_cover$sand_percent_cover)
+cor.test(tet_insitu_div_comm_dat_w_cover$sand_percent_cover, tet_video_div_comm_dat_w_cover$sand_percent_cover)
 #0.8228589
 
 #other inverts
-cor.test(tet_insitu_div_comm_dat_w_cover$other_invert_prop_cover, tet_video_div_comm_dat_w_cover$other_fish_inverts_percent_cover)
+cor.test(tet_insitu_div_comm_dat_w_cover$other_invert_percent_cover, tet_video_div_comm_dat_w_cover$other_fish_inverts_percent_cover)
 #0.1873515
 
 
