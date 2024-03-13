@@ -19,6 +19,12 @@ library(corrplot)
 
 library(vegan)
 
+
+#if want pairwise adonis:
+#install.packages('devtools')
+#library(devtools)
+#install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis") library(pairwise.adonis)
+
 ```
 
 
@@ -156,8 +162,18 @@ benthic.vid.seabirds.levels.algae%>%
 #       width = 7, height = 5)
 #
 
-
-
+  
+  
+benthic.vid.seabirds.levels.algae%>%
+ # select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
+  #          other_fish_inverts_percent_cover))%>%
+  pivot_longer(cols = ends_with("_percent_cover"),
+                                          names_to = "group",
+                                          values_to = "percent_cover")%>%
+  mutate(group = str_remove(group, '_percent_cover'))%>%
+  group_by(group, seabird_level)%>%
+  summarize(mean_percent_cover = mean(percent_cover))
+  
 ```
 
 
@@ -173,6 +189,22 @@ tet_video_raw_meta_broad_sp_all<-
 tet_video_raw_meta_broad_sp_all
 
 #create data - remove rare groups-----
+colSums(tet_video_raw_meta_broad_sp_all)
+
+#count 0s
+tet_video_raw_meta_broad_sp_all %>% 
+#  group_by(site.name) %>% 
+  summarize(n = n(),
+            across(-n, ~sum(is.na(.) | . == 0)))
+
+#count >1%
+tet_video_raw_meta_broad_sp_all %>% 
+#  group_by(site.name) %>% 
+  summarize(n = n(),
+            across(-n, ~sum(is.na(.) | . >1)))
+#only time fish/inverts > 1% = 1.09% (so still close to 1, and not > 1 at any one site***)
+
+
 tet_video_raw_meta_broad_sp<-
   benthic.vid.seabirds.levels.algae%>%
   ungroup()%>%
@@ -493,10 +525,20 @@ benthic.situ.seabirds.levels.algae%>%
 benthic_situ_stack_barplot_seabird_level
 
   
-ggsave(benthic_situ_stack_barplot_seabird_level, file = "../output/seabird-benthic/benthic_situ_stack_barplot_seabird_level.jpg",
-       width = 7, height = 5)
+#ggsave(benthic_situ_stack_barplot_seabird_level, file = "../output/seabird-benthic/benthic_situ_stack_barplot_seabird_level.jpg",
+#       width = 7, height = 5)
 
 
+
+benthic.situ.seabirds.levels.algae%>%
+ # select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
+  #          other_fish_inverts_percent_cover))%>%
+  pivot_longer(cols = ends_with("_percent_cover"),
+                                          names_to = "group",
+                                          values_to = "percent_cover")%>%
+  mutate(group = str_remove(group, '_percent_cover'))%>%
+  group_by(group, seabird_level)%>%
+  summarize(mean_percent_cover = mean(percent_cover))
 
 
 ```
@@ -753,30 +795,149 @@ ggsave(benthic_stack_plots, file = "../output/seabird-benthic/benthic_stack_plot
 
 
 
-#try permanova??
+#Run PERMANOVA----
 ```{r}
 
-#in situ---
-##permanova----
-#set blocks by site
-perms <- with(benthic.situ.seabirds.levels.algae.w.nmds, how(nperm = 999, blocks = site.name))
-
+#video - full community---
 #run analysis
-permanova_benthic_situ_seabird<-adonis2(tet_situ_raw_meta_broad_sp ~ seabird_level  + protection, by = "margin", data = benthic.situ.seabirds.levels.algae.w.nmds, permutations = perm)
+permanova_benthic_situ_seabird<-adonis2(tet_video_raw_meta_broad_sp_all ~ seabird_level  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
 permanova_benthic_situ_seabird
-##why are all p = 1??
+#              Df SumOfSqs      R2      F Pr(>F)  
+#seabird_level  2  0.12468 0.17972 2.2962  0.063 .
+#protection     1  0.02608 0.03759 0.9605  0.409  
+#Residual      20  0.54299 0.78269                
+#Total         23  0.69375 1.00000        
+
+#seabird level marginal. increased permutations to check - decide # to use.
+
+
+permanova_benthic_situ_n15<-adonis2(tet_video_raw_meta_broad_sp_all ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
+permanova_benthic_situ_n15
+#              Df SumOfSqs      R2      F Pr(>F)  
+#N.15_at_30m  1  0.00820 0.01182 0.2568  0.833
+#protection   1  0.01495 0.02154 0.4680  0.664
+#Residual    21  0.67060 0.96664              
+#Total       23  0.69375 1.00000         
+
+#nothing significant
 
 
 
-#video---
-##permanova----
-#set blocks by site
-perms.vid <- with(benthic.vid.seabirds.levels.algae.w.nmds, how(nperm = 999, blocks = site.name))
+##video- remove rare groups-----
+permanova_benthic_situ_seabird_no_rare<-adonis2(tet_video_raw_meta_broad_sp ~ seabird_level  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
+permanova_benthic_situ_seabird_no_rare
+#              Df SumOfSqs      R2      F Pr(>F)  
+#seabird_level  2  0.12314 0.18010 2.3029  0.066 .
+#protection     1  0.02588 0.03785 0.9679  0.395  
+#Residual      20  0.53470 0.78205                
+#Total         23  0.68371 1.00000        
 
+#same result as above - seabird level marginal
+
+permanova_benthic_situ_n15_no_rare<-adonis2(tet_video_raw_meta_broad_sp ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
+permanova_benthic_situ_n15_no_rare
+#            Df SumOfSqs      R2      F Pr(>F)
+#N.15_at_30m  1  0.00527 0.00771 0.1675  0.881
+#protection   1  0.01459 0.02134 0.4634  0.659
+#Residual    21  0.66109 0.96692              
+#Total       23  0.68371 1.00000  
+
+#same results as above - nothing significant
+
+#situ - full community---
 #run analysis
-permanova_benthic_vid.seabird<-adonis2(tet_situ_raw_meta_broad_sp ~ seabird_level  + protection, by = "margin", data = benthic.vid.seabirds.levels.algae.w.nmds, permutations = perm)
-permanova_benthic_vid.seabird
-##why are all p = 1??
+permanova_benthic_situ_seabird<-adonis2(tet_situ_raw_meta_broad_sp_all ~ seabird_level  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
+permanova_benthic_situ_seabird
+#              Df SumOfSqs      R2      F Pr(>F)  
+#seabird_level  2  0.31961 0.28361 4.2272  0.005 **
+#protection     1  0.07578 0.06724 2.0045  0.118   
+#Residual      20  0.75608 0.67090                 
+#Total         23  1.12695 1.00000              
+
+#seabird level very significant.
+
+
+permanova_benthic_situ_n15<-adonis2(tet_situ_raw_meta_broad_sp_all ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
+permanova_benthic_situ_n15
+#              Df SumOfSqs      R2      F Pr(>F)  
+#N.15_at_30m  1  0.06415 0.05692 1.3318  0.263
+#protection   1  0.04594 0.04076 0.9537  0.416
+#Residual    21  1.01154 0.89759              
+#Total       23  1.12695 1.00000        
+
+#nothing significant
+
+
+##situ- remove rare groups-----
+permanova_benthic_situ_seabird_no_rare<-adonis2(tet_situ_raw_meta_broad_sp ~ seabird_level  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
+permanova_benthic_situ_seabird_no_rare
+#              Df SumOfSqs      R2      F Pr(>F)  
+#seabird_level  2  0.31421 0.28497 4.2595  0.004 **
+#protection     1  0.07243 0.06569 1.9638  0.147   
+#Residual      20  0.73766 0.66901                 
+#Total         23  1.10260 1.00000         
+
+#same result as above - seabird level very significant
+
+permanova_benthic_situ_n15_no_rare<-adonis2(tet_situ_raw_meta_broad_sp ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae, by = "margin", permutations = 999)
+permanova_benthic_situ_n15_no_rare
+#            Df SumOfSqs      R2      F Pr(>F)
+#N.15_at_30m  1  0.06416 0.05819 1.3640  0.270
+#protection   1  0.04546 0.04123 0.9666  0.414
+#Residual    21  0.98771 0.89579              
+#Total       23  1.10260 1.00000   
+
+#same results as above - nothing significant
+
+
+#add in distance to shore or (inshore/offshore distance)-----
+#load transect metadata----
+tet_trans_meta<-read.csv("../../metadata/fish_benthic_focal_transect_metadata.csv", stringsAsFactors = TRUE)
+str(tet_trans_meta)
+
+#make site name to do easy merge:----
+tet_trans_meta2<-
+  tet_trans_meta%>%
+  rename_all(str_to_lower)%>%
+  mutate(protection = if_else(exposure == "Leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = exposure)%>%
+    mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)%>%
+  mutate(transect.in.out = case_when(grepl(pattern = "off", x = transect.location) ~ "offshore",
+                                     grepl(pattern = "in", x = transect.location) ~ "inshore"))%>%
+  mutate(transect.in.out = as.factor(transect.in.out))
+
+tet_trans_meta2
+
+benthic.vid.seabirds.levels.algae.trans<-right_join(select(tet_trans_meta2, c("site.name", "transect", "start_distance_to_shore_m",
+                                                             "end_distance_to_shore_m", "depth_min_m", "depth_max_m", "structural_complexity_0to5",
+                                                             "transect.location", "transect.in.out")),
+                                          benthic.vid.seabirds.levels.algae,
+                                          by = c("site.name", "transect"))%>%
+  relocate(breeding_biomass_kgha_side, .after = rat.eradication.status)
+  
+benthic.vid.seabirds.levels.algae.trans
+
+
+benthic.situ.seabirds.levels.algae.trans<-right_join(select(tet_trans_meta2, c("site.name", "transect", "start_distance_to_shore_m",
+                                                             "end_distance_to_shore_m", "depth_min_m", "depth_max_m", "structural_complexity_0to5",
+                                                             "transect.location", "transect.in.out")),
+                                          benthic.situ.seabirds.levels.algae,
+                                          by = c("site.name", "transect"))%>%
+  relocate(breeding_biomass_kgha_side, .after = rat.eradication.status)
+  
+  
+benthic.situ.seabirds.levels.algae.trans
+
+
+permanova_benthic_situ_seabird_no_rare_trans<-adonis2(tet_situ_raw_meta_broad_sp ~ seabird_level + transect.in.out  + protection,  data = benthic.situ.seabirds.levels.algae.trans, by = "margin", permutations = 999)
+permanova_benthic_situ_seabird_no_rare_trans
+#seabird level still significnat, no interaction, no effect of transect in/out. Same as if use start distance to shore
+
+
+#run post-hoc test - pairwise adonis can be used for fator-level comparisons.
+#pair.mod<-pairwise.adonis(biotafilename,factors=factorfilename$factorname)
+#pair.mod
 
 ```
 
@@ -791,6 +952,8 @@ permanova_benthic_vid.seabird
 hard_coral_vid.lmm<-lmer(hard_coral_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
 summary(hard_coral_vid.lmm)
 Anova(hard_coral_vid.lmm)
+vif(hard_coral_vid.lmm)
+
 #marginal effect of seabird level:
 
 #compare to LRT:
@@ -811,7 +974,7 @@ Anova(hard_coral.lmm)
 hard_coral.vid.algae.lmm<-lmer(hard_coral_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
 summary(hard_coral.vid.algae.lmm)
 Anova(hard_coral.vid.algae.lmm) #NOTHING SIGNIFICANT****
-
+vif(hard_coral.vid.algae.lmm)
 
 hard_coral.situ.algae.lmm<-lmer(coral_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
 summary(hard_coral.situ.algae.lmm)
@@ -838,6 +1001,50 @@ Anova(macro.vid.algae.lmm) #NOTHING SIGNIFICANT****
 macro.situ.algae.lmm<-lmer(macroalgae_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
 summary(macro.situ.algae.lmm)
 Anova(macro.situ.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+#pavement/turf seabird----
+pave.vid.lmm<-lmer(pavement_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(pave.vid.lmm)
+Anova(pave.vid.lmm) #NOTHING SIGNIFICANT****
+
+pave.situ.lmm<-lmer(pavement_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(pave.situ.lmm)
+Anova(pave.situ.lmm) #NOTHING SIGNIFICANT****
+
+
+#pavement/turf algae n15----
+pave.vid.algae.lmm<-lmer(pavement_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(pave.vid.algae.lmm)
+Anova(pave.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+pave.situ.algae.lmm<-lmer(pavement_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(pave.situ.algae.lmm)
+Anova(pave.situ.algae.lmm) #NOTHING SIGNIFICANT****
+
+
+
+#Sand seabird----
+sand.vid.lmm<-lmer(sand_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(sand.vid.lmm)
+Anova(sand.vid.lmm) #NOTHING SIGNIFICANT****
+
+sand.situ.lmm<-lmer(sand_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(sand.situ.lmm)
+Anova(sand.situ.lmm) #seabird level marginal****
+plot_summs(sand.situ.lmm) #looks like mid and high seabird have more sand than low seabird.
+
+
+
+#sand algae n15----
+sand.vid.algae.lmm<-lmer(sand_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
+summary(sand.vid.algae.lmm)
+Anova(sand.vid.algae.lmm) #NOTHING SIGNIFICANT****
+
+sand.situ.algae.lmm<-lmer(sand_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
+summary(sand.situ.algae.lmm)
+Anova(sand.situ.algae.lmm) #NOTHING SIGNIFICANT****
+
 
 
 #NMDS1 seabird----
@@ -992,6 +1199,9 @@ scores(nmds_situ, display="species")
 hard_coral_vid.lmm<-lmer(hard_coral_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
 summary(hard_coral_vid.lmm)
 Anova(hard_coral_vid.lmm)
+plot(hard_coral_vid.lmm)
+qqnorm(resid(hard_coral_vid.lmm))
+qqline(resid(hard_coral_vid.lmm))
 #marginal effect of seabird level:
 
 #look at emmeans:
@@ -1006,7 +1216,7 @@ pairs(EMM_hard_coral_vid, simple = "seabird_level", type = "response") #nothing 
 hard_coral_vid.lmm.log<-lmer(log(hard_coral_percent_cover)~seabird_level+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
 summary(hard_coral_vid.lmm.log)
 Anova(hard_coral_vid.lmm.log)
-#no no effect of seabird level
+#now no effect of seabird level
 plot(hard_coral_vid.lmm.log)
 plot(hard_coral_vid.lmm)
 
