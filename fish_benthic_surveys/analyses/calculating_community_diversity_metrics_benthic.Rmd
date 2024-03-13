@@ -57,6 +57,19 @@ tet_video_raw_meta<-left_join(
   relocate(site.name:rat.eradication.status, .after = motu)
 tet_video_raw_meta
 
+
+
+#plot:
+tet_video_raw_meta%>%
+  ggplot(aes(x = motu, colour = wind.exposure, fill = wind.exposure, y = turf_algae))+
+  geom_point()
+
+
+tet_video_raw_meta%>%
+  ggplot(aes(x = motu, colour = wind.exposure, fill = wind.exposure, y = turf_algae))+
+  geom_boxplot(alpha = .7)+
+  geom_point()
+
 ```
 
 ##aggregate - one for broad groupings, one for coral-focused bc can use genus for these:
@@ -360,6 +373,20 @@ tet_insitu_raw_meta<-left_join(
                               tet_site_meta, by = c("motu", "protection"))%>%
   relocate(site.name:rat.eradication.status, .after = motu)
 tet_insitu_raw_meta
+
+
+#quick plot:
+tet_insitu_raw_meta%>%
+    mutate(count = 1)%>%
+  group_by(motu, site.name, wind.exposure, transect, benthos)%>%
+  summarize(sum_transect = sum(count),
+            prop_transect = sum_transect/60*100) %>% #60 points per transect
+   pivot_wider(id_cols = c(motu, site.name, wind.exposure, transect), 
+              values_from = prop_transect, names_from = benthos, values_fill = 0)%>%
+  ungroup()%>%
+  ggplot(aes(x = motu, colour = wind.exposure, fill = wind.exposure, y =turf))+
+  geom_boxplot(alpha = .7)+
+  geom_point()
 
 ```
 
@@ -747,6 +774,11 @@ cor.test(tet_insitu_div_comm_dat_w_cover$sand_percent_cover, tet_video_div_comm_
 #other inverts
 cor.test(tet_insitu_div_comm_dat_w_cover$other_invert_percent_cover, tet_video_div_comm_dat_w_cover$other_fish_inverts_percent_cover)
 #0.1873515
+
+turf
+cor.test(tet_insitu_div_comm_dat_w_cover$coral_percent_cover, tet_video_div_comm_dat_w_cover$hard_coral_percent_cover)
+#0.7463035 
+
 
 
 #for largest groups (corals, macroalgae, sand) - very strongly correlated
