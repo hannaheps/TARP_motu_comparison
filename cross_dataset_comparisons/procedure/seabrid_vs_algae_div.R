@@ -265,12 +265,20 @@ ggplot(nmds.scores, aes(x = NMDS1, y= NMDS2)) +
 dev.off()
 
 #how about a permanova?
-relabund.nozero <- relabund[, colSums(relabund[,5:35] != 0) > 0]
-colnames(relabund.nozero[,5:30])
+relabund.nozero <- relabund[, colSums(relabund[,5:35] !=0) >0]
+colSums(relabund.nozero[,5:32]) #doesn't remove all the 0s, no idea why
+#index: 31,28, 16
+relabund.nozero <- relabund.nozero[, -c(16,28,31)]
+colSums(relabund.nozero[,5:29]) #SO ANNOYING WTF. but it works now
 
-bc <- vegdist(relabund.nozero[,5:30], method = "bray")
+bc <- vegdist(relabund.nozero[,5:29], method = "bray")
 bc.mat <- as.matrix(bc)
 adonis2(bc.mat ~ seabird_level*distance.along.transect + Exposure, data = relabund.nozero, strata = relabund.nozero$site.name)
+##Weird output, all p values are 0.001
+#Can't actually use the strata = function because it doesn't treat it correctly
+
+adonis2(bc.mat ~ seabird_level *distance.along.transect, data = relabund.nozero)
+adonis2(bc.mat ~ N15*distance.along.transect, data = relabund.nozero)
 
 #PERMDISP##
 disp <- betadisper(bc, relabund.nozero$site.name, type = "centroid")

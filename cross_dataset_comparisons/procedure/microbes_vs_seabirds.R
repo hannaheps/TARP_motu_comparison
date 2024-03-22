@@ -96,8 +96,7 @@ str(microbes.seabirds$seabird_level)
 
 ##plot----
 
-#pdf(file = "../output/seabird-algaen15/N15vsBreedBiomass_levels_10_200_plus.pdf")
-
+pdf(file = "../output/seabird-microbes/RichnessvsBreedBiomass_levels_10_200_plus.pdf")
 
 microbes.sum <- ddply(microbes.seabirds, c("sample.type", "Distance_to_shore","seabird_level"), summarise,
                        mean_richness = mean(Observed),
@@ -137,6 +136,7 @@ plot(Observed ~ seabird_level, coral.microbes.seabirds)
 
 #load all the relevant packages
 library(MASS) #for glmms
+library(glmmTMB) #for glmms with a beta distribution
 library(nlme) #for linear mixed effects models
 library(lme4) #for linear mixed effects models
 library(emmeans) #for multiple comparisons
@@ -167,6 +167,37 @@ emmeans(mod.glmm2, list(pairwise~ algae.N15*Distance_to_shore), adjust = "fdr")
 
 
 #Let's plot yeah
+
+pdf(file = "../output/seabird-microbes/coral_richness_N15.pdf")
+ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed)) +
+  geom_point(aes(color = seabird_level), size = 4, alpha = 0.8) +
+  geom_smooth(aes(group = seabird_level, fill = seabird_level, color = seabird_level), method = "lm", linewidth = 0.5, alpha = 0.1) +
+  xlab(expression(italic(delta)^15*N))+
+  ylab("Coral Microbiome Species Richness") +
+  labs(color='Seabird Biomass \nLevel', fill = 'Seabird Biomass \nLevel') +
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.8)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) +
+  facet_wrap(~seabird_level)
+dev.off()
+
+
+library(ggeffects)
+pdf(file = "../output/seabird-microbes/richness_by_n15_seabird.pdf")
+p.predicted <- plot(ggpredict(mod.glmm2, terms = "algae.N15"))
+pdf(file = "../output/seabird-microbes/richness_by_n15_seabird.pdf")
+p.predicted +
+  geom_point(data = coral.microbes.seabirds, aes(x = algae.N15, y = Observed, color = seabird_level), alpha = 0.5, size = 4)+
+  scale_fill_manual(values=c("#CC0000", "#006600", "#669999")) +
+  ylab("Coral Microbial Species Richness") +
+  xlab(expression(italic(delta)^15*N)) +
+  theme_classic() +
+  ggtitle(NULL) +
+  theme(legend.position = c(0.15, 0.82)) +
+  labs(color='Seabird Biomass \nLevel') +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+dev.off()
+#Something is weird with the colour, but seems to have produced something okay. 
 
 cor.obs.sum <- ddply(coral.microbes.seabirds, c("Distance_to_shore","seabird_level"), summarise,
                       mean_richness = mean(Observed),
@@ -260,18 +291,29 @@ plot(NMDS1 ~ seabird_level, coral.microbes.seabirds)
 qqPlot(coral.microbes.seabirds$NMDS1) #horrible
 #Problem with negative numbers since it's a coordinate????
 
+mod.lme<- lme(NMDS1~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML")
+summary(mod.lme)
+Anova(mod.lme)
+anova(mod.lme)
+plot(mod.lme) #honestly the residuals look great
 
-##ASK casey????
-
+mod.lme2<- lme(NMDS1~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML", na.action = na.omit)
+summary(mod.lme2)
+Anova(mod.lme2)
+anova(mod.lme2)
+plot(mod.lme2)
+library(sjPlot)
+plot_grid(plot_model(mod.lme2, type = "diag")) #its okay
 
 #6.NMDS2
 hist(coral.microbes.seabirds$NMDS2) #looks normal
 qqPlot(coral.microbes.seabirds$NMDS2) # not bad, not great though
 
-mod.lme<- lme(NMDS1~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML")
+mod.lme<- lme(NMDS2~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML")
 summary(mod.lme)
 Anova(mod.lme)
 plot(mod.lme) #looks great
+plot_grid(plot_model(mod.lme, type = "diag")) #nice
 
 mod.lme2 <- lme(NMDS2~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, method = "REML", na.action = na.omit)
 summary(mod.lme2)
@@ -286,8 +328,85 @@ hist(coral.microbes.seabirds$RelAbund_Endozoicomonas)
 qqPlot(coral.microbes.seabirds$RelAbund_Endozoicomonas)#terrible
 #Hmmm can't use log-link because it is skewed the opposite way. 
 #What about proportional data?
-#Ask casey????
 
+##Since Endoz are skewed toward 1, what about using a beta distribution?
+?glmmTMB()
+
+glmmTMB(RelAbund_Endozoicomonas ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = coral.microbes.seabirds, na.action = na.omit)
+#says that the values need to be between zero and 1
+coral.microbes.seabirds$RelAbund_Endozoicomonas #but they are....
+
+#Maybe we can do beta but need a transformation first?
+library(mgcv)
+endo_trans <- mutate(coral.microbes.seabirds, RelAbund_Endozoicomonas = (RelAbund_Endozoicomonas*(n()-1) + 0.5)/n())
+
+beta <- gam(RelAbund_Endozoicomonas ~ seabird_level*Distance_to_shore,data=endo_trans,
+                    family=betar(link="logit"), na.action = na.omit)
+
+
+plot.gam(beta)
+anova(beta)
+summary(beta)
+
+beta1 <- glmmTMB(RelAbund_Endozoicomonas ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = endo_trans, na.action = na.omit)
+beta2 <- glmmTMB(RelAbund_Endozoicomonas ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = endo_trans, na.action = na.omit)
+
+summary(beta1)
+Anova(beta1)
+
+Anova(beta2)
+
+##Maybe Ca. Amoebophilus
+#Alteromonadaceae
+#And Woesarchaeales, Litoricola
+
+#This gives us 5 top abundant taxa 
+#B) Ca. Amoebophilus
+ameob_trans <- mutate(coral.microbes.seabirds, RelAbund_Cytophagales_Candidatus_Amoebophilus = (RelAbund_Cytophagales_Candidatus_Amoebophilus*(n()-1) + 0.5)/n())
+amoeb.beta1 <- glmmTMB(RelAbund_Cytophagales_Candidatus_Amoebophilus ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = ameob_trans, na.action = na.omit)
+amoeb.beta2 <- glmmTMB(RelAbund_Cytophagales_Candidatus_Amoebophilus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = ameob_trans, na.action = na.omit)
+
+Anova(amoeb.beta1)
+Anova(amoeb.beta2)#does not explain
+
+
+#C)Alteromonadaceae
+hist(coral.microbes.seabirds$RelAbund_Uncultured_Alteromonadaceaeae)
+alter_trans <- mutate(coral.microbes.seabirds, RelAbund_Uncultured_Alteromonadaceaeae = (RelAbund_Uncultured_Alteromonadaceaeae*(n()-1) + 0.5)/n())
+alter.beta1 <- glmmTMB(RelAbund_Uncultured_Alteromonadaceaeae ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = alter_trans, na.action = na.omit)
+alter.beta2 <- glmmTMB(RelAbund_Uncultured_Alteromonadaceaeae ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = alter_trans, na.action = na.omit)
+Anova(alter.beta1)
+Anova(alter.beta2)#woah! Does explain :) Let's plot 
+library(ggeffects)
+p <- plot(ggpredict(alter.beta2, terms = "algae.N15")) #this plots the predicted values
+
+#add real data to this:
+pdf(file = "../output/seabird-microbes/alteromon_true_betapredicted_data_by_n15.pdf")
+p + geom_point(data = coral.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Uncultured_Alteromonadaceaeae), alpha = .5, size = 4) +
+  xlab(expression(italic(delta)^15*N))+
+  ylab("Relative Abundance of Uncultured Alteromonadaceae \nin Coral Tissue") +
+  ggtitle( label = NULL) +
+  scale_y_continuous(n.breaks = 8) +
+  theme_classic() +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+dev.off()
+
+
+#D)Woesarchaeales
+coral.microbes.seabirds$RelAbund_Woesearchaeales_SCGC_AAA286E23
+woes_trans <- mutate(coral.microbes.seabirds, RelAbund_Woesearchaeales_SCGC_AAA286E23 = (RelAbund_Woesearchaeales_SCGC_AAA286E23*(n()-1) + 0.5)/n())
+woes.beta1 <- glmmTMB(RelAbund_Woesearchaeales_SCGC_AAA286E23 ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = woes_trans, na.action = na.omit)
+woes.beta2 <- glmmTMB(RelAbund_Woesearchaeales_SCGC_AAA286E23 ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = woes_trans, na.action = na.omit)
+Anova(woes.beta1)
+Anova(woes.beta2)
+
+#E)Litoricola
+coral.microbes.seabirds$RelAbund_Litoricola
+lit_trans <- mutate(coral.microbes.seabirds, RelAbund_Litoricola = (RelAbund_Litoricola*(n()-1) + 0.5)/n())
+lit.beta1 <- glmmTMB(RelAbund_Litoricola ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = lit_trans, na.action = na.omit)
+lit.beta2 <- glmmTMB(RelAbund_Litoricola~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = lit_trans, na.action = na.omit)
+Anova(lit.beta1)
+Anova(lit.beta2)
 
 ####WATER NEXT#####
 #Okay cool let's break and do this all for water 
@@ -312,25 +431,178 @@ Anova(mod.glmm2)
 ##2. Shannon 
 hist(water.microbes.seabirds$Shannon) #not normal
 qqPlot(water.microbes.seabirds$Shannon) #oof
+#almost binomial - two peaks
+
+y <- water.microbes.seabirds$Shannon
+log.gauss.glm <-glmmPQL(y~ seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm)
+Anova(log.gauss.glm)
+plot(log.gauss.glm)
+plot_grid(plot_model(log.gauss.glm, type = "diag")) #not great but not bad
+
+log.gauss.glm2<-glmmPQL(y ~ algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm2)
+Anova(log.gauss.glm2)
+plot(log.gauss.glm2)
+plot_grid(plot_model(log.gauss.glm2, type = "diag")) #also a little rough but okay
+
+
+
 #
 
 #3. Faith's Phylogenetic Diversity 
 hist(water.microbes.seabirds$FaithPD)
 qqPlot(water.microbes.seabirds$FaithPD) #also bad
 
+y <- water.microbes.seabirds$FaithPD
+log.gauss.glm <-glmmPQL(y~ seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm)
+Anova(log.gauss.glm)
+plot(log.gauss.glm)
+plot_grid(plot_model(log.gauss.glm, type = "diag")) #honestly not so bad
+
+log.gauss.glm2<-glmmPQL(y ~ algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm2)
+Anova(log.gauss.glm2)
+plot(log.gauss.glm2)
+plot_grid(plot_model(log.gauss.glm2, type = "diag")) # okay
+
+
 
 #4. Evenness
 hist(water.microbes.seabirds$Evenness)
 qqPlot(water.microbes.seabirds$Evenness) #NOOoooooo
 
+y <- water.microbes.seabirds$Evenness
+log.gauss.glm <-glmmPQL(y~ seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm)
+Anova(log.gauss.glm)
+plot(log.gauss.glm)
+plot_grid(plot_model(log.gauss.glm, type = "diag")) #Not good. 
 
-#5. Synnechococcus 
-hist(log(water.microbes.seabirds$RelAbund_Synechococcus))
-qqPlot(log(water.microbes.seabirds$RelAbund_Synechococcus))
+log.gauss.glm2<-glmmPQL(y ~ algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm2)
+Anova(log.gauss.glm2)
+plot(log.gauss.glm2)
+plot_grid(plot_model(log.gauss.glm2, type = "diag")) # also not good. ugh
 
 
-###Need to stop here or I might throw my computer out the window. 
-########
+#5. NMDS1
+hist(water.microbes.seabirds$NMDS1)
+qqPlot(water.microbes.seabirds$NMDS1)
+
+#let's just try a linear model and check residuals
+mod.lme<- lme(NMDS1~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, method = "REML")
+summary(mod.lme)
+Anova(mod.lme)
+plot(mod.lme) #looks great
+plot_grid(plot_model(mod.lme, type = "diag")) #not great
+
+mod.lme2 <- lme(NMDS1~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, method = "REML", na.action = na.omit)
+summary(mod.lme2)
+Anova(mod.lme2)
+plot(mod.lme2) #also looks fine
+plot_grid(plot_model(mod.lme2, type = "diag")) #its kinda weird
+
+
+#6. NMDS2
+hist(water.microbes.seabirds$NMDS2) #wow what a relief!
+qqPlot(water.microbes.seabirds$NMDS2)
+
+mod.lme<- lme(NMDS2~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, method = "REML")
+summary(mod.lme)
+Anova(mod.lme)
+plot(mod.lme) #looks great
+plot_grid(plot_model(mod.lme, type = "diag")) #nice nice
+
+mod.lme2 <- lme(NMDS2~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, method = "REML", na.action = na.omit)
+summary(mod.lme2)
+Anova(mod.lme2)
+plot(mod.lme2) #also looks fine
+plot_grid(plot_model(mod.lme2, type = "diag")) #good good
+
+#This was a good breather! 
+
+#Okay done with the diversity metrics, how about let's look at some of the top taxa
+
+##7. Synnechococcus 
+hist(water.microbes.seabirds$RelAbund_Synechococcus)
+qqPlot(water.microbes.seabirds$RelAbund_Synechococcus)
+#use a beta I think
+
+syn_trans <- mutate(water.microbes.seabirds, RelAbund_Synechococcus = (RelAbund_Synechococcus*(n()-1) + 0.5)/n())
+syn.beta1 <- glmmTMB(RelAbund_Synechococcus ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+syn.beta2 <- glmmTMB(RelAbund_Synechococcus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+Anova(syn.beta1)
+Anova(syn.beta2)
+
+#Can we remove protected side of Aie?
+water.microbes.seabirds.noaiepro <- filter(water.microbes.seabirds, site.name != "Aie_Protected")
+
+syn_trans <- mutate(water.microbes.seabirds.noaiepro, RelAbund_Synechococcus = (RelAbund_Synechococcus*(n()-1) + 0.5)/n())
+syn.beta1 <- glmmTMB(RelAbund_Synechococcus ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+syn.beta2 <- glmmTMB(RelAbund_Synechococcus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+Anova(syn.beta1)
+Anova(syn.beta2)
+# Synecchococcus significant with N15 but not seabird level. 
+
+water.microbes.seabirds.noaiepro %>%
+  group_by(seabird_level)%>%
+  summarize(mean_syn = mean(RelAbund_Synechococcus),
+            n_syn = length(RelAbund_Synechococcus),
+            se_syn = sd(RelAbund_Synechococcus)/sqrt(n_syn))
+
+ggplot(water.microbes.seabirds.noaiepro, aes(x = algae.N15, y = RelAbund_Synechococcus)) +
+  geom_point(aes(color = seabird_level, shape = site.name))+
+  theme_bw()
+
+
+##What about Litoricola, Prochlorococcus, Uncultured Alteromonadaceae (same as corals) & SAR86
+
+#8. Litoricola
+hist(water.microbes.seabirds$RelAbund_Litoricola)
+qqPlot(water.microbes.seabirds$RelAbund_Litoricola) #beta
+
+syn_trans <- mutate(water.microbes.seabirds, RelAbund_Litoricola = (RelAbund_Litoricola*(n()-1) + 0.5)/n())
+syn.beta1 <- glmmTMB(RelAbund_Litoricola ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+syn.beta2 <- glmmTMB(RelAbund_Litoricola ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+Anova(syn.beta1)
+Anova(syn.beta2)
+
+
+
+#9. Prochlorococcus
+
+hist(water.microbes.seabirds$RelAbund_Prochlorococcus)
+qqPlot(water.microbes.seabirds$RelAbund_Prochlorococcus) #beta
+
+syn_trans <- mutate(water.microbes.seabirds, RelAbund_Prochlorococcus = (RelAbund_Prochlorococcus*(n()-1) + 0.5)/n())
+syn.beta1 <- glmmTMB(RelAbund_Prochlorococcus ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+syn.beta2 <- glmmTMB(RelAbund_Prochlorococcus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+Anova(syn.beta1)
+Anova(syn.beta2)
+
+
+#10. SAR86
+hist(water.microbes.seabirds$RelAbund_SAR86_Clade)
+qqPlot(water.microbes.seabirds$RelAbund_SAR86_Clade) #beta
+
+syn_trans <- mutate(water.microbes.seabirds, RelAbund_SAR86_Clade = (RelAbund_SAR86_Clade*(n()-1) + 0.5)/n())
+syn.beta1 <- glmmTMB(RelAbund_SAR86_Clade ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+syn.beta2 <- glmmTMB(RelAbund_SAR86_Clade ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+Anova(syn.beta1)
+Anova(syn.beta2)
+
+#Uncultured Alteromonadaceae
+
+hist(water.microbes.seabirds$RelAbund_Uncultured_Alteromonadaceaeae)
+qqPlot(water.microbes.seabirds$RelAbund_Uncultured_Alteromonadaceaeae) #beta
+
+syn_trans <- mutate(water.microbes.seabirds, RelAbund_Uncultured_Alteromonadaceaeae = (RelAbund_Uncultured_Alteromonadaceaeae*(n()-1) + 0.5)/n())
+syn.beta1 <- glmmTMB(RelAbund_Uncultured_Alteromonadaceaeae ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+syn.beta2 <- glmmTMB(RelAbund_Uncultured_Alteromonadaceaeae ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans, na.action = na.omit)
+Anova(syn.beta1)
+Anova(syn.beta2)
 
 
 
@@ -361,6 +633,10 @@ ggplot(endo.sum, aes(x = seabird_level, y = mean_endo, fill = Distance_to_shore)
   #geom_line(alpha = .5)+
   theme_bw() 
 #omg totally not interesting 
+
+
+
+
 
 
 
