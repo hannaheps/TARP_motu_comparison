@@ -934,6 +934,8 @@ permanova_benthic_situ_seabird_no_rare_trans<-adonis2(tet_situ_raw_meta_broad_sp
 permanova_benthic_situ_seabird_no_rare_trans
 #seabird level still significnat, no interaction, no effect of transect in/out. Same as if use start distance to shore
 
+permanova_benthic_situ_seabird_no_rare_trans<-adonis2(tet_situ_raw_meta_broad_sp ~ seabird_level + transect.in.out  + protection + depth_min_m + depth_max_m,  data = benthic.situ.seabirds.levels.algae.trans, by = "margin", permutations = 999)
+permanova_benthic_situ_seabird_no_rare_trans
 
 #run post-hoc test - pairwise adonis can be used for fator-level comparisons.
 #pair.mod<-pairwise.adonis(biotafilename,factors=factorfilename$factorname)
@@ -960,13 +962,13 @@ vif(hard_coral_vid.lmm)
 hard_coral_vid.lmm.r<-lmer(hard_coral_percent_cover~wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
 anova(hard_coral_vid.lmm, hard_coral_vid.lmm.r) #NOW SIGNIFICANT p = .02988
 
-plot_summs(hard_coral.lmm)
+plot_summs(hard_coral_vid.lmm)
 #looks like low seabirds have higher coral cover than mid (and marginal than high)
 
 
 hard_coral_situ.lmm<-lmer(coral_percent_cover~seabird_level+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
 summary(hard_coral_situ.lmm)
-Anova(hard_coral.lmm)
+Anova(hard_coral_situ.lmm)
 #no effect of seabird level
 
 
@@ -1310,7 +1312,7 @@ benthic.vid.seabirds.levels.algae %>%
         legend.box.background = element_rect(colour = "black"))
 
 ##add macroalgae:
-plot_dat_macro_vid<-emmip(macrol.vid.algae.lmm,  ~N.15_at_30m, at = mylist_n15, CIs = TRUE, plotit=FALSE)
+plot_dat_macro_vid<-emmip(macro.vid.algae.lmm,  ~N.15_at_30m, at = mylist_n15, CIs = TRUE, plotit=FALSE)
 plot_dat_macro_vid
 
 benthic.vid.seabirds.levels.algae %>%
@@ -1352,4 +1354,74 @@ cover_est_plot
 
 ```
 
+#try beta distribution:
+```{r}
+transform01 <- function(x) {
+  (x * (length(x) - 1) + 0.5) / (length(x))
+}
+
+div100<-function(x) {
+  (x/100)
+}
+
+benthic.vid.seabirds.levels.algae.beta<-
+  benthic.vid.seabirds.levels.algae %>%
+  mutate_at(13:20, div100)%>%
+  mutate_at(13:20, transform01)
+benthic.vid.seabirds.levels.algae.beta
+
+
+library(glmmTMB)
+hard_coral_vid.lmm.beta<-glmmTMB(hard_coral_percent_cover~seabird_level+wind.exposure + (1|site.name), family=beta_family(link="logit"), data = benthic.vid.seabirds.levels.algae.beta)
+summary(hard_coral_vid.lmm.beta)
+Anova(hard_coral_vid.lmm.beta)
+plot(resid(hard_coral_vid.lmm.beta))
+qqnorm(resid(hard_coral_vid.lmm.beta))
+
+
+#look at emmeans:
+hard_coral_vid.lmm.beta %>% 
+  emmeans(~ seabird_level,
+          type = "response") 
+#actually looks a lot better***
+
+emmeans(hard_coral_vid.lmm.beta, list(pairwise ~ seabird_level), type = "response", adjust = "fdr")
+#but in terms of sig - only low is higher than mid, all else no sig difference.
+
+##response plot, beta----
+plot_data_hc_vid_beta<-emmip(hard_coral_vid.lmm.beta, ~ seabird_level,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot_data_hc_vid_beta
+
+
+hc_vid_response_plot_beta<-
+  ggplot(data = plot_data_hc_vid_beta, aes(x = seabird_level, y = yvar))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  #ylab("N15")+
+ # xlab("")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.15,.85) )
+
+hc_vid_response_plot_beta
+
+
+
+
+ameob_trans <- mutate(coral.microbes.seabirds, RelAbund_Cytophagales_Candidatus_Amoebophilus = (RelAbund_Cytophagales_Candidatus_Amoebophilus*(n()-1) + 0.5)/n())
+
+amoeb.beta1 <- glmmTMB(RelAbund_Cytophagales_Candidatus_Amoebophilus ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = ameob_trans, na.action = na.omit)
+
+amoeb.beta2 <- glmmTMB(RelAbund_Cytophagales_Candidatus_Amoebophilus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = ameob_trans, na.action = na.omit)
+
+```
 
