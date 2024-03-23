@@ -1372,7 +1372,9 @@ benthic.vid.seabirds.levels.algae.beta
 
 
 library(glmmTMB)
-hard_coral_vid.lmm.beta<-glmmTMB(hard_coral_percent_cover~seabird_level+wind.exposure + (1|site.name), family=beta_family(link="logit"), data = benthic.vid.seabirds.levels.algae.beta)
+
+##HARD CORAL-----
+hard_coral_vid.lmm.beta<-glmmTMB(hard_coral_percent_cover~seabird_level+wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
 summary(hard_coral_vid.lmm.beta)
 Anova(hard_coral_vid.lmm.beta)
 plot(resid(hard_coral_vid.lmm.beta))
@@ -1396,32 +1398,250 @@ plot_data_hc_vid_beta
 
 
 hc_vid_response_plot_beta<-
-  ggplot(data = plot_data_hc_vid_beta, aes(x = seabird_level, y = yvar))+
+  ggplot(data = plot_data_hc_vid_beta, aes(x = seabird_level, y = yvar*100, color = seabird_level, fill = seabird_level))+
 #  geom_point(pch = 4,  position = position_dodge(.3))+
-  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
  # geom_point(data = fishn15.seabirds.cond.r, 
            #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
     geom_line(alpha = .5 ,  position = position_dodge(.1))+
   #scale_fill_manual(values = my_colors)+
  # scale_color_manual(values = my_colors) +
-  #ylab("N15")+
- # xlab("")+
+  ylab("% hard coral cover")+
+#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
+  xlab("seabird biomass level")+
    theme_bw()+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.15,.85) )
+        legend.position = "none" )
 
 hc_vid_response_plot_beta
 
 
 
+##MACROALGAE----
+macro_vid.lmm.beta<-glmmTMB(macroalgae_percent_cover~seabird_level+wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
+summary(macro_vid.lmm.beta)
+Anova(macro_vid.lmm.beta)
+plot(resid(macro_vid.lmm.beta))
+qqnorm(resid(macro_vid.lmm.beta))
+#no sig differences
 
-ameob_trans <- mutate(coral.microbes.seabirds, RelAbund_Cytophagales_Candidatus_Amoebophilus = (RelAbund_Cytophagales_Candidatus_Amoebophilus*(n()-1) + 0.5)/n())
+#look at emmeans:
+macro_vid.lmm.beta %>% 
+  emmeans(~ seabird_level,
+          type = "response") 
+#actually looks a lot better***
 
-amoeb.beta1 <- glmmTMB(RelAbund_Cytophagales_Candidatus_Amoebophilus ~ seabird_level*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = ameob_trans, na.action = na.omit)
+emmeans(macro_vid.lmm.beta, list(pairwise ~ seabird_level), type = "response", adjust = "fdr")
+#no sig diff
 
-amoeb.beta2 <- glmmTMB(RelAbund_Cytophagales_Candidatus_Amoebophilus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = ameob_trans, na.action = na.omit)
+##response plot, beta----
+plot_data_macro_vid_beta<-emmip(macro_vid.lmm.beta, ~ seabird_level,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot_data_macro_vid_beta
+
+
+macro_vid_response_plot_beta<-
+  ggplot(data = plot_data_macro_vid_beta, aes(x = seabird_level, y = yvar*100, color = seabird_level, fill = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab("% hard coral cover")+
+#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
+  xlab("seabird biomass level")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none" )
+
+macro_vid_response_plot_beta
+
+
+plot_data_hc_vid_beta<-
+  plot_data_hc_vid_beta%>%
+  mutate(group = "hard coral")
+
+plot_data_macro_vid_beta<-
+  plot_data_macro_vid_beta%>%
+  mutate(group = "algae")
+
+
+plot_data_vid_beta<-
+  rbind(plot_data_hc_vid_beta, plot_data_macro_vid_beta)
+plot_data_vid_beta
+
+#combine algae and coral plots:
+ ggplot(data = plot_data_vid_beta, aes(x = seabird_level, y = yvar*100, color = group, fill = group))+
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  ylab("% cover")+
+  xlab("seabird biomass level")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank())
+ 
+  ggplot(data = plot_data_vid_beta, aes(x = group, y = yvar*100, color = seabird_level, fill = seabird_level))+
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  ylab("% cover")+
+  xlab("seabird biomass level")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank())
+
+  
+###repeat for in situ:------------
+benthic.situ.seabirds.levels.algae.beta<-
+  benthic.situ.seabirds.levels.algae %>%
+  mutate_at(13:18, div100)%>%
+  mutate_at(13:18, transform01)
+benthic.situ.seabirds.levels.algae.beta
+
+
+
+##HARD CORAL-----
+hard_coral_situ.lmm.beta<-glmmTMB(coral_percent_cover~seabird_level+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
+summary(hard_coral_situ.lmm.beta)
+Anova(hard_coral_situ.lmm.beta)
+plot(resid(hard_coral_situ.lmm.beta))
+qqnorm(resid(hard_coral_situ.lmm.beta))
+
+
+#look at emmeans:
+hard_coral_situ.lmm.beta %>% 
+  emmeans(~ seabird_level,
+          type = "response") 
+#now high slightly lower than other 2
+
+emmeans(hard_coral_situ.lmm.beta, list(pairwise ~ seabird_level), type = "response", adjust = "fdr")
+#but in terms of sig - no significant differences
+
+##response plot, beta----
+plot_data_hc_situ_beta<-emmip(hard_coral_situ.lmm.beta, ~ seabird_level,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot_data_hc_situ_beta
+
+
+hc_situ_response_plot_beta<-
+  ggplot(data = plot_data_hc_situ_beta, aes(x = seabird_level, y = yvar*100, color = seabird_level, fill = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab("% hard coral cover")+
+#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
+  xlab("seabird biomass level")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none" )
+
+hc_situ_response_plot_beta
+
+  
+##MACROALGAE----
+macro_situ.lmm.beta<-glmmTMB(macroalgae_percent_cover~seabird_level+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
+summary(macro_situ.lmm.beta)
+Anova(macro_situ.lmm.beta)
+plot(resid(macro_situ.lmm.beta))
+qqnorm(resid(macro_situ.lmm.beta))
+#no sig differences
+
+#look at emmeans:
+macro_situ.lmm.beta %>% 
+  emmeans(~ seabird_level,
+          type = "response") 
+#actually looks a lot better***
+
+emmeans(macro_situ.lmm.beta, list(pairwise ~ seabird_level), type = "response", adjust = "fdr")
+#no sig diff
+
+##response plot, beta----
+plot_data_macro_situ_beta<-emmip(macro_situ.lmm.beta, ~ seabird_level,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot_data_macro_situ_beta
+
+
+macro_situ_response_plot_beta<-
+  ggplot(data = plot_data_macro_situ_beta, aes(x = seabird_level, y = yvar*100, color = seabird_level, fill = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab("% hard coral cover")+
+#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
+  xlab("seabird biomass level")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none" )
+
+macro_situ_response_plot_beta
+
+
+plot_data_hc_situ_beta<-
+  plot_data_hc_situ_beta%>%
+  mutate(group = "hard coral")
+
+plot_data_macro_situ_beta<-
+  plot_data_macro_situ_beta%>%
+  mutate(group = "algae")
+
+
+plot_data_situ_beta<-
+  rbind(plot_data_hc_situ_beta, plot_data_macro_situ_beta)
+plot_data_situ_beta
+
+  
+##combine all into one plot:------
+plot_data_situ_beta<-
+  plot_data_situ_beta%>%
+  mutate(method = "in situ")
+
+
+plot_data_vid_beta<-
+  plot_data_vid_beta%>%
+  mutate(method = "video")
+
+
+plot_data_beta_all<-
+  rbind(plot_data_situ_beta, plot_data_vid_beta)
+
+plot_data_beta_all
+
+plot_beta_all_est<-
+  ggplot(data = plot_data_beta_all, aes(x = seabird_level, y = yvar*100, color = method, fill = method))+
+  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  ylab("% cover")+
+  xlab("seabird biomass level")+
+  facet_wrap(~group)+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank())
+
+plot_beta_all_est
+
 
 ```
 
