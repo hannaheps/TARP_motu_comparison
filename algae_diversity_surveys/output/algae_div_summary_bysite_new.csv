@@ -1,0 +1,7 @@
+"site.name","mean.algae.richness","mean.algae.evenness","mean.algae.shannon","mean.algae.turbinaria","mean.algae.lobophora","mean.algae.halimeda","mean.algae.chl.fastigita","mean.algae.caul.serrulata"
+"Aie_Exposed",4.625,0.447833739873317,0.677721312972428,1.22,0.9,0.1,0.015,0.0175
+"Aie_Protected",2.25,NA,0.324017006699838,3.9385,0.865,0,0.011,0.00625
+"Reiono_Exposed",6.875,0.625880376733882,1.1735794803566,2.27,0.89,0.648,0.825,0.03
+"Reiono_Protected",5.75,0.461062768903434,0.795125890199215,5.7325,0.31,0.225,1.4325,0.1025
+"Rimatuu_Exposed",7.625,0.545402533701783,1.06286253906483,6.814,2.73,0,0.675,0.2375
+"Rimatuu_Protected",8.125,0.627901207751163,1.29528204241305,5.585,1.225,1.015,0.36,0.1525
