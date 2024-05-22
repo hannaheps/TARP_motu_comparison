@@ -107,104 +107,7 @@ sb_dat_focal_nests_motu_sp %>%
 ```
 
 
-
-#test of rat status vs. seabird metric(s) (no Iti, because that doesn't make sense to include for this - different motu with different rat status)
-```{r}
-str(seabird_focal_all_meta)
-
-#by side----
-sb_br_bio_side_mod<-lmer(breeding_biomass_kgha_side~ rat.eradication.status + protection + (1|motu), data = seabird_focal_all_meta)
-
-summary(sb_br_bio_side_mod)
-plot(sb_br_bio_side_mod)
-vif(sb_br_bio_side_mod)
-Anova(sb_br_bio_side_mod)
-
-plot_summs(sb_br_bio_side_mod)
-
-#may not need random effect, because accounted for in rat status and expect 2 sides to be somewhat independent??
-
-sb_br_bio_side_mod_lm<-lm(breeding_biomass_kgha_side~ protection + rat.eradication.status, data = seabird_focal_all_meta)
-summary(sb_br_bio_side_mod_lm)
-plot(sb_br_bio_side_mod_lm)
-
-
-sb_br_bio_side_mod_lm<-lm(breeding_biomass_kgha_side~rat.eradication.status, data = seabird_focal_all_meta)
-summary(sb_br_bio_side_mod_lm)
-plot_summs(sb_br_bio_side_mod_lm)
-
-
-sb_br_bio_side_mod_lm<-lm(breeding_biomass_kgha_side~ 0 + rat.eradication.status, data = seabird_focal_all_meta)
-summary(sb_br_bio_side_mod_lm)
-plot_summs(sb_br_bio_side_mod_lm)
-
-#motu-level hard because only 3 points??
-
-```
-
-
-#do community analysis with seabird data?
-```{r}
-str(sb_dat_focal_nests_side_sp)
-
-sb_sp_br_density_side_wide<-pivot_wider(sb_dat_focal_nests_side_sp,
-                                        id_cols = c(Motu, Exposure), values_from = Density_m2, values_fn = sum, 
-                                        values_fill = 0, names_from = SpeciesName)
-sb_sp_br_density_side_wide
-
-sb_sp_br_density_side_wide_sp<-sb_sp_br_density_side_wide[,(3:6)]
-
-###RUN NMDS----
-nmds_sb_br_dens_focal<-metaMDS(sb_sp_br_density_side_wide_sp, distance = "bray", trymax=200, k=2)
-nmds_sb_br_dens_focal
-#stress = 0 - warning - insufficient data***
-
-plot(nmds_sb_br_dens_focal)
-
-
-#try with euclidean beacuase that's okay with 0s:
-nmds_sb_br_dens_focal_euc<-metaMDS(sb_sp_br_density_side_wide_sp, distance = "euclidean", trymax=200, k=2)
-nmds_sb_br_dens_focal_euc
-#same issue
-
-plot(nmds_sb_br_dens_focal_euc)
-scores(nmds_sb_br_dens_focal_euc, display="species")
-
-
-#look at plot and centroids, for now just motu and exposure (so sitename). will need to add explanatory variables
-plot(nmds_sb_br_dens_focal)
-ord.fit<-envfit(nmds_sb_br_dens_focal~Motu+Exposure, data = sb_sp_br_density_side_wide, na.rm=TRUE)
-ord.fit #looks like some differences among motu
-plot(ord.fit)
-#draw polygons
-ordihull(nmds_sb_br_dens_focal, sb_sp_br_density_side_wide$Motu, pty=3)
-#some clustering, but so few sites....
-#could do transect level??
-
-
-#PERMANOVA
-#anosim more influenced by dispersion, so use adonis
-#run analysis
-ad_sb1<-adonis2(sb_sp_br_density_side_wide_sp ~ Motu, data = sb_sp_br_density_side_wide, method="euclidean")
-ad_sb1
-#marginal, but warnings**
-
-
-#test dispersion using PERMDISP
-mod_sb <- betadisper(vegdist(sb_sp_br_density_side_wide_sp, method = "euclidean"), sb_sp_br_density_side_wide$Motu)
-mod_sb
-#test for overall differences
-anova(mod_sb)
-#warning, but significant
-
-
-###----LOTS OF WARNINGS ABOUT PERFICT FIT/INSUFFICENT DATA -> UNRELIABLE----
-
-```
-
-
-
-#re-run analysis with spatial scale as a predictor
+#run analysis with spatial scale as a predictor
 ```{r}
 seabird_focal_all_meta
 
@@ -221,35 +124,8 @@ seabird_focal_all_meta_long<-pivot_longer(seabird_focal_all_meta_br_bio,
   mutate(spatial_scale = str_remove(spatial_scale, 'breeding_biomass_kgha_'))
 seabird_focal_all_meta_long
 
-
-##now run analysis----
-sb_br_bio_space_mod<-lmer(breeding_biomass~ rat.eradication.status + protection + spatial_scale + (1|motu), 
-                          data = seabird_focal_all_meta_long)
-#warnings
-summary(sb_br_bio_space_mod)
-vif(sb_br_bio_space_mod)
-plot(sb_br_bio_space_mod)
-
-plot_summs(sb_br_bio_space_mod)
-summ(sb_br_bio_space_mod)
-anova(sb_br_bio_space_mod)
-Anova(sb_br_bio_space_mod)
-#weirdly, only protection coming up 'significant'
-#is it because motu is accounted for in both fixed and random effects???
-
-sb_br_bio_space_mod2<-lmer(breeding_biomass~ rat.eradication.status + protection + spatial_scale + (1|motu) + (1|motu:protection), 
-                          data = seabird_focal_all_meta_long)
-summary(sb_br_bio_space_mod2)
-Anova(sb_br_bio_space_mod2)
-#yup, I think not working to have random effects.....
-
-
-sb_br_bio_space_mod_full<-lmer(breeding_biomass~ rat.eradication.status * protection * spatial_scale + (1|motu), 
-                          data = seabird_focal_all_meta_long)
-#doesn't work
-
-
 #run regular lm----
+#lmms don't work because random effect of motu equivalent to eradication status
 sb_br_bio_space_mod_lm<-lm(breeding_biomass~ rat.eradication.status + protection + spatial_scale, 
                           data = seabird_focal_all_meta_long)
 summary(sb_br_bio_space_mod_lm)
@@ -311,7 +187,7 @@ anova(sb_br_bio_space_mod_log_lm, sb_br_bio_space_mod_log_lm_r)
 sb_br_bio_space_mod_log_lm_int<-lm(log(breeding_biomass+1)~ rat.eradication.status * protection * spatial_scale, 
                           data = seabird_focal_all_meta_long)
 summary(sb_br_bio_space_mod_log_lm_int)
-Anova(sb_br_bio_space_mod_log_lm_int)
+#Anova(sb_br_bio_space_mod_log_lm_int)
 #doens't work - not enough power...
 
 
@@ -405,6 +281,7 @@ test(pairs(EMM_rat, by = "rat.eradication.status"), by = NULL, adjust = "none")
 
 test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "mvt")
 test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "none")
+test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "fdr")
 
 
 #need to decide best method for extracting p-values**** Currently using ANOVA table for overall p-values, and emmeans for estimates and pairwise comparisons****
@@ -468,14 +345,15 @@ seabird_rat_log_int_plot<-
   geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0, fatten = 0, position = position_dodge(.3)) + 
   geom_point(data = seabird_focal_all_meta_long2,  position = position_dodge(.3),
              aes(y = log(breeding_biomass+1), x = rat.eradication.status, shape = spatial_scale), size = 2.5, alpha = .5)+
-  scale_fill_manual(values = my_colors)+
-  scale_color_manual(values = my_colors) +
+  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
   scale_shape_manual(values = c(22, 24, 23, 21))+
-  ylab("Seabird breeding biomass (log kg/ha)")+
+    ylab(bquote(Seabird~breeding~biomass~(log~kg~ha^-1)))+
+  #ylab("Seabird breeding biomass (log kg/ha)")+
   xlab("")+
-    scale_x_discrete(labels = c('no rats','rats eradicated 2018','rats'))+
+    scale_x_discrete(labels = c('target','recovering','unrestored'))+
    theme_bw()+
-  labs(shape = "spatial scale")+
+  labs(shape = "spatial scale", fill = 'exposure', color = 'exposure')+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
@@ -577,6 +455,7 @@ seabird_rat_response_plot
 
 ```
 
+
 ##make plot of seabird proportions by motu
 ```{r}
 sb_dat_focal_nests_motu_sp%>%
@@ -637,12 +516,12 @@ seabird_stack_plots
 
 
 
-ggsave(filename = "outputs/seabird_stack_plots.pdf", 
-       plot = seabird_stack_plots,
-       width = 10,
-       height = 5,
-       units = "in",
-      dpi = 500)
+#ggsave(filename = "outputs/seabird_stack_plots.pdf", 
+#       plot = seabird_stack_plots,
+#       width = 10,
+#      height = 5,
+ #      units = "in",
+#      dpi = 500)
 
 
 
@@ -655,7 +534,7 @@ ggsave(filename = "outputs/seabird_stack_plots.pdf",
 ```{r}
 
 
-seabird_focal_all_meta_for_corr<-as.data.frame(seabird_focal_all_meta[,7:21])
+seabird_focal_all_meta_for_corr<-as.data.frame(seabird_focal_all_meta[,6:21])
 
 
 cor.mtest(seabird_focal_all_meta_for_corr)
@@ -674,6 +553,8 @@ corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs"), ty
 dev.off()
 
 #all strong corrs....
+
+
 ```
 
 
