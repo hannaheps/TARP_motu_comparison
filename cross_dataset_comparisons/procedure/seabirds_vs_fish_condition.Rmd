@@ -84,143 +84,6 @@ fishn15.seabirds.cond.r<-
 
 ```
 
-#quick plots:
-```{r}
-
-#by seabird biomass----
-fishn15.seabirds.cond%>%
-group_by(species, breeding_biomass_kgha_side)%>%
-  summarize(mean_n15 = mean(n15),
-            n_n15 = length(n15),
-            se_n15 = sd(n15)/sqrt(n_n15))%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = mean_n15, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_n15-se_n15), ymax = (mean_n15+se_n15)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-
-
-fishn15.seabirds.cond%>%
-group_by(species, breeding_biomass_kgha_side)%>%
-  summarize(mean_K = mean(K),
-            n_K = length(K),
-            se_K = sd(K)/sqrt(n_K))%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = mean_K, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_K-se_K), ymax = (mean_K+se_K)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-
-
-fishn15.seabirds.cond%>%
-group_by(species, breeding_biomass_kgha_side)%>%
-  summarize(mean_HSI = mean(HSI),
-            n_HSI = length(HSI),
-            se_HSI = sd(HSI)/sqrt(n_HSI))%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = mean_HSI, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_HSI-se_HSI), ymax = (mean_HSI+se_HSI)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-
-
-
-#by seabird level----
-fishn15.seabirds.cond%>%
-group_by(species, seabird_level)%>%
-  summarize(mean_n15 = mean(n15),
-            n_n15 = length(n15),
-            se_n15 = sd(n15)/sqrt(n_n15))%>%
-  ggplot(aes(x = seabird_level, y = mean_n15, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_n15-se_n15), ymax = (mean_n15+se_n15)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-
-
-fishn15.seabirds.cond%>%
-group_by(species, seabird_level)%>%
-  summarize(mean_K = mean(K),
-            n_K = length(K),
-            se_K = sd(K)/sqrt(n_K))%>%
-  ggplot(aes(x = seabird_level, y = mean_K, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_K-se_K), ymax = (mean_K+se_K)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-
-
-fishn15.seabirds.cond%>%
-group_by(species, seabird_level)%>%
-  summarize(mean_HSI = mean(HSI),
-            n_HSI = length(HSI),
-            se_HSI = sd(HSI)/sqrt(n_HSI))%>%
-  ggplot(aes(x = seabird_level, y = mean_HSI, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_HSI-se_HSI), ymax = (mean_HSI+se_HSI)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-
-
-##box plots by level----
-fishn15.seabirds.cond%>%
-  ggplot(aes(x = seabird_level, y = K, color = species, fill = species))+
-  facet_wrap(~species, scales = "free")+
-  geom_boxplot(alpha = .5)+
-  geom_point(alpha = .7)
-
-
-fishn15.seabirds.cond.r%>%
-  ggplot(aes(x = seabird_level, y = n15, color = species, fill = species))+
- # facet_wrap(~species, scales = "free")+
-  geom_boxplot(alpha = .5, position = position_dodge(0.8))+
-  geom_point(alpha = .7, position = position_dodge(0.8))
-
-
-fishn15.seabirds.cond.r%>%
-  ggplot(aes(x = species, y = n15, color = seabird_level, fill = seabird_level))+
- # facet_wrap(~species, scales = "free")+
-  geom_boxplot(alpha = .5, position = position_dodge(0.8))+
-  geom_point(alpha = .7, position = position_dodge(0.8))
-
-
-fishn15.seabirds.cond%>%
-  ggplot(aes(x = seabird_level, y = HSI, color = species, fill = species))+
-  facet_wrap(~species, scales = "free")+
-  geom_boxplot(alpha = .5)+
-  geom_point(alpha = .7)
-
-
-#check sample size for C. argus - looks like not many for high seabirds:-----
-fishn15.seabirds.cond%>%
-  group_by(site.name, species)%>%
-  summarize(length(K))
-
-
-fishn15.seabirds.cond%>%
-  group_by(seabird_level, species)%>%
-  summarize(length(K))
-
-#may not want to use C. argus because only 1 in high area....
-
-#plot by n15: 
-fishn15.seabirds.cond%>%
-  ggplot(aes(x = n15, y = HSI))+
-  geom_point(alpha = .5, aes(color = seabird_level, fill = seabird_level))+
-  geom_smooth(method = "lm")+
-  theme_bw() +
-  facet_wrap(~species, scales = "free")
-
-
-fishn15.seabirds.cond%>%
-  ggplot(aes(x = n15, y = K))+
-  geom_point(alpha = .5, aes(color = seabird_level, fill = seabird_level))+
-  geom_smooth(method = "lm")+
-  theme_bw() +
-  facet_wrap(~species, scales = "free")
-
-```
-
 
 #run regular lm's USING SEABIRD LEVELS, because now only one site per motu (so random effects don't make much sense):
 ```{r}
@@ -270,57 +133,6 @@ emmeans(fish_n15_r_lm, list(pairwise ~ seabird_level|species), adjust = "fdr")
 #same results
 
 
-#K----
-fish_K_r_lm<-lm(K~ seabird_level*species, 
-                          data = fishn15.seabirds.cond.r)
-summary(fish_K_r_lm)
-anova(fish_K_r_lm) #species signifcant, marginal interaction
-plot(fish_K_r_lm) #qq not great
-
-#look at emmeans:
-fish_K_r_lm %>% 
-  emmeans(~ seabird_level|species,
-          type = "response") 
-
-EMM_fish_K <- emmeans(fish_K_r_lm, ~ species * seabird_level)
-pairs(EMM_fish_K, simple = "seabird_level", type = "response")
-#Only diffs are wtihin A tri - mid is lower than both low and high
-
-
-test(pairs(EMM_fish_K, by = "species"), by = NULL, adjust = "mvt")
-test(pairs(EMM_fish_K, by = "species"), by = NULL, adjust = "none")
-#similar to pairs results above
-
-emmeans(fish_K_r_lm, list(pairwise ~ seabird_level|species), adjust = "fdr")
-
-
-#HSI----
-fish_HSI_r_lm<-lm(HSI~ seabird_level*species, 
-                          data = fishn15.seabirds.cond.r)
-summary(fish_HSI_r_lm)
-anova(fish_HSI_r_lm) #species significant, marginal interaction
-plot(fish_HSI_r_lm) #qq not great
-
-
-#look at emmeans:
-fish_HSI_r_lm %>% 
-  emmeans(~ seabird_level|species,
-          type = "response") 
-
-
-EMM_fish_HSI <- emmeans(fish_HSI_r_lm, ~ species * seabird_level)
-pairs(EMM_fish_HSI, simple = "seabird_level", type = "response")
-#Only diffs are wtihin A tri - low and mid both lower than high
-
-
-test(pairs(EMM_fish_HSI, by = "species"), by = NULL, adjust = "mvt")
-test(pairs(EMM_fish_HSI, by = "species"), by = NULL, adjust = "none")
-#similar to pairs results above. but Ab seb has marginal where mid is marginally higher than high. 
-
-
-emmeans(fish_HSI_r_lm, list(pairwise ~ seabird_level|species), adjust = "fdr")
-
-
 ```
 
 ##some plots using emmeans----
@@ -343,7 +155,7 @@ fish_n15_response_int_plot<-
     geom_line(alpha = .5 ,  position = position_dodge(.1))+
   #scale_fill_manual(values = my_colors)+
  # scale_color_manual(values = my_colors) +
-  ylab("N15")+
+  ylab(expression(delta^15~N))+
   xlab("")+
    theme_bw()+
   theme(panel.grid.major = element_blank(), # remove gridlines
@@ -357,13 +169,13 @@ fish_n15_response_int_plot
 
 fish_n15_response_int_plot_flipped<-
   ggplot(data = plot_data_n15, aes(x = species, y = yvar, color = seabird_level, fill = seabird_level))+
-  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_point(pch = 21,  position = position_dodge(.3))+
   geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0,  position = position_dodge(.3)) + 
  # geom_point(data = fishn15.seabirds.cond.r, 
     #         aes(y = n15, x = species), size = 2.5, alpha = .5,  position = position_dodge(.3))+
-  #scale_fill_manual(values = my_colors)+
- # scale_color_manual(values = my_colors) +
-  ylab("N15")+
+scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab(expression(delta^15~N))+
   xlab("")+
   labs(color = "seabird level", fill = "seabird level")+
    theme_bw()+
@@ -385,87 +197,10 @@ fish_n15_response_int_plot_flipped
 #ggsave("../output/seabird-fishn15/fish_n15_sb_level_estplot_diff_axes.jpg", plot = fish_n15_response_int_plot)
 
 
-#response plot K----
-plot_data_K<-emmip(fish_K_r_lm, ~ seabird_level*species,
-          type = "response", CIs = TRUE, plotit=FALSE)%>%
-    mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))
-
-plot_data_K
-
-#my_colors <- RColorBrewer::brewer.pal(9, "Blues")[c(2, 4, 6, 8)]
-
-fish_k_response_int_plot_flipped<-
-  ggplot(data = plot_data_K, aes(x = species, y = yvar, color = seabird_level, fill = seabird_level))+
-  geom_point(pch = 4,  position = position_dodge(.3))+
-  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0,  position = position_dodge(.3)) + 
- # geom_point(data = fishn15.seabirds.cond.r, 
-    #         aes(y = n15, x = species), size = 2.5, alpha = .5,  position = position_dodge(.3))+
-  #scale_fill_manual(values = my_colors)+
- # scale_color_manual(values = my_colors) +
-  ylab("Condition index (Fulton's K)")+
-  xlab("")+
-  labs(color = "seabird level", fill = "seabird level")+
-   theme_bw()+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.9,.8),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-#,
-       # axis.text = element_text(size = 14),
-       # axis.title.y = element_text(size = 14)
-
-
-fish_k_response_int_plot_flipped
-
-#ggsave("../output/seabird-fishn15/fish_k_sb_level_estplot.pdf", plot = fish_k_response_int_plot_flipped)
-#ggsave("../output/seabird-fishn15/fish_k_sb_level_estplot.jpg", plot = fish_k_response_int_plot_flipped)
-
-
-
-#response plot HSI----
-plot_data_HSI<-emmip(fish_HSI_r_lm, ~ seabird_level*species,
-          type = "response", CIs = TRUE, plotit=FALSE)%>%
-    mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))
-
-plot_data_HSI
-
-#my_colors <- RColorBrewer::brewer.pal(9, "Blues")[c(2, 4, 6, 8)]
-
-fish_hsi_response_int_plot_flipped<-
-  ggplot(data = plot_data_HSI, aes(x = species, y = yvar, color = seabird_level, fill = seabird_level))+
-  geom_point(pch = 4,  position = position_dodge(.3))+
-  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0,  position = position_dodge(.3)) + 
- # geom_point(data = fishn15.seabirds.cond.r, 
-    #         aes(y = n15, x = species), size = 2.5, alpha = .5,  position = position_dodge(.3))+
-  #scale_fill_manual(values = my_colors)+
- # scale_color_manual(values = my_colors) +
-  ylab("Hematosomatic index (HSI)")+
-  xlab("")+
-  labs(color = "seabird level", fill = "seabird level")+
-   theme_bw()+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.9,.8),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-#,
-       # axis.text = element_text(size = 14),
-       # axis.title.y = element_text(size = 14)
-
-
-fish_hsi_response_int_plot_flipped
-
-#ggsave("../output/seabird-fishn15/fish_hsi_sb_level_estplot.pdf", plot = fish_hsi_response_int_plot_flipped)
-#ggsave("../output/seabird-fishn15/fish_hsi_sb_level_estplot.jpg", plot = fish_hsi_response_int_plot_flipped)
-
-
 ```
 
 
-#run regular lm's USING ALGAE N15 AT 40, because now only one site per motu (so random effects don't make much sense):
+#run regular lm's USING ALGAE N15 AT 40, because now only one site per motu (so random effects don't make much sense): - still need to clean up figures, likely for supplement*
 ```{r}
 
 #combine data with algae n15----
@@ -507,7 +242,7 @@ summary(fish_n15_algae_lmer.add)
 Anova(fish_n15_algae_lmer.add)
 
 
-# plot 
+# plot - maybe just for supplement---------
 range(fishn15.seabirds.cond.algae$N.15_at_40m) #3.043333 6.003333
 levels(fishn15.seabirds.cond.algae$species)
 (mylist <- list(
@@ -568,7 +303,6 @@ fishn15.algan15.plot
 
 #ggsave("../output/seabird-fishn15/fish_n15_alage_n15_estplot_lines_points.jpg", plot = fishn15.algan15.plot)
 
-
 #just raw data:
 fishn15.seabirds.cond.algae %>%
    ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
@@ -588,424 +322,7 @@ fishn15.seabirds.cond.algae%>%
   theme_bw() 
 
 
-#K----
-fish_K_algae_r_lm<-lm(K~ N.15_at_40m*species, 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_K_algae_r_lm)
-anova(fish_K_algae_r_lm) #species signifcant, nothing else sig.
-plot(fish_K_algae_r_lm) #qq not great
-
-#look at emmeans:
-emtrends(fish_K_algae_r_lm,  ~ species, var = "N.15_at_40m") #all overlaps 0
-emmip(fish_K_algae_r_lm, species ~ N.15_at_40m, cov.reduce = range)
-#weird....
-
-
-#plot raw data:
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = N.15_at_40m, y = K, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  stat_smooth(method = "lm")+
-  theme_bw() 
-
-
-
-
-
-#HSI----
-fish_HSI_algae_r_lm<-lm(HSI~ N.15_at_40m*species, 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_HSI_algae_r_lm)
-anova(fish_HSI_algae_r_lm) #species significant, nothing else sig
-plot(fish_HSI_algae_r_lm) #qq not great
-
-
-#look at emmeans:
-emtrends(fish_HSI_algae_r_lm,  ~ species, var = "N.15_at_40m") #all overlaps 0 EXCEPT 1 tri, positive
-emmip(fish_HSI_algae_r_lm, species ~ N.15_at_40m, cov.reduce = range)
-
-
-#plot raw data:
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = N.15_at_40m, y = HSI, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  stat_smooth(method = "lm")+
-  theme_bw() 
-
-fishn15.seabirds.cond.algae%>%
-  group_by(species, N.15_at_40m)%>%
-  summarize(mean_HSI = mean(HSI, na.rm=TRUE),
-            n_HSI = length(HSI),
-            se_HSI = sd(HSI, na.rm=TRUE)/sqrt(HSI))%>%
-  ggplot(aes(x = N.15_at_40m, y = mean_HSI, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_HSI-se_HSI), ymax = (mean_HSI+se_HSI)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
-#looks like one outlier which is driving A tri patterns....
-
 ```
-
-
-#for condition indices, run with fish n15-----
-```{r}
-#K----
-fish_K_n15_r_lm<-lm(K~ n15*species, 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_K_n15_r_lm)
-anova(fish_K_n15_r_lm) #marginal interaction, n15 and species also both significant
-plot(fish_K_n15_r_lm) #qq not great
-
-#look at emmeans:
-emtrends(fish_K_n15_r_lm,  ~ species, var = "n15") #all overlaps 0, trend towards positive for stegastes nigricans, all else = negative
-emmip(fish_K_n15_r_lm, species ~ n15, cov.reduce = range)
-
-test(emtrends(fish_K_n15_r_lm, ~ species, var = "n15", adjust = "fdr"))
-
-fish_K_n15_r_lm_add<-lm(K~ n15+species, 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_K_n15_r_lm_add)
-
-
-
-#plot raw data:
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = K, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  stat_smooth(method = "lm")+
-  theme_bw() 
-
-#plot raw data + model:
-range(fishn15.seabirds.cond.algae$n15)
-(mylist3 <- list(
-    n15 = seq(6.4, 15.4, 1),
-    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
- "Stegastes nigricans")
-))
-plot_dat3<-emmip(fish_K_n15_r_lm, species ~ n15, at = mylist3, CIs = TRUE, plotit=FALSE)
-plot_dat3
-
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = K, color = species, fill = species, group = species))+
-  geom_jitter(alpha = .8, width = .1)+
-   geom_ribbon(data = plot_dat3, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
- geom_line(data = plot_dat3, aes(x = n15, y = yvar, color = species, group = species))+
-  ylab("K")+
-  xlab("Fish N15")+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.15,.8),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-#NEED TO LIMIT SO EACH SPECIES RANGE IS CORRECT***
-
-(mylist_absep <- list(
-    n15 = seq(6.4, 14.91, .1),
-    species = c("Abudefduf septemfasciatus")
-))
-plot_dat_absep<-emmip(fish_K_n15_r_lm, species ~ n15, at = mylist_absep, CIs = TRUE, plotit=FALSE)
-plot_dat_absep
-
-
-(mylist_actr <- list(
-    n15 = seq(6.8, 15.41, .1),
-    species = c("Acanthurus triostegus")
-))
-plot_dat_actr<-emmip(fish_K_n15_r_lm, species ~ n15, at = mylist_actr, CIs = TRUE, plotit=FALSE)
-plot_dat_actr
-
-(mylist_lufu <- list(
-    n15 = seq( 8.52, 12.24, .1),
-    species = c("Lutjanus fulvus")
-))
-plot_dat_lufu<-emmip(fish_K_n15_r_lm, species ~ n15, at = mylist_lufu, CIs = TRUE, plotit=FALSE)
-plot_dat_lufu
-
-
-(mylist_stni <- list(
-    n15 = seq(7.55, 10.6, .1),
-    species = c("Stegastes nigricans")
-))
-plot_dat_stni<-emmip(fish_K_n15_r_lm, species ~ n15, at = mylist_stni, CIs = TRUE, plotit=FALSE)
-plot_dat_stni
-
-fishn15.fishK.plot<-
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = K, color = species, fill = species, group = species))+
-  geom_point(alpha = .8)+
-   geom_ribbon(data = plot_dat_absep, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_absep, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_actr, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_actr, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_lufu, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_lufu, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_stni, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_stni, aes(x = n15, y = yvar))+
-  ylab("K")+
-  xlab("Fish N15")+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.15,.9),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-fishn15.fishK.plot
-
-
-#ggsave("../output/seabird-fishn15/fish_n15_fish_k_estplot_lines_points.jpg", plot = fishn15.fishK.plot)
-
-
-
-
-#HSI----
-fish_HSI_n15_r_lm<-lm(HSI~ n15*species, 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_HSI_n15_r_lm)
-anova(fish_HSI_n15_r_lm) #species significant, nothing else sig
-plot(fish_HSI_n15_r_lm) #qq not great
-
-
-#look at emmeans:
-emtrends(fish_HSI_n15_r_lm,  ~ species, var = "n15") #all overlaps 0 
-emmip(fish_HSI_n15_r_lm, species ~ n15, cov.reduce = range)
-
-test(emtrends(fish_HSI_n15_r_lm, ~ species, var = "n15", adjust = "fdr"))
-
-
-
-
-#plot raw data:
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = HSI, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  stat_smooth(method = "lm")+
-  theme_bw() 
-
-
-
-plot_dat_absep_hsi<-emmip(fish_HSI_n15_r_lm, species ~ n15, at = mylist_absep, CIs = TRUE, plotit=FALSE)
-plot_dat_absep_hsi
-
-#need new list for Acanthurus tri because a few NAs for HSI (no liver found)
-(mylist_actr <- list(
-    n15 = seq(6.8, 13.77, .1),
-    species = c("Acanthurus triostegus")
-))
-plot_dat_actr_hsi<-emmip(fish_HSI_n15_r_lm, species ~ n15, at = mylist_actr, CIs = TRUE, plotit=FALSE)
-plot_dat_actr_hsi
-
-plot_dat_lufu_hsi<-emmip(fish_HSI_n15_r_lm, species ~ n15, at = mylist_lufu, CIs = TRUE, plotit=FALSE)
-plot_dat_lufu_hsi
-
-plot_dat_stni_hsi<-emmip(fish_HSI_n15_r_lm, species ~ n15, at = mylist_stni, CIs = TRUE, plotit=FALSE)
-plot_dat_stni_hsi
-
-fishn15.fishHSI.plot<-
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = HSI, color = species, fill = species, group = species))+
-  geom_point(alpha = .8)+
-   geom_ribbon(data = plot_dat_absep_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_absep_hsi, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_actr_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_actr_hsi, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_lufu_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_lufu_hsi, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_stni_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_stni_hsi, aes(x = n15, y = yvar))+
-  ylab("HSI")+
-  xlab("Fish N15")+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.15,.9),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-fishn15.fishHSI.plot
-
-
-#ggsave("../output/seabird-fishn15/fish_n15_fish_hsi_estplot_lines_points.jpg", plot = fishn15.fishHSI.plot)
-
-
-
-
-```
-
-
-#for condition indices, run with fish n15. THEN CAN ADD BACK IN SITE AS RANDOM???-----
-```{r}
-#K----
-fish_K_n15_r_lmer<-lmer(K~ n15*species + (1|site.name), 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_K_n15_r_lmer)
-anova(fish_K_n15_r_lmer) 
-Anova(fish_K_n15_r_lmer) #marginal interaction, species also  significant
-plot(fish_K_n15_r_lmer) #qq not great
-
-#look at emmeans:
-emtrends(fish_K_n15_r_lmer,  ~ species, var = "n15") #all overlaps 0, trend towards positive for stegastes nigricans, all else = negative
-emmip(fish_K_n15_r_lmer, species ~ n15, cov.reduce = range)
-
-test(emtrends(fish_K_n15_r_lmer, ~ species, var = "n15", adjust = "fdr"))
-
-
-#plot raw data + model:
-range(fishn15.seabirds.cond.algae$n15)
-(mylist3 <- list(
-    n15 = seq(6.4, 15.4, 1),
-    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
- "Stegastes nigricans")
-))
-plot_dat3<-emmip(fish_K_n15_r_lmer, species ~ n15, at = mylist3, CIs = TRUE, plotit=FALSE)
-plot_dat3
-
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = K, color = species, fill = species, group = species))+
-  geom_jitter(alpha = .8, width = .1)+
-   geom_ribbon(data = plot_dat3, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
- geom_line(data = plot_dat3, aes(x = n15, y = yvar, color = species, group = species))+
-  ylab("K")+
-  xlab("Fish N15")+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.15,.8),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-#NEED TO LIMIT SO EACH SPECIES RANGE IS CORRECT***
-
-(mylist_absep <- list(
-    n15 = seq(6.4, 14.91, .1),
-    species = c("Abudefduf septemfasciatus")
-))
-plot_dat_absep<-emmip(fish_K_n15_r_lmer, species ~ n15, at = mylist_absep, CIs = TRUE, plotit=FALSE)
-plot_dat_absep
-
-
-(mylist_actr <- list(
-    n15 = seq(6.8, 15.41, .1),
-    species = c("Acanthurus triostegus")
-))
-plot_dat_actr<-emmip(fish_K_n15_r_lmer, species ~ n15, at = mylist_actr, CIs = TRUE, plotit=FALSE)
-plot_dat_actr
-
-(mylist_lufu <- list(
-    n15 = seq( 8.52, 12.24, .1),
-    species = c("Lutjanus fulvus")
-))
-plot_dat_lufu<-emmip(fish_K_n15_r_lmer, species ~ n15, at = mylist_lufu, CIs = TRUE, plotit=FALSE)
-plot_dat_lufu
-
-
-(mylist_stni <- list(
-    n15 = seq(7.55, 10.6, .1),
-    species = c("Stegastes nigricans")
-))
-plot_dat_stni<-emmip(fish_K_n15_r_lmer, species ~ n15, at = mylist_stni, CIs = TRUE, plotit=FALSE)
-plot_dat_stni
-
-fishn15.fishK.plot.lmer<-
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = K, color = species, fill = species, group = species))+
-  geom_point(alpha = .8)+
-   geom_ribbon(data = plot_dat_absep, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_absep, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_actr, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_actr, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_lufu, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_lufu, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_stni, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_stni, aes(x = n15, y = yvar))+
-  ylab("K")+
-  xlab("Fish N15")+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.15,.9),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-fishn15.fishK.plot.lmer
-
-
-#ggsave("../output/seabird-fishn15/fish_n15_fish_k_estplot_lines_points.jpg", plot = fishn15.fishK.plot)
-
-
-
-
-#HSI----
-fish_HSI_n15_r_lmer<-lmer(HSI~ n15*species + (1|site.name), 
-                          data = fishn15.seabirds.cond.algae) #SINGULAR
-summary(fish_HSI_n15_r_lmer)
-anova(fish_HSI_n15_r_lmer) #species significant, nothing else sig
-Anova(fish_HSI_n15_r_lmer)
-plot(fish_HSI_n15_r_lmer) #qq not great
-
-#try add:
-fish_HSI_n15_r_lmer_add<-lmer(HSI~ n15+species + (1|site.name), 
-                          data = fishn15.seabirds.cond.algae) #STILL SINGULAR
-summary(fish_HSI_n15_r_lmer_add)
-
-
-#look at emmeans:
-emtrends(fish_HSI_n15_r_lmer,  ~ species, var = "n15") #all overlaps 0 
-emmip(fish_HSI_n15_r_lmer, species ~ n15, cov.reduce = range)
-
-test(emtrends(fish_HSI_n15_r_lmer, ~ species, var = "n15", adjust = "fdr"))
-
-
-plot_dat_absep_hsi<-emmip(fish_HSI_n15_r_lmer, species ~ n15, at = mylist_absep, CIs = TRUE, plotit=FALSE)
-plot_dat_absep_hsi
-
-#need new list for Acanthurus tri because a few NAs for HSI (no liver found)
-(mylist_actr <- list(
-    n15 = seq(6.8, 13.77, .1),
-    species = c("Acanthurus triostegus")
-))
-plot_dat_actr_hsi<-emmip(fish_HSI_n15_r_lmer, species ~ n15, at = mylist_actr, CIs = TRUE, plotit=FALSE)
-plot_dat_actr_hsi
-
-plot_dat_lufu_hsi<-emmip(fish_HSI_n15_r_lmer, species ~ n15, at = mylist_lufu, CIs = TRUE, plotit=FALSE)
-plot_dat_lufu_hsi
-
-plot_dat_stni_hsi<-emmip(fish_HSI_n15_r_lmer, species ~ n15, at = mylist_stni, CIs = TRUE, plotit=FALSE)
-plot_dat_stni_hsi
-
-fishn15.fishHSI.plot.lmer<-
-fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = n15, y = HSI, color = species, fill = species, group = species))+
-  geom_point(alpha = .8)+
-   geom_ribbon(data = plot_dat_absep_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_absep_hsi, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_actr_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_actr_hsi, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_lufu_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_lufu_hsi, aes(x = n15, y = yvar))+
-     geom_ribbon(data = plot_dat_stni_hsi, aes(x = n15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_stni_hsi, aes(x = n15, y = yvar))+
-  ylab("HSI")+
-  xlab("Fish N15")+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.15,.9),
-        #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-fishn15.fishHSI.plot.lmer
-
-
-#ggsave("../output/seabird-fishn15/fish_n15_fish_hsi_estplot_lines_points.jpg", plot = fishn15.fishHSI.plot)
-
-
-
-
-```
-
 
 
 
@@ -1051,6 +368,13 @@ corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "up
 corr_mat_fish_n15_sb_sp<-as.data.frame(fishn15.seabirds.wide[,3:11])
 corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
+
+#seabirds-n15---
+#n15----
+corr_mat_fish_n15_sb_sp<-as.data.frame(fishn15.seabirds.wide[,c(3,7:11)])
+corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
+
 
 #n15, K, HSI----
 corr_mat_fish_n15_cond_sp<-as.data.frame(fishn15.seabirds.wide[,8:19])
