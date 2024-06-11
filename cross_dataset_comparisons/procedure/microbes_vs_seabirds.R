@@ -122,7 +122,6 @@ names(microbes.seabirds)[names(microbes.seabirds) == "island.side"] <- "Exposure
 microbes.seabirds$Exposure <- as.factor(microbes.seabirds$Exposure)
 
 
-
 coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
 water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
 
