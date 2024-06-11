@@ -118,8 +118,24 @@ anova(mod.glmm1)
 
 mod.glmm.r <- glmer(Observed~Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
 anova(mod.glmm1, mod.glmm.r)
+#           npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+#mod.glmm.r    6 3841.3 3854.4 -1914.6   3829.3                         
+#mod.glmm1    14 3234.3 3265.0 -1603.2   3206.3 622.97  8  < 2.2e-16 ***
 
 mod.glmm2 <- glmer(Observed~algae.N15*Distance_to_shore + Exposure  + (1|site.name), data=coral.microbes.seabirds, family="poisson")
+
+#Fixed effects:
+#                               Estimate Std. Error z value Pr(>|z|)    
+#(Intercept)                    3.746877   0.336037  11.150  < 2e-16 ***
+#algae.N15                      0.067630   0.028947   2.336   0.0195 *  
+#Distance_to_shore20           -3.116892   0.277343 -11.238  < 2e-16 ***
+#Distance_to_shore30            0.218754   0.308577   0.709   0.4784    
+#Distance_to_shore40            1.807384   0.273079   6.619 3.63e-11 ***
+#ExposureProtected             -0.714900   0.368326  -1.941   0.0523 .  
+#algae.N15:Distance_to_shore20  0.515105   0.038044  13.540  < 2e-16 ***
+#algae.N15:Distance_to_shore30 -0.001467   0.050233  -0.029   0.9767    
+#algae.N15:Distance_to_shore40 -0.312308   0.046022  -6.786 1.15e-11 ***
+
 summary(mod.glmm2)
 Anova(mod.glmm2)
 #Analysis of Deviance Table (Type II tests)#
@@ -146,7 +162,7 @@ mod.glmm1 %>%
           type = "response") 
 
 emmeans(mod.glmm1, list(pairwise ~ seabird_level*Distance_to_shore), type = "response", adjust = "fdr")
-#Could not pull out any significant results with FDR correction
+
 
 plot_data_richness_sb<-emmip(mod.glmm1, ~ seabird_level*Distance_to_shore,
           type = "response", CIs = TRUE, plotit=FALSE)
@@ -154,7 +170,8 @@ plot_data_richness_sb<-emmip(mod.glmm1, ~ seabird_level*Distance_to_shore,
 plot_data_richness_sb
 
 response_plot_richness<-
-  ggplot(data = plot_data_richness_sb, aes(x = Distance_to_shore, y = yvar, colour = seabird_level, fill = seabird_level, group = seabird_level))+
+  ggplot(data = plot_data_richness_sb, aes(x = Distance_to_shore, y = yvar, colour = seabird_level, fill = seabird_level)) +#, group = seabird_level))+
+  #ggplot(data = plot_data_richness_sb, aes(x = seabird_level, y = yvar, colour = seabird_level, fill = seabird_level))+
   geom_pointrange(aes(ymin = UCL, ymax = LCL), alpha = .3, linewidth = 2, size = 0.2, position = position_dodge(.1)) +
   geom_line(alpha = .5 ,  position = position_dodge(.1)) +
   scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E")) + 
@@ -215,17 +232,19 @@ plot_data_shannon_sb<-emmip(log.gauss.glm, ~ seabird_level*Distance_to_shore,
 plot_data_shannon_sb
 
 response_plot_shannon<-
-  ggplot(data = plot_data_shannon_sb, aes(x = Distance_to_shore, y = yvar, color = seabird_level))+
+  ggplot(data = plot_data_shannon_sb, aes(x = Distance_to_shore, y = yvar, color = seabird_level, fill = seabird_level))+
 #  geom_point(pch = 4,  position = position_dodge(.3))+
-  geom_pointrange(aes(ymin = UCL, ymax = LCL), alpha = .3, linewidth = 2, size = 0.2, shape = plot_data_shannon_sb$Distance_to_shore, position = position_dodge(.1)) + #,  position = position_dodge(.3) 
+  geom_pointrange(aes(ymin = UCL, ymax = LCL), alpha = .3, linewidth = 2, size = 0.2,  position = position_dodge(.1)) + #,  position = position_dodge(.3) 
  # geom_point(data = fishn15.seabirds.cond.r, 
            #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
     geom_line(alpha = .5 ,  position = position_dodge(.1))+
   #scale_fill_manual(values = my_colors)+
  # scale_color_manual(values = my_colors) +
-  ylab("Coral Microbiome Shannon Diversity")+
-#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
-  xlab("seabird biomass level")+
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E")) + 
+  scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" = "#2F9D3E")) +
+  ylab("Coral Microbiome Shannon Diversity") +
+  xlab("Distance From Shore (m)")+
+  labs(color='Seabird Level', fill = 'Seabird Level') +
    theme_bw() +
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
@@ -250,6 +269,10 @@ Anova(log.gauss.glm2)
 #algae.N15:Distance_to_shore 3.4279  3    0.33024 
 plot(log.gauss.glm2)
 plot_grid(plot_model(log.gauss.glm2, type = "diag")) #not bad
+
+
+effect_plot(log.gauss.glm2, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
+
 
 ```
 
