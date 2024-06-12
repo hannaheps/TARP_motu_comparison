@@ -510,6 +510,7 @@ vif(fish_bio_full_mod_sb_level_log) #not too sure how to interpret GVIF
 #but for summary correlation of fixed effects - looks like seabird level and structure could have high corr's.
 
 
+
 #re-run with algae at 30 m:----
 fish_bio_full_mod_algae <-lmer(sum_fish_biomass~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
 summary(fish_bio_full_mod_algae)
@@ -531,6 +532,8 @@ Anova(fish_bio_full_mod_algae_log) #nothing significant***
 vif(fish_bio_full_mod_algae_log) #all good
 
 #see below for corr checks between algae n15 and structure
+
+
 
 #species richness----
 fish_rich_full_mod_sb_level <-lmer(SR~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #depth_max_m + start_distance_to_shore_m
@@ -608,108 +611,6 @@ qqline(resid(fish_shannon_full_mod_algae))
 Anova(fish_shannon_full_mod_algae) #nothing significant****
 plot_summs(fish_shannon_full_mod_algae)
 
-
-
-#lmms for herbivores and then piscivores - expect most affected from other sites----
-fish_herb_full_mod_sb_level <-lmer(Herb_biomass~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)  
-summary(fish_herb_full_mod_sb_level)
-plot(fish_herb_full_mod_sb_level)
-Anova(fish_herb_full_mod_sb_level) #nothing significant***
-vif(fish_herb_full_mod_sb_level) #seabird level has high vif
-
-fish_herb_full_mod_n15 <-lmer(Herb_biomass~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
-summary(fish_herb_full_mod_n15)
-plot(fish_herb_full_mod_n15)
-Anova(fish_herb_full_mod_n15) #nothing significant****
-vif(fish_herb_full_mod_n15) #all okay
-plot_summs(fish_herb_full_mod_n15)
-
-
-fish_pisc_full_mod_sb_level <-lmer(FisCep_biomass~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)  
-summary(fish_pisc_full_mod_sb_level)
-plot(fish_pisc_full_mod_sb_level)
-Anova(fish_pisc_full_mod_sb_level) #nothing significant***
-vif(fish_pisc_full_mod_sb_level) #seabird level has high vif
-
-fish_pisc_full_mod_n15 <-lmer(FisCep_biomass~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
-summary(fish_pisc_full_mod_n15)
-plot(fish_pisc_full_mod_n15)
-Anova(fish_pisc_full_mod_n15) #nothing significant****
-plot_summs(fish_pisc_full_mod_n15)
-vif(fish_pisc_full_mod_n15)
-
-
-#re-do individual groups with log: ----
-fish_herb_full_mod_sb_level_log <-lmer(log(Herb_biomass+1)~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)  
-summary(fish_herb_full_mod_sb_level_log)
-plot(fish_herb_full_mod_sb_level_log)
-Anova(fish_herb_full_mod_sb_level_log) #nothing significant***
-
-fish_herb_full_mod_n15_log<-lmer(log(Herb_biomass+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
-summary(fish_herb_full_mod_n15_log)
-plot(fish_herb_full_mod_n15_log)
-Anova(fish_herb_full_mod_n15_log) #nothing significant****
-
-fish_pisc_full_mod_sb_level_log <-lmer(log(FisCep_biomass+1)~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)  
-summary(fish_pisc_full_mod_sb_level_log)
-plot(fish_pisc_full_mod_sb_level_log)
-Anova(fish_pisc_full_mod_sb_level_log) #nothing significant***
-plot_summs(fish_pisc_full_mod_sb_level_log)
-
-
-fish_pisc_full_mod_n15_log <-lmer(log(FisCep_biomass+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
-summary(fish_pisc_full_mod_n15_log)
-plot(fish_pisc_full_mod_n15_log)
-Anova(fish_pisc_full_mod_n15_log) #n15 and structure significant***
-plot_summs(fish_pisc_full_mod_n15_log)
-vif(fish_pisc_full_mod_n15_log)
-
-
-
-##try other groups - log, n15:---- 
-fish_inv_full_mod_n15_log <-lmer(log(InvMob_biomass+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   
-summary(fish_inv_full_mod_n15_log)
-plot(fish_inv_full_mod_n15_log)
-Anova(fish_inv_full_mod_n15_log) #n15 and structure significant***
-plot_summs(fish_inv_full_mod_n15_log)
-
-
-fish_omn_full_mod_n15_log <-lmer(log(Omnivr_biomass+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   
-summary(fish_omn_full_mod_n15_log)
-plot(fish_omn_full_mod_n15_log)
-Anova(fish_omn_full_mod_n15_log) #nothing significant****
-plot_summs(fish_omn_full_mod_n15_log)
-vif(fish_omn_full_mod_n15_log)
-
-
-fish_plk_full_mod_n15_log <-lmer(log(Plktiv_biomass+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
-summary(fish_plk_full_mod_n15_log)
-plot(fish_plk_full_mod_n15_log)
-Anova(fish_plk_full_mod_n15_log) #nothing significant****
-plot_summs(fish_plk_full_mod_n15_log)
-vif(fish_plk_full_mod_n15_log)
-
-fish_invses_full_mod_n15_log <-lmer(log(InvSes_biomass+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
-summary(fish_invses_full_mod_n15_log)
-plot(fish_invses_full_mod_n15_log)
-Anova(fish_invses_full_mod_n15_log) #nothing significant****
-plot_summs(fish_invses_full_mod_n15_log)
-vif(fish_invses_full_mod_n15_log)
-
-
-##so, n15 (and structure) has a positive effect on mobile invertebrate feeders and piscivores----
-fish_comb_dat_levels_algae%>%
-  ggplot(aes(x= N.15_at_30m, y = log(InvMob_biomass+1)))+
-  geom_point(aes(colour = structural_complexity_0to5, fill = structural_complexity_0to5), alpha = .9)+
-  geom_smooth(method = "lm")
-#looks pretty weak at best...
-
-
-fish_comb_dat_levels_algae%>%
-  ggplot(aes(x= N.15_at_30m, y = log(FisCep_biomass+1)))+
-  geom_point(aes(colour = structural_complexity_0to5, fill = structural_complexity_0to5), alpha = .9)+
-  geom_smooth(method = "lm")
-#looks a bit stronger...
 
 
 ```
@@ -1065,6 +966,10 @@ cor.test(fish_comb_dat_levels_algae$N.15_at_30m, fish_comb_dat_levels_algae$stru
 #sample estimates:
 #       cor 
 #-0.6498289 
+
+
+cor(fish_comb_dat_levels_algae$N.15_at_30m, fish_comb_dat_levels_algae$structural_complexity_0to5, method = "spearman") #-0.6750057
+cor.test(fish_comb_dat_levels_algae$N.15_at_30m, fish_comb_dat_levels_algae$structural_complexity_0to5, method = "spearman")
 
 
 fish_comb_dat_levels_algae%>%

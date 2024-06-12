@@ -82,6 +82,13 @@ fishn15.seabirds.cond.r<-
   filter(species != "Cephalopholis argus")%>%
   droplevels()
 
+
+##check sample sizes, lengths per site:----
+fishn15.seabirds.cond.r%>%
+  group_by(species, site.name)%>%
+  summarize(n = length(n15))
+
+
 ```
 
 
@@ -224,6 +231,7 @@ emtrends(fish_n15_algae_lm,  ~ species, var = "N.15_at_40m")
 #looks like Ab sept and Ac tri both are positive. Other two trending towards positive but overlaps 0
 
 test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m", adjust = "none"))
 
 
 #try with lmer:
@@ -286,22 +294,25 @@ fishn15.algan15.plot<-
 fishn15.seabirds.cond.algae %>%
       mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
    ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
-  geom_jitter(alpha = .8, width = .1)+
+  geom_point(alpha = .8)+
    geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
  geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
-  ylab("Fish N15")+
-  xlab("Algae N15")+
+  ylab(expression(Fish~delta^15~N))+
+  xlab(expression(Algae~delta^15~N))+
+  labs(color = "", fill = "")+
   theme_bw() +
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.15,.8),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
         #legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
+      #  legend.box.background = element_rect(colour = "black"))
 fishn15.algan15.plot
 
 
-#ggsave("../output/seabird-fishn15/fish_n15_alage_n15_estplot_lines_points.jpg", plot = fishn15.algan15.plot)
+#ggsave("../output/seabird-fishn15/fish_n15_algae_n15_estplot_lines_points.jpg", plot = fishn15.algan15.plot, width = 7, height = 5)
 
 #just raw data:
 fishn15.seabirds.cond.algae %>%
@@ -341,111 +352,46 @@ fishn15.seabirds.cond.algae
 #a little complicated bc different sample sizes for different species/site combos:
 fishn15.seabirds.long<- 
   fishn15.seabirds.cond.algae %>%
-    select(c(site.name, species, n15, K, HSI, breeding_biomass_kgha_side, N.15_at_10m, N.15_at_20m, N.15_at_30m, N.15_at_40m))%>%
+    select(c(site.name, species, n15, breeding_biomass_kgha_side, N.15_at_10m, N.15_at_20m, N.15_at_30m, N.15_at_40m))%>%
   group_by(site.name, species) %>%
   mutate(Index=row_number())%>%
   relocate(Index, .before = site.name)
 fishn15.seabirds.long
 
 fishn15.seabirds.wide <- 
-  pivot_wider(fishn15.seabirds.long,names_from = c("species"),values_from = c("n15", "K", "HSI"))
+  pivot_wider(fishn15.seabirds.long,names_from = c("species"),values_from = c("n15"))
 fishn15.seabirds.wide
 
-corr_mat_fish_n15_sb_sp<-as.data.frame(fishn15.seabirds.wide[,3:19])
+corr_mat_fish_n15_sb_sp<-as.data.frame(fishn15.seabirds.wide[c(3,7:11)]) #only need to start with seabird biomass and offshore algae
 
-cor.mtest(corr_mat_fish_n15_sb_sp)
+cor(corr_mat_fish_n15_sb_sp, method = "spearman", use = "pairwise.complete.obs")
+cor(corr_mat_fish_n15_sb_sp, method = "pearson", use = "pairwise.complete.obs")
 
-cor.mat_sb_fishn15_byspp<- cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs")
+##spearman:
+cor.mat_sb_fishn15_byspp<- cor(fishn15.seabirds.wide[c(3,7,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
 cor.mat_sb_fishn15_byspp
+corrplot(cor.mat_sb_fishn15_byspp, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
 
-
-corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
-
-
-###do seperate for n15, and for other variables:----
-#n15----
-corr_mat_fish_n15_sb_sp<-as.data.frame(fishn15.seabirds.wide[,3:11])
-corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
-
-#seabirds-n15---
-#n15----
-corr_mat_fish_n15_sb_sp<-as.data.frame(fishn15.seabirds.wide[,c(3,7:11)])
-corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
-
-
-#n15, K, HSI----
-corr_mat_fish_n15_cond_sp<-as.data.frame(fishn15.seabirds.wide[,8:19])
-corrplot(cor(corr_mat_fish_n15_cond_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
-
-
-#seabirds, K, HSI
-corr_mat_fish_cond_sb_sp<-as.data.frame(fishn15.seabirds.wide[,c(3,12:19)])
-corrplot(cor(corr_mat_fish_n15_cond_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
-
-
-#seabirds, n15 K, HSI==
-corr_mat_fish_n15_cond_sb_sp<-as.data.frame(fishn15.seabirds.wide[,c(3,8:19)])
-corrplot(cor(corr_mat_fish_n15_cond_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds - Fish N15 & Condition")
+##pearson:
+cor.mat_sb_fishn15_byspp_pearson<- cor(fishn15.seabirds.wide[c(3,7,8,10,11,9)], method = "pearson", use = "pairwise.complete.obs")
+cor.mat_sb_fishn15_byspp_pearson
+corrplot(cor.mat_sb_fishn15_byspp_pearson, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
 
 ##save outputs----
 #chunk 1
-pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp.pdf")
-corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Fish N15")
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_SPEARMAN.pdf")
+corrplot(cor.mat_sb_fishn15_byspp, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
 dev.off()
-
-#chunk 2
-pdf(file = "../output/seabird-fishn15/seabirds_fishn15_cond_corr_plot_by_sp.pdf")
-corrplot(cor(corr_mat_fish_n15_cond_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Fish N15-Condition")
-dev.off()
-
-#chunk 3
-pdf(file = "../output/seabird-fishn15/seabirds_fish_cond_sb_corr_plot_by_sp.pdf")
-corrplot(cor(corr_mat_fish_cond_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Fish Condition")
-dev.off()
-
-#chunk 4
-pdf(file = "../output/seabird-fishn15/seabirds_fish_n15_cond_corr_plot_by_sp.pdf")
-corrplot(cor(corr_mat_fish_n15_cond_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Fish N15-Condition")
-dev.off()
-
-#chunk 5
-pdf(file = "../output/seabird-fishn15/seabirds_fishn15_cond_sb_algae_corr_plot_bysp.pdf")
-corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds-Algae-Fish N15-Condition")
-dev.off()
-
-
-
-##save outputs (OLD)----
-#write.csv(cor.mat_sb_fishn15, "../output/seabird-fishn15/seabirds_fish_n15_corrmatrix.csv")
-#write.csv(cor.mat_sb_fishn15_byspp, "../output/seabird-fishn15/seabirds_fish_n15_by_species_corrmatrix.csv")
 
 
 #chunk 2
-#pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot.pdf")
-
-#corrplot(cor(corr_mat_fish_n15_sb, use = "pairwise.complete.obs"), type = "upper",
-      #   addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds Fish N15")
-
-#dev.off()
-
-#chunk 3
-#pdf(file = "../output/seabird-fishn15/seabirds_fishn15_by_species_corr_plot.pdf")
-
-#corrplot(cor(corr_mat_fish_n15_sb_sp, use = "pairwise.complete.obs"), type = "upper",
-       #  addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds Fish N15")
-
-#dev.off()
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_PEARSON.pdf")
+corrplot(cor.mat_sb_fishn15_byspp_pearson, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+dev.off()
 
 
 ```
