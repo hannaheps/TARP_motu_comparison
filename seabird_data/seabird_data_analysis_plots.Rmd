@@ -283,6 +283,20 @@ test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "mvt")
 test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "none")
 test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "fdr")
 
+test(pairs(EMM_rat, by = "protection"), by = NULL, adjust = "fdr",
+     )
+
+
+test(pairs(emmeans(sb_br_bio_space_mod_log_lm_2int, ~ protection | rat.eradication.status, adjust = "fdr", type = "response")))
+test(pairs(emmeans(sb_br_bio_space_mod_log_lm_2int, ~ rat.eradication.status | protection, adjust = "fdr", type = "response")))
+test(emmeans(sb_br_bio_space_mod_log_lm_2int, ~ rat.eradication.status, adjust = "fdr", type = "response"))
+
+
+emmeans(sb_br_bio_space_mod_log_lm_2int, list(revpairwise ~ protection | rat.eradication.status), type = "response", adjust = "fdr")
+
+
+emmeans(sb_br_bio_space_mod_log_lm_2int, list(revpairwise ~ rat.eradication.status), type = "response", adjust = "fdr")
+emmeans(sb_br_bio_space_mod_log_lm_2int, list(pairwise ~ rat.eradication.status), type = "response", adjust = "fdr")
 
 #need to decide best method for extracting p-values**** Currently using ANOVA table for overall p-values, and emmeans for estimates and pairwise comparisons****
 
