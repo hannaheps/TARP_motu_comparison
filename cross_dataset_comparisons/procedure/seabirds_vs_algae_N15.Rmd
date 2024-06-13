@@ -1,0 +1,245 @@
+---
+title: "seabirds_vs_algae_N15"
+author: "HEE"
+date: "2024-06-04"
+output: html_document
+---
+
+#Load libraries
+
+```{r}
+library(plyr)
+library(tidyverse)
+library(corrplot)
+library(lme4)
+library(nlme)
+library(car)
+library(jtools)
+library(emmeans)
+library(sjPlot)
+
+
+```
+
+#Combine seabird and algaeN15 data
+```{r}
+##Bring in seabird data
+seabirds <- read.csv("../../seabird_data/outputs/seabird_dens_bio_focal_data.csv")
+
+seabirds$site.name <- paste(seabirds$Motu, seabirds$Exposure, sep = "_")
+
+
+##bring in algae data
+algae <- read.csv("../../algae_isotopes/data/Tetiaroa_Turbinaria_Transects_November_2021_compiledMarch2023.csv")
+View(algae)
+algae$Distance_to_shore <- as.factor(algae$Distance_to_shore)
+algae$Side[algae$Side=="leeward"] <- "Protected"
+algae$Side[algae$Side == "windward"] <- "Exposed"
+names(algae)[names(algae) == 'Side'] <- 'Exposure'
+
+#manipulate algae data frame to get average N15 per motu, site and distance from shore
+
+sum.algae <- ddply(algae, c("Motu", "Exposure", "Distance_to_shore"),summarise,
+                      mean.N15 = mean(N15)
+)
+
+sum.algae
+#spread data to get values for each distance from shore
+sum.algae <- sum.algae %>% spread(Distance_to_shore, mean.N15)
+
+sum.algae <- sum.algae %>% rename(c("10" = "N.15_at_10m", 
+                                    "20" = "N.15_at_20m", "30" = "N.15_at_30m",
+                                    "40" = "N.15_at_40m"))
+
+
+#Create a site.name that combines motu and exposure in order to merge with seabrid data
+sum.algae$site.name <-  paste(sum.algae$Motu, sum.algae$Exposure, sep = "_")
+
+
+##Combine seabird and algae data
+algae.seabirds <- right_join(seabirds, sum.algae)
+View(algae.seabirds)
+algae.seabirds <- algae.seabirds[,-1] #This is just to remove duplicate columns
+#algae.seabirds <- algae.seabirds[,-c(2,7)] #Use this one for Iti data, it has slightly different column #s 
+View(algae.seabirds)
+
+#save combined data
+write.csv(algae.seabirds, "../output/n15_seabirds_combined_no_iti.csv")
+
+```
+
+
+#Run a correlation test
+```{r}
+data.matrix <- as.data.frame(algae.seabirds[,c(3:18,20:23)])
+View(data.matrix)
+
+cor.mtest(data.matrix)
+correlation.matrix.psn <- cor(data.matrix, use = "pairwise.complete.obs", method = "pearson") 
+write.csv(correlation.matrix.psn, "../output/n15_seabirds_corrmatrix_no_iti_pearson.csv") 
+correlation.matrix.sp <- cor(data.matrix, use = "pairwise.complete.obs", method  = "spearman") 
+write.csv(correlation.matrix.sp, "../output/n15_seabirds_corrmatrix_no_iti_spearman.csv")
+
+#file = "../output/correlation_seabird_N15_spearman.pdf")
+
+corrplot(cor(data.matrix, use = "pairwise.complete.obs", method = "pearson"), type = "upper", 
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", title = "seabirds vs. N15")
+
+corrplot(cor(data.matrix, use = "pairwise.complete.obs", method = "spearman"), type = "upper", 
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", title = "seabirds vs. N15")
+
+
+```
+
+##This is great but how about just the breeding biomass vs. all the N15 levels
+```{r}
+
+data.matrix.bb <- as.data.frame(algae.seabirds[,c(5,20:23)])
+View(data.matrix.bb)
+
+
+#Run a correlation test using the library corrplot
+cor.mtest(data.matrix.bb)
+
+pdf(file ="../output/seabird-algaen15/correlation_breedingbiomass_n15_spearman.pdf")
+
+corrplot(cor(data.matrix.bb, use = "pairwise.complete.obs", method = "spearman"), type = "upper", 
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", title = "seabirds vs. N15")
+
+dev.off()
+
+```
+
+
+
+
+
+#Expand the data to include all algae data for running linear models. 
+```{r}
+algae$site.name <- paste(algae$Motu, algae$Exposure, sep = "_")
+
+n15.all.seabirds <- merge(algae, seabirds[,-1], by = "site.name", all = TRUE, no.dups = TRUE)
+View(n15.all.seabirds)
+names(n15.all.seabirds)[names(n15.all.seabirds) == 'Exposure.x'] <- 'Exposure'
+names(n15.all.seabirds)[names(n15.all.seabirds) == 'Motu.x'] <- 'Motu'
+
+n15.all.seabirds$Distance_to_shore <- as.factor(n15.all.seabirds$Distance_to_shore)
+
+#Add in seabird_level
+n15.all.seabirds <-
+  n15.all.seabirds%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+
+```
+
+#linear models
+```{r}
+mod.lme <- lme(N15 ~ seabird_level*Distance_to_shore + Exposure, random = ~1|site.name, n15.all.seabirds, method = "REML")
+#Trial an optimized version (more complex)
+mod.lme1 <- lme(N15 ~ seabird_level*Distance_to_shore + Exposure, random = ~ seabird_level | site.name, n15.all.seabirds, 
+                         method = "REML",control = lmeControl(opt = "optim", method = "BFGS"))
+#Check AIC values & model fit
+anova(mod.lme, mod.lme1)  #lme is better AIC value
+
+plot_grid(plot_model(mod.lme, type = "diag"))
+plot(mod.lme) #fit looks great
+
+
+#test statistics
+summary(mod.lme)
+Anova(mod.lme)
+#Response: N15
+#                                 Chisq Df Pr(>Chisq)    
+#seabird_level                   51.877  2  5.434e-12 ***
+#Distance_to_shore               73.344  3  8.201e-16 ***
+#Exposure                        21.052  1  4.471e-06 ***
+#seabird_level:Distance_to_shore 32.186  6  1.503e-05 ***
+vif(mod.lme)
+plot_summs(mod.lme)
+
+```
+
+#Model parameters & plotting
+```{r}
+#look at emmeans:
+mod.lme%>% 
+  emmeans(~ seabird_level,
+          type = "response") 
+
+
+emmeans(mod.lme, list(pairwise ~ seabird_level*Distance_to_shore), type = "response", adjust = "fdr")
+#high20 - high 40 p = 0.0003
+#high10 - high 40 p = <0.0001
+#high10 - high 30 p = <0.0001
+#high10 - high 20 p = 0.0023
+#high10 - high 40 p = <0.0001
+#mid10  - mid 40 p = 0.0127
+#mid10  - mid 30 p = 0.0051
+#mid10  - mid 20 p = 0.029
+
+
+plot_data_n15_sb<-emmip(mod.lme, ~ seabird_level*Distance_to_shore,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot_data_n15_sb
+
+response_plot_n15<-
+  ggplot(data = plot_data_n15_sb, aes(x = Distance_to_shore, y = yvar, color = seabird_level, fill = seabird_level, group = seabird_level) )+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0.2, position = position_dodge(.1)) + #,  position = position_dodge(.3) 
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab(expression(italic(delta)^15*N))+
+#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  xlab("Distance From Shore (m)")+
+  labs(color='Seabird Level', fill = 'Seabird Level') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank()) #,
+        #legend.position = "none" )
+
+response_plot_n15
+ggsave(response_plot_n15, file = "../output/seabird-algaen15/n15_seabirdbiomass_by_distance_model.jpg", width = 7, height = 5)
+
+
+
+#What about JUST with seabirds
+plot_data_n15_sb_only<-emmip(mod.lme, ~ seabird_level,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot_data_n15_sb_only
+
+response_plot_n15_sbonly<-
+  ggplot(data = plot_data_n15_sb_only, aes(x = seabird_level, y = yvar, color = seabird_level, fill = seabird_level) )+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0.2, position = position_dodge(.1)) + #,  position = position_dodge(.3) 
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab(expression(italic(delta)^15*N))+
+#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
+  xlab("seabird biomass level")+
+  #labs(color='Distance \nFrom Shore (m)', fill = 'Distance \nFrom Shore (m)') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank())#,
+        legend.position = "none" )
+
+response_plot_n15_sbonly
+#ggsave(response_plot_n15_sbonly, file = "../output/seabird-algaen15/n15_seabirdbiomass_only_model.jpg", width = 7, height = 5)
+
+````
+

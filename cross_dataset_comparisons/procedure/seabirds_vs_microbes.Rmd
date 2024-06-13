@@ -1,0 +1,329 @@
+---
+title: "seabirds_vs_microbes"
+author: "HEE"
+date: "2024-06-04"
+output: html_document
+---
+
+#Load the libraries
+```{r}
+library(tidyverse)
+library(plyr)
+library(jtools)
+library(multcompView)
+library(multcomp)
+library(MASS) #for glmms
+library(glmmTMB) #for glmms with a beta distribution
+library(nlme) #for linear mixed effects models
+library(lme4) #for linear mixed effects models
+library(emmeans) #for multiple comparisons
+library(car) #for qqplots
+library(vcd) #for distplots of non-gaussian distributions
+library(sjPlot)
+library(mgcv) #for running beta distributions
+ 
+```
+
+#Load the data
+```{r}
+#Bring in Microbes and seabird data
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+microbes <- read.csv("../../microbiome_analyses/downstream_analyses/integration/output/nov2021_microbiome_metrics.csv")
+
+#recode the site.name category so we can combine with seabird data
+
+microbes$site.name[microbes$site.name == "A1"] <- "Aie_Protected"
+microbes$site.name[microbes$site.name == "A2"] <- "Aie_Exposed"
+microbes$site.name[microbes$site.name == "Re1"] <- "Reiono_Protected"
+microbes$site.name[microbes$site.name == "Re2"] <- "Reiono_Exposed"
+microbes$site.name[microbes$site.name == "Rm1"] <- "Rimatuu_Protected"
+microbes$site.name[microbes$site.name == "Rm2"] <- "Rimatuu_Exposed"
+
+microbes$site.name <- as.factor(microbes$site.name)
+levels(microbes$site.name)
+
+
+#Combine with seabird data:
+microbes.seabirds <- merge(microbes, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
+head(microbes.seabirds)
+
+#Add a seabird level category
+microbes.seabirds <-
+  microbes.seabirds%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+
+str(microbes.seabirds$distance.along.transect)
+microbes.seabirds$Distance_to_shore <- as.factor(microbes.seabirds$distance.along.transect)
+
+str(microbes.seabirds$seabird_level)
+
+```
+
+#Split into water and coral
+```{r}
+coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
+water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
+
+```
+
+*Coral First*
+
+#Alpha metrics: Observed
+```{r}
+hist(coral.microbes.seabirds$Observed) #not normal
+qqPlot(coral.microbes.seabirds$Observed) #terrible fit
+
+#Check poisson and nbinomial because these are count data
+distplot(coral.microbes.seabirds$Observed, type="poisson") #looks pretty good!
+
+mod.glmm1 <- glmer(Observed~seabird_level*Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
+summary(mod.glmm1)
+anova(mod.glmm1)
+#Analysis of Variance Table
+#                                npar Sum Sq Mean Sq F value
+#seabird_level                      2  20.90  10.451 10.4514
+#Distance_to_shore                  3 103.38  34.460 34.4603
+#Exposure                           1   6.36   6.363  6.3635
+#seabird_level:Distance_to_shore    6 544.10  90.683 90.6829
+
+
+#Analysis of Deviance Table (Type II Wald chisquare tests)
+
+#Response: Observed
+#                                   Chisq Df Pr(>Chisq)    
+#seabird_level                    21.6564  2  1.983e-05 ***
+#Distance_to_shore               103.0863  3  < 2.2e-16 ***
+#Exposure                          6.5432  1    0.01053 *  
+#seabird_level:Distance_to_shore 544.4811  6  < 2.2e-16 ***
+
+#Fixed effects:
+#                                      Estimate Std. Error z value Pr(>|z|)    
+#(Intercept)                            4.13043    0.27251  15.157  < 2e-16 ***
+#seabird_levelmid                       0.24318    0.33346   0.729  0.46583    
+#seabird_levelhigh                     -0.14842    0.36376  -0.408  0.68327    
+#Distance_to_shore20                   -0.40370    0.10162  -3.973 7.11e-05 ***
+#Distance_to_shore30                   -0.16461    0.09202  -1.789  0.07364 .  
+#Distance_to_shore40                   -0.69699    0.11931  -5.842 5.17e-09 ***
+#ExposureProtected                     -0.97991    0.38308  -2.558  0.01053 *  
+#seabird_levelmid:Distance_to_shore20   0.37837    0.11925   3.173  0.00151 ** 
+#seabird_levelhigh:Distance_to_shore20  2.33251    0.17799  13.104  < 2e-16 ***
+#seabird_levelmid:Distance_to_shore30   0.56877    0.10992   5.175 2.28e-07 ***
+#seabird_levelhigh:Distance_to_shore30  0.55734    0.18482   3.016  0.00256 ** 
+#seabird_levelmid:Distance_to_shore40   0.82496    0.13360   6.175 6.62e-10 ***
+#seabird_levelhigh:Distance_to_shore40  1.81011    0.19259   9.399  < 2e-16 ***
+
+mod.glmm.r <- glmer(Observed~Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
+anova(mod.glmm1, mod.glmm.r)
+#           npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+#mod.glmm.r    6 3841.3 3854.4 -1914.6   3829.3                         
+#mod.glmm1    14 3234.3 3265.0 -1603.2   3206.3 622.97  8  < 2.2e-16 ***
+
+mod.glmm2 <- glmer(Observed~algae.N15*Distance_to_shore + Exposure  + (1|site.name), data=coral.microbes.seabirds, family="poisson")
+
+#Fixed effects:
+#                               Estimate Std. Error z value Pr(>|z|)    
+#(Intercept)                    3.746877   0.336037  11.150  < 2e-16 ***
+#algae.N15                      0.067630   0.028947   2.336   0.0195 *  
+#Distance_to_shore20           -3.116892   0.277343 -11.238  < 2e-16 ***
+#Distance_to_shore30            0.218754   0.308577   0.709   0.4784    
+#Distance_to_shore40            1.807384   0.273079   6.619 3.63e-11 ***
+#ExposureProtected             -0.714900   0.368326  -1.941   0.0523 .  
+#algae.N15:Distance_to_shore20  0.515105   0.038044  13.540  < 2e-16 ***
+#algae.N15:Distance_to_shore30 -0.001467   0.050233  -0.029   0.9767    
+#algae.N15:Distance_to_shore40 -0.312308   0.046022  -6.786 1.15e-11 ***
+
+summary(mod.glmm2)
+Anova(mod.glmm2)
+#Analysis of Deviance Table (Type II tests)#
+
+#Response: Observed
+ #                              Chisq Df Pr(>Chisq)    
+#algae.N15                    89.8691  1    < 2e-16 ***
+#Distance_to_shore           172.7879  3    < 2e-16 ***
+#Exposure                      3.7673  1    0.05227 .  
+#algae.N15:Distance_to_shore 308.0568  3    < 2e-16 ***
+
+
+#Okay these are significant????!!!
+
+emmeans(mod.glmm1, list(pairwise ~ seabird_level*Distance_to_shore), adjust = "fdr")
+
+
+emmeans(mod.glmm2, list(pairwise~ algae.N15*Distance_to_shore), adjust = "fdr")
+
+
+
+mod.glmm1 %>% 
+  emmeans(~ seabird_level,
+          type = "response") 
+
+emmeans(mod.glmm1, list(pairwise ~ seabird_level*Distance_to_shore), type = "response", adjust = "fdr")
+
+
+plot_data_richness_sb<-emmip(mod.glmm1, ~ seabird_level*Distance_to_shore,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot_data_richness_sb
+
+response_plot_richness<-
+  ggplot(data = plot_data_richness_sb, aes(x = Distance_to_shore, y = yvar, colour = seabird_level, fill = seabird_level)) +#, group = seabird_level))+
+  #ggplot(data = plot_data_richness_sb, aes(x = seabird_level, y = yvar, colour = seabird_level, fill = seabird_level))+
+  geom_pointrange(aes(ymin = UCL, ymax = LCL), alpha = .3, linewidth = 2, size = 0.2, position = position_dodge(.1)) +
+  geom_line(alpha = .5 ,  position = position_dodge(.1)) +
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E")) + 
+  scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" = "#2F9D3E")) +
+  ylab("Coral Microbiome Observed ASV Richness") +
+  xlab("Distance From Shore (m)")+
+  labs(color='Seabird Level', fill = 'Seabird Level') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+response_plot_richness
+ggsave(response_plot_richness, file = "../output/seabird-microbes/coral_micro_richness_model.jpg", width = 7, height = 5)
+
+
+
+```
+
+
+#Shannon
+```{r}
+hist(coral.microbes.seabirds$Shannon) #not bad
+plot(Shannon ~ seabird_level, coral.microbes.seabirds)
+qqPlot(coral.microbes.seabirds$Shannon) #not good!
+
+##Can't use poisson though because it isn't count data
+#can we use a log link?
+y <- coral.microbes.seabirds$Shannon
+log.gauss.glm <-glmmPQL(y~ seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm)
+Anova(log.gauss.glm)
+#Analysis of Deviance Table (Type II tests)
+
+#Response: zz
+  #                               Chisq Df Pr(>Chisq)
+#seabird_level                   2.4500  2     0.2938
+#Distance_to_shore               0.6854  3     0.8766
+#Exposure                        0.5178  1     0.4718
+#seabird_level:Distance_to_shore 8.2202  6     0.2224
+plot(log.gauss.glm)
+plot_grid(plot_model(log.gauss.glm, type = "diag")) #not bad
+emmeans(log.gauss.glm, list(pairwise ~ seabird_level*Distance_to_shore), adjust = "fdr")
+#Nothing passes FDR correction
+
+log.gauss.glm %>% 
+  emmeans(~ seabird_level,
+          type = "response") 
+
+emmeans(log.gauss.glm, list(pairwise ~ seabird_level*Distance_to_shore), type = "response", adjust = "fdr")
+#Could not pull out any significant results with FDR correction
+
+plot_data_shannon_sb<-emmip(log.gauss.glm, ~ seabird_level*Distance_to_shore,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+
+plot_data_shannon_sb
+
+response_plot_shannon<-
+  ggplot(data = plot_data_shannon_sb, aes(x = Distance_to_shore, y = yvar, color = seabird_level, fill = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = UCL, ymax = LCL), alpha = .3, linewidth = 2, size = 0.2,  position = position_dodge(.1)) + #,  position = position_dodge(.3) 
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E")) + 
+  scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" = "#2F9D3E")) +
+  ylab("Coral Microbiome Shannon Diversity") +
+  xlab("Distance From Shore (m)")+
+  labs(color='Seabird Level', fill = 'Seabird Level') +
+   theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank())#,
+        #legend.position = "none" )
+
+response_plot_shannon
+
+ggsave(response_plot_shannon, file = "../output/seabird-microbes/coral_micro_shannon_model.jpg", width = 7, height = 5)
+
+
+log.gauss.glm2<-glmmPQL(y ~ algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=coral.microbes.seabirds, family=gaussian(link="log"))
+summary(log.gauss.glm2)
+Anova(log.gauss.glm2)
+#Analysis of Deviance Table (Type II tests)
+
+#Response: zz
+#                             Chisq Df Pr(>Chisq)  
+#algae.N15                   4.2556  1    0.03912 *
+#Distance_to_shore           2.9512  3    0.39921  
+#Exposure                    1.7166  1    0.19014  
+#algae.N15:Distance_to_shore 3.4279  3    0.33024 
+plot(log.gauss.glm2)
+plot_grid(plot_model(log.gauss.glm2, type = "diag")) #not bad
+
+
+effect_plot(log.gauss.glm2, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
+
+
+```
+
+*Water*
+
+#Observed
+```{r}
+hist(water.microbes.seabirds$Observed) #not normal
+qqPlot(water.microbes.seabirds$Observed) #not bad
+
+#Check poisson and nbinomial
+distplot(water.microbes.seabirds$Observed, type="poisson") #looks literally perfect!
+#using a Poisson distribution
+
+#Can we do glmer family = "poisson" lme4
+
+mod.glmm <- glmmPQL(Observed~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family="poisson")
+summary(mod.glmm)
+Anova(mod.glmm)
+#Analysis of Deviance Table (Type II tests)
+
+#Response: zz
+#                                 Chisq Df Pr(>Chisq)
+#seabird_level                   0.8933  2     0.6398
+#Distance_to_shore               3.6364  3     0.3035
+#Exposure                        0.0430  1     0.8357
+#seabird_level:Distance_to_shore 8.5625  6     0.1997
+
+library(aod)
+?wald.test()
+wald.test(b=fixef(mod.glmm),
+ Sigma=vcov(mod.glmm), Terms = 2:7 )
+intervals(mod.glmm)
+library(gmodels)
+ci(mod.glmm)
+#No significant parameters. 
+
+#What about a quasi-R2?
+totalss <- var(resid(mod.glmm,type='pearson')+predict(mod.glmm, type='link'))
+1-var(residuals(mod.glmm, type='pearson'))/(totalss)
+#0.2502419
+
+#type = response emmeans  for beta as long as family is specified in model 
+
+mod.glmm2 <- glmmPQL(Observed~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family="poisson")
+summary(mod.glmm2)
+Anova(mod.glmm2)
+
+
+
+```
+
+
+
