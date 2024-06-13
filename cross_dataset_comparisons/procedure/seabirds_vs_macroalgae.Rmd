@@ -395,6 +395,10 @@ Anova(richness.n15.lmm)
 vif(richness.n15.lmm)
 plot(richness.n15.lmm)
 
+emtrends(richness.n15.lmm,  ~ distance.along.transect, var = "N15")
+test(emtrends(richness.n15.lmm, ~ distance.along.transect, var = "N15", adjust = "fdr"))
+#looks like negative effect of n15 at 10 m, but not 40-m
+
 
 #look at emmeans:
 richness.lmm2 %>% 
@@ -405,6 +409,11 @@ richness.lmm2 %>%
 emmeans(richness.lmm2, list(pairwise ~ seabird_level*distance.along.transect), type = "response", adjust = "fdr")
 #mid10 - mid 40 p = 0.0006
 #high10 - high 40 p = <0.0001
+
+#also limit comparisons:
+emmeans(richness.lmm2, list(pairwise ~ seabird_level|distance.along.transect), type = "response", adjust = "fdr")
+emmeans(richness.lmm2, list(pairwise ~ distance.along.transect|seabird_level), type = "response", adjust = "fdr")
+
 
 plot_data_richness_sb<-emmip(richness.lmm2, ~ seabird_level*distance.along.transect,
           type = "response", CIs = TRUE, plotit=FALSE)

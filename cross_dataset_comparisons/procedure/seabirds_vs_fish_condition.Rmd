@@ -35,8 +35,8 @@ algae_n15<-read.csv("../output/n15_seabirds_combined_no_iti.csv")
 ```{r}
 #make combined site name column in fish_n15
 
-fishn15.seabirds.cond<-right_join(select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
-                                  select(fish_n15_cond, c("site.name", "motu", "fish.id", "species", 
+fishn15.seabirds.cond<-right_join(dplyr::select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                  dplyr::select(fish_n15_cond, c("site.name", "motu", "fish.id", "species", 
                                                    "month.caught", "year.caught", "protection", "TL.cm", "FL.cm", "SL.cm", "whole.weight.g", 
                                                    "liver.weight.g", "n15", "c13", "n.percent", "c.percent")),
                             
@@ -116,6 +116,10 @@ fish_n15_r_log_lm<-lm(log(n15)~ seabird_level*species,
 summary(fish_n15_r_log_lm)
 anova(fish_n15_r_log_lm) #everything significant
 plot(fish_n15_r_log_lm) #qq still not great. proceed with non-log for now....
+
+emmeans(fish_n15_r_log_lm, list(revpairwise ~ seabird_level|species), adjust = "fdr", type = "response")
+emmeans(fish_n15_r_log_lm, list(pairwise ~ seabird_level|species), adjust = "fdr", type = "response")
+
 
 #look at emmeans:
 fish_n15_r_lm %>% 
@@ -379,6 +383,13 @@ cor.mat_sb_fishn15_byspp_pearson
 corrplot(cor.mat_sb_fishn15_byspp_pearson, type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
 
+
+##spearman, no algae:
+cor.mat_sb_fishn15_byspp_no_algae<- cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+cor.mat_sb_fishn15_byspp_no_algae
+corrplot(cor.mat_sb_fishn15_byspp_no_algae, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+
 ##save outputs----
 #chunk 1
 pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_SPEARMAN.pdf")
@@ -394,6 +405,63 @@ corrplot(cor.mat_sb_fishn15_byspp_pearson, type = "upper",
 dev.off()
 
 
+##Oh wait, all a bit weird because of NAs, and correlations among fish species depend on order-----
+cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,10)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,11)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,9)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,8)], method = "spearman", use = "pairwise.complete.obs")
+#okay, each species corr with seabird biomass matches*
+
+#what if we arrange within each species/biomass level, n15 from high to low:
+fishn15.seabirds.long2<- 
+  fishn15.seabirds.cond.algae %>%
+    select(c(site.name, species, n15, breeding_biomass_kgha_side, N.15_at_10m, N.15_at_20m, N.15_at_30m, N.15_at_40m))%>%
+    arrange(desc(n15))%>%
+  group_by(site.name, species) %>%
+  mutate(Index=row_number())%>%
+  relocate(Index, .before = site.name)
+fishn15.seabirds.long
+
+fishn15.seabirds.wide2 <- 
+  pivot_wider(fishn15.seabirds.long2,names_from = c("species"),values_from = c("n15"))
+fishn15.seabirds.wide2
+
+corrplot(cor(fishn15.seabirds.wide2[c(3,8,11,9, 10)], method = "spearman", use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+
+cor(fishn15.seabirds.wide2[c(3,8,11,9, 10)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+#YUP, now really different cors***
+#SO: can't show correlations across different fish species, unless we were to take a mean per site or something, but then we'd only have 3 points....
+
+
+###save:----
+cor.mat_sb_fishn15_byspp_no_algae<- cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+
+cor.mat_sb_fishn15_fish_by_sb_only<- cor(x = fishn15.seabirds.wide[c(3)], y =fishn15.seabirds.wide[c(8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+
+
+
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_sb_onlySPEARMAN.pdf")
+corrplot(cor.mat_sb_fishn15_fish_by_sb_only, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+dev.off()
+
+
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_sb_onlySPEARMAN_LEGEND.pdf")
+corrplot(cor.mat_sb_fishn15_byspp_no_algae, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "b")
+dev.off()
+
+
+#try with seabirds and algae:
+cor.mat_sb_fishn15_fish_by_sb_algae_only<- cor(x = fishn15.seabirds.wide[c(3,4,5,6,7)], y =fishn15.seabirds.wide[c(8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+
+
 ```
 
+
+
+#any way to combine algae and fish corr plots?? - NOPE
 

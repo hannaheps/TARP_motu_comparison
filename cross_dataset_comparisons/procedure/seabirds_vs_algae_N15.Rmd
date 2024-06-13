@@ -110,6 +110,21 @@ dev.off()
 
 ```
 
+#Try a new corr matrix as another option for supplement - all seabird metrics versus algae n15 at 4 distances:
+```{r}
+cor.mat_sb__algae<- cor(x = algae.seabirds[c(3:18)], y =algae.seabirds[c(20:23)], method = "spearman", use = "pairwise.complete.obs")
+
+corrplot(cor.mat_sb__algae, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "r", cl.ratio = .5)
+
+#save plot:
+pdf(file = "../output/seabird-algaen15/corrplot_allseabirds_vs_algaen15_spearman.pdf")
+corrplot(cor.mat_sb__algae, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "r", cl.ratio = .5)
+dev.off()
+
+```
+
 
 
 
@@ -180,6 +195,11 @@ emmeans(mod.lme, list(pairwise ~ seabird_level*Distance_to_shore), type = "respo
 #mid10  - mid 40 p = 0.0127
 #mid10  - mid 30 p = 0.0051
 #mid10  - mid 20 p = 0.029
+
+
+#can also look within each distance to shore or seabird level so multiple comparisons not as overwhelming:
+emmeans(mod.lme, list(pairwise ~ seabird_level|Distance_to_shore), type = "response", adjust = "fdr")
+emmeans(mod.lme, list(pairwise ~ Distance_to_shore|seabird_level), type = "response", adjust = "fdr")
 
 
 plot_data_n15_sb<-emmip(mod.lme, ~ seabird_level*Distance_to_shore,
