@@ -538,6 +538,12 @@ seabird_focal_all_meta_for_corr<-as.data.frame(seabird_focal_all_meta[,6:21])
 
 
 cor.mtest(seabird_focal_all_meta_for_corr)
+cor.mtest(seabird_focal_all_meta_for_corr, method = "spearman")
+cor(seabird_focal_all_meta_for_corr, method = "spearman")
+cor(seabird_focal_all_meta_for_corr, method = "pearson")
+
+
+##PEARSON----
 correlation.matrix <- cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs")
 write.csv(correlation.matrix, "outputs/seabird_metrics_corrmatrix.csv")
 
@@ -549,6 +555,21 @@ pdf(file = "outputs/seabirds_corrplot.pdf")
 
 corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs"), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds")
+
+dev.off()
+
+
+##SPEARMAN----
+correlation.matrix <- cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs", method = "spearman")
+write.csv(correlation.matrix, "outputs/seabird_metrics_corrmatrix_SPEARMAN.csv")
+
+
+corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs", method = "spearman"), type = "upper",addCoef.col = "black", addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds")
+
+pdf(file = "outputs/seabirds_corrplot_SPEARMAN.pdf")
+
+corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs", method = "spearman"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
 
 dev.off()
 
