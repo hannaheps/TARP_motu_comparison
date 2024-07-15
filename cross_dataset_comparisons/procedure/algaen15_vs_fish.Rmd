@@ -1,0 +1,1038 @@
+---
+title: "algaen15_vs_fish"
+author: "CEB"
+date: '2023-10-03'
+output: html_document
+---
+
+#load packages
+```{r}
+library(tidyverse)
+
+library(lme4)
+library(car)
+library(jtools)
+
+library(emmeans)
+library(corrplot)
+library(vegan)
+
+library(cowplot)
+
+```
+
+
+
+#load data
+```{r}
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+load("../../fish_benthic_surveys/output/data/fish_community_data.Rdata")
+
+fish_bio_dat<-nmds_fish_diet_log_bio_site_scores
+
+```
+
+
+
+#merge data
+```{r}
+fish_bio_dat
+
+#make combined site name column in fish data
+fish_bio_dat2<-
+  fish_bio_dat%>%
+  mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+    mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+
+fish_bio_dat2
+
+fish.bio.seabirds<-left_join(fish_bio_dat2,
+                            select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                   by = "site.name")%>%
+  mutate(site.name = as.factor(site.name))
+fish.bio.seabirds
+
+```
+
+
+##need to also add in transect metadata
+```{r}
+
+#load data-----
+tet_trans_meta<-read.csv("../../metadata/fish_benthic_focal_transect_metadata.csv", stringsAsFactors = TRUE)
+str(tet_trans_meta)
+
+#make site name to do easy merge:----
+tet_trans_meta2<-
+  tet_trans_meta%>%
+  rename_all(str_to_lower)%>%
+  mutate(protection = if_else(exposure == "Leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = exposure)%>%
+    mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+tet_trans_meta2
+
+fish.bio.seabirds.trans<-right_join(select(tet_trans_meta2, c("site.name", "transect", "start_distance_to_shore_m",
+                                                             "end_distance_to_shore_m", "depth_min_m", "depth_max_m", "structural_complexity_0to5",
+                                                             "transect.location")),
+                                          fish.bio.seabirds,
+                                          by = c("site.name", "transect"))%>%
+  relocate(breeding_biomass_kgha_side, .after = rat.eradication.status) %>%
+  mutate(transect.in.out = case_when(grepl(pattern = "off", x = transect.location) ~ "offshore",
+                                     grepl(pattern = "in", x = transect.location) ~ "inshore"))%>%
+  mutate(transect.in.out = as.factor(transect.in.out))%>%
+  relocate(transect.in.out, .after = transect.location)
+  
+fish.bio.seabirds.trans
+
+
+###add transect data to fish density----
+#density by feeding group/diet:
+fish_fg_dens_dat<-
+  nmds_fish_diet_log_site_scores%>%
+  select(c(motu, site.name, wind.exposure, transect, Herb, InvMob, Omnivr, Plktiv, FisCep, InvSes))%>%
+  rename_with(~paste0(.,"_density"), Herb:InvSes)%>%
+   mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+  mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+fish_fg_dens_dat
+
+fish.dens.seabirds<-left_join(fish_fg_dens_dat,
+                            select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                   by = "site.name")%>%
+  mutate(site.name = as.factor(site.name))
+fish.dens.seabirds
+
+#and combine with transect metadata
+fish.dens.seabirds.trans<-right_join(select(tet_trans_meta2, c("site.name", "transect", "start_distance_to_shore_m",
+                                                             "end_distance_to_shore_m", "depth_min_m", "depth_max_m", "structural_complexity_0to5",
+                                                             "transect.location")),
+                                          fish.dens.seabirds,
+                                          by = c("site.name", "transect"))%>%
+  relocate(breeding_biomass_kgha_side, .after = wind.exposure) %>%
+    mutate(transect.in.out = case_when(grepl(pattern = "off", x = transect.location) ~ "offshore",
+                                     grepl(pattern = "in", x = transect.location) ~ "inshore"))%>%
+  mutate(transect.in.out = as.factor(transect.in.out))%>%
+  relocate(transect.in.out, .after = transect.location)
+
+fish.dens.seabirds.trans
+
+```
+
+
+
+##combine relevant data - aggregate metrics
+```{r}
+tet_fish_dens_div_comm_dat
+tet_fish_div_comm_tl_dat
+nmds_fish_diet_log_site_scores
+nmds_fish_diet_log_bio_site_scores
+
+#total density, and diversity stats based on density:
+fish_dens_div_dat<-
+  tet_fish_dens_div_comm_dat%>%
+  select(c(motu, site.name, wind.exposure, transect, shannon, evenness, sum_dens, PD, SR))%>%
+  mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+  mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+
+#relative biomass by trophic level:
+fish_tl_bio_dat<-
+  tet_fish_div_comm_tl_dat%>%
+  select(c(motu, site.name, wind.exposure, transect, rel_bio_TL1, rel_bio_TL2, rel_bio_TL3, rel_bio_TL4, rel_bio_TL5))%>%
+   mutate(protection = if_else(wind.exposure == "leeward", "Protected", "Exposed"))%>%
+  relocate(protection, .before = wind.exposure)%>%
+  mutate(motu = str_to_title(motu))%>%
+  unite("site.name", c(motu, protection), sep = "_", remove = FALSE)
+
+
+
+#biomass by feeding group/diet, and keep in metadata from above:
+fish_fg_bio_dat<-
+  fish.bio.seabirds.trans%>%
+  select(c(motu, site.name,wind.exposure, transect, start_distance_to_shore_m, end_distance_to_shore_m, 
+           depth_min_m, depth_max_m, structural_complexity_0to5, transect.in.out, breeding_biomass_kgha_side, 
+           Herb, InvMob, Omnivr, Plktiv, FisCep, InvSes))%>%
+  rename_with(~paste0(.,"_biomass"), Herb:InvSes)%>%
+    rowwise%>%
+  mutate(sum_fish_biomass = sum(c_across(Herb_biomass:InvSes_biomass)))%>%
+  ungroup
+
+fish_fg_bio_dat
+
+
+#now combine----
+fish_comb_dat_1<- full_join(fish_dens_div_dat, fish_tl_bio_dat, by = c("motu", "site.name", "wind.exposure", "protection", "transect"))
+fish_comb_dat_1
+
+fish_comb_dat_2<- full_join(fish_comb_dat_1, fish_fg_dens_dat, by = c("motu", "site.name", "wind.exposure", "protection", "transect"))
+fish_comb_dat_2
+
+
+fish_comb_dat<- full_join(fish_fg_bio_dat, select(fish_comb_dat_2,-protection), by = c("motu", "site.name", "wind.exposure",  "transect"))
+fish_comb_dat
+
+```
+
+
+
+##add seabird levels and algae n15----
+```{r}
+#to seabird biomass----
+#seabird levels----
+fish_comb_dat_levels<-
+  fish_comb_dat%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))%>%
+  relocate(seabird_level, .before = breeding_biomass_kgha_side) 
+
+fish_comb_dat_levels
+
+
+#algae n15----
+algae_n15<-read.csv("../output/n15_seabirds_combined_no_iti.csv")
+algae_n15
+
+
+fish_comb_dat_levels_algae<-left_join(fish_comb_dat_levels, 
+                                            select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
+                                            by = "site.name")
+
+fish_comb_dat_levels_algae
+
+
+#to seabird density-----
+fish.dens.seabirds.trans
+
+fish_fg_dens_dat_levels<-
+  fish.dens.seabirds.trans%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))%>%
+  relocate(seabird_level, .before = breeding_biomass_kgha_side) 
+
+fish_fg_dens_dat_levels
+
+
+
+
+fish_fg_dens_dat_levels_algae<-left_join(fish_fg_dens_dat_levels, 
+                                            select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
+                                            by = "site.name")
+
+fish_fg_dens_dat_levels_algae
+
+```
+
+
+##-----------------do NMDS with algae n15 as overlay, seabird levels - FEEDING GROUP, DENSITY, AUTOTRANSFORM------
+
+#run nmds
+```{r}
+#create species matrix
+fish.dens.seabirds.trans_sp<-
+  fish_fg_dens_dat_levels_algae%>%
+  ungroup()%>%
+  select(Herb_density:InvSes_density)
+
+#run NMDS (data frame created above)
+nmds_fish_dens_autoT<-metaMDS(fish.dens.seabirds.trans_sp, distance = "bray", trymax=200, k=2, autotransform = TRUE)
+nmds_fish_dens_autoT
+#2 axis stress = .1378
+
+plot(nmds_fish_dens_autoT)
+scores(nmds_fish_dens_autoT, display="species")
+
+#look at ordfit - seabird level and offshore algae n15
+ord.fit.level.autoT<-envfit(nmds_fish_dens_autoT~seabird_level+protection + structural_complexity_0to5, data = fish_fg_dens_dat_levels_algae, na.rm=TRUE)
+ord.fit.level.autoT #looks like nothing sig
+
+ord.fit.algae.autoT<-envfit(nmds_fish_dens_autoT~N.15_at_30m+protection + structural_complexity_0to5, data = fish_fg_dens_dat_levels_algae, na.rm=TRUE)
+ord.fit.algae.autoT #Algae n15 is significant****
+
+
+#rotate by algae n15 so can more easily interpret----
+nmds_fish_dens_autoT.rotate<-MDSrotate(nmds_fish_dens_autoT, fish_fg_dens_dat_levels_algae$N.15_at_30m)
+nmds_fish_dens_autoT.rotate
+
+
+
+##extract site/transect scores (non-rotated)----
+fish_spp.sc.autoT <- as.data.frame(scores(nmds_fish_dens_autoT, "species")) %>% #Using the scores function from vegan to extract the species scores and convert to a data.frame
+  rownames_to_column(var="Species") %>% # create a column of species, from the rownames of species.scores
+  mutate(Species = str_remove(Species, '_density'))%>%
+  mutate(species2 = c("herbivore", "mobile invertebrate feeder", "omnivore", "planktivore", "piscivore", "sessile invertebrate feeder"))
+
+fish_spp.sc.autoT
+
+fish_site.sc.autoT <- scores(nmds_fish_dens_autoT, display = "sites", shrink = FALSE) 
+fish_site.sc.autoT
+
+
+#merge site.sc with site and transect
+nmds_fish_site_scores.autoT<-
+  bind_cols(fish_fg_dens_dat_levels_algae$site.name, fish_fg_dens_dat_levels_algae$transect,
+                    as_tibble(fish_site.sc.autoT))%>%
+  rename('site.name' = '...1', 'transect' = '...2')
+nmds_fish_site_scores.autoT
+
+
+#combine with other metadata:
+fish.seabirds.levels.algae.w.nmds.norotate.autoT<-
+ left_join(fish_fg_dens_dat_levels_algae, 
+           nmds_fish_site_scores.autoT, 
+             by = c("site.name", "transect"))
+fish.seabirds.levels.algae.w.nmds.norotate.autoT
+
+
+##extract site/transect scores (rotated)----
+fish_spp.sc.rotate.autoT <- as.data.frame(scores(nmds_fish_dens_autoT.rotate, "species")) %>% #Using the scores function from vegan to extract the species scores and convert
+   rownames_to_column(var="Species") %>% # create a column of species, from the rownames of species.scores
+  mutate(Species = str_remove(Species, '_density'))%>%
+  mutate(species2 = c("herbivore", "mobile invertebrate feeder", "omnivore", "planktivore", "piscivore", "sessile invertebrate feeder"))
+fish_spp.sc.rotate.autoT
+
+fish_site.sc.rotate.autoT <- scores(nmds_fish_dens_autoT.rotate, display = "sites", shrink = FALSE) 
+fish_site.sc.rotate.autoT
+
+#merge site.sc with site and transect
+nmds_fish_site_scores_rotate.autoT<-
+  bind_cols(fish_fg_dens_dat_levels_algae$site.name, fish_fg_dens_dat_levels_algae$transect,
+                    as_tibble(fish_site.sc.rotate.autoT))%>%
+  rename('site.name' = '...1', 'transect' = '...2')
+nmds_fish_site_scores_rotate.autoT
+
+
+#combine with other metadata:
+fish.seabirds.levels.algae.w.nmds.autoT<-
+ left_join(fish.seabirds.levels.algae.w.nmds.norotate.autoT,
+           nmds_fish_site_scores_rotate.autoT, 
+             by = c("site.name", "transect")) %>%
+             rename("NMDS1" = "NMDS1.x",
+                    "NMDS2" = "NMDS2.x",
+                    "NMDS1.rotate" = "NMDS1.y",
+                    "NMDS2.rotate" = "NMDS2.y")
+fish.seabirds.levels.algae.w.nmds.autoT
+
+
+
+
+#NMDS plot----
+
+##non-rotated:----
+#get hull data:
+site.low.autoT <- fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == "low", ][chull(fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == 
+    "low", c("NMDS1", "NMDS2")]), ]
+
+site.mid.autoT <- fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == "mid", ][chull(fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == 
+    "mid", c("NMDS1", "NMDS2")]), ]  
+
+site.high.autoT <- fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == "high", ][chull(fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == 
+    "high", c("NMDS1", "NMDS2")]), ]
+
+fish.hull.data.autoT<-rbind(site.low.autoT , site.mid.autoT , site.high.autoT )  #combine
+fish.hull.data.autoT 
+
+##get arrows:
+ord.fit.fish.autoT<-envfit(nmds_fish_dens_autoT ~ N.15_at_30m +protection + structural_complexity_0to5, data = fish.seabirds.levels.algae.w.nmds.autoT, na.rm=TRUE)
+ord.fit.fish.autoT #looks like n15 is significant
+
+sb.scrs.fish.autoT <- as.data.frame(scores(ord.fit.fish.autoT, display = "vectors"))
+sb.scrs.fish.autoT <- cbind(sb.scrs.fish.autoT, variable = rownames(sb.scrs.fish.autoT))
+sb.scrs.fish.autoT<-
+  sb.scrs.fish.autoT%>%
+  mutate(variable2 = c("algae n15", "structural complexity"))
+
+fish_dens_nmds_plot.autoT<-
+ggplot() + 
+  geom_text(data=fish_spp.sc.autoT,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5) +  # add the species labels - 
+  geom_point(data=fish.seabirds.levels.algae.w.nmds.autoT,aes(x=NMDS1,y=NMDS2,colour=seabird_level, fill = seabird_level, pch = seabird_level), stat="identity", size=5, alpha = .9) +
+  geom_polygon(data=fish.hull.data.autoT,aes(x=NMDS1,y=NMDS2,fill=seabird_level,group=seabird_level),alpha=0.30) + # add the convex hulls
+   scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+ # coord_fixed() + ## need aspect ratio of 1!
+  geom_segment(data = sb.scrs.fish.autoT,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "black") +
+    geom_text(data = sb.scrs.fish.autoT, aes(x = NMDS1, y = NMDS2, label = sb.scrs.fish.autoT$variable2),
+            size = 3, vjust = 2)+
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), #remove gray boxes
+        text = element_text(size=20))
+        #legend.title = element_blank()) #remove legend title
+        #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
+       # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
+
+fish_dens_nmds_plot.autoT
+
+
+##save plot  
+ggsave(fish_dens_nmds_plot.autoT, file = "../output/seabird-fish/fish_dens_nmds_plot.autoT.jpg",
+       width = 7, height = 5)
+
+
+##rotated plot-----
+#get hull data:
+site.low.rotate.autoT <- fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == "low", ][chull(fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == 
+    "low", c("NMDS1.rotate", "NMDS2.rotate")]), ]
+
+site.mid.rotate.autoT  <- fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == "mid", ][chull(fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == 
+    "mid", c("NMDS1.rotate", "NMDS2.rotate")]), ]  
+
+site.high.rotate.autoT  <- fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == "high", ][chull(fish.seabirds.levels.algae.w.nmds.autoT[fish.seabirds.levels.algae.w.nmds.autoT$seabird_level == 
+    "high", c("NMDS1.rotate", "NMDS2.rotate")]), ]
+
+
+fish.hull.data.rotate.autoT  <- rbind(site.low.rotate.autoT , site.mid.rotate.autoT , site.high.rotate.autoT )  #combine
+fish.hull.data.rotate.autoT 
+
+##get arrows:
+ord.fit.fish.rotate.autoT <-envfit(nmds_fish_dens_autoT.rotate  ~ N.15_at_30m +protection + structural_complexity_0to5, data = fish.seabirds.levels.algae.w.nmds.autoT, na.rm=TRUE)
+ord.fit.fish.rotate.autoT  #looks like n15 is significant
+
+sb.scrs.fish.rotate.autoT   <- as.data.frame(scores(ord.fit.fish.rotate.autoT  , display = "vectors"))
+sb.scrs.fish.rotate.autoT   <- cbind(sb.scrs.fish.rotate.autoT  , variable = rownames(sb.scrs.fish.rotate.autoT  ))
+sb.scrs.fish.rotate.autoT  <-
+  sb.scrs.fish.rotate.autoT  %>%
+  mutate(variable2 = c("algae n15", "structural complexity"))
+
+levels(fish.seabirds.levels.algae.w.nmds.autoT$seabird_level)
+
+
+fish_dens_nmds_plot_rotate.autoT<-
+ggplot() + 
+  geom_text(data=fish_spp.sc.rotate.autoT ,aes(x=NMDS1,y=NMDS2 ,label=species2), alpha = .5, hjust = "inward") +  # add the species labels - 
+  geom_point(data=fish.seabirds.levels.algae.w.nmds.autoT ,aes(x=NMDS1.rotate,y=NMDS2.rotate,colour=seabird_level, fill = seabird_level, pch = seabird_level), stat="identity", size=5, alpha = .9) +
+  geom_polygon(data=fish.hull.data.rotate.autoT ,aes(x=NMDS1.rotate, y=NMDS2.rotate ,fill=seabird_level,group=seabird_level),alpha=0.30) + # add the convex hulls
+   scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  #coord_fixed() + ## need aspect ratio of 1!
+  geom_segment(data = sb.scrs.fish.rotate.autoT ,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "black") +
+    geom_text(data = sb.scrs.fish.rotate.autoT  , aes(x = NMDS1, y = NMDS2, label = sb.scrs.fish.rotate.autoT$variable2), 
+            size = 3, hjust = c(.75,.5), vjust = -1)+
+  labs(colour = "seabird biomass", fill = "seabird biomass", shape = "seabird biomass")+
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+        #legend.title = element_blank()) #remove legend title
+        #legend.box.background = element_rect(colour = "black", fill='white', linetype='solid', size=1), 
+       # legend.justification=c(1,.9), legend.position=c(1,.9))  #  fix legend
+
+fish_dens_nmds_plot_rotate.autoT 
+
+
+##save plot  
+ggsave(fish_dens_nmds_plot_rotate.autoT , file = "../output/seabird-fish/fish_dens_nmds_plot_rotate.autoT.jpg",
+       width = 7, height = 5)
+
+
+
+
+```
+
+
+#PERMANOVA
+```{r}
+
+##permanova - NOT LOG DENSITY----
+#Can't use blocks because we don't have blocks in our data (treatments are not distributed across sites)... And PERMANOVA does not accept random effects.
+
+fish_dens_algaen15_ad_notlog<-adonis2(fish.dens.seabirds.trans_sp ~ N.15_at_30m  + wind.exposure + structural_complexity_0to5, data = fish_fg_dens_dat_levels_algae)
+fish_dens_algaen15_ad_notlog
+#                           Df SumOfSqs      R2      F Pr(>F)   
+#N.15_at_30m                 1  0.05392 0.02866 0.6411  0.649
+#wind.exposure               1  0.04253 0.02261 0.5057  0.749
+#structural_complexity_0to5  1  0.10263 0.05455 1.2202  0.295
+#Residual                   20  1.68216 0.89418              
+#Total                      23  1.88123 1.00000   
+
+##NOW NOTHING SIGNIFICANT***
+
+
+#with seabird levels:
+fish_dens_seabird_ad_notlog<-adonis2(fish.dens.seabirds.trans_sp ~ seabird_level  + wind.exposure + structural_complexity_0to5, data = fish_fg_dens_dat_levels_algae)
+fish_dens_seabird_ad_notlog
+#                           Df SumOfSqs       R2       F Pr(>F)
+#seabird_level               2  0.26810 0.14251 1.6854  0.115
+#wind.exposure               1  0.04086 0.02172 0.5137  0.777
+#structural_complexity_0to5  1  0.06112 0.03249 0.7684  0.562
+#Residual                   19  1.51116 0.80328              
+#Total                      23  1.88123 1.00000 
+
+
+```
+
+
+
+
+###--------------------LOOK AT FISH DIVERSITY METRICS (and overall density, biomass, etc.) VS. SEABIRD LEVELS AND ALGAE N15-----------
+
+```{r}
+
+#run lmms----
+#total biomass----
+fish_bio_full_mod_sb_level <-lmer(sum_fish_biomass~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #depth_max_m + start_distance_to_shore_m + transect.in.out
+summary(fish_bio_full_mod_sb_level)
+plot(fish_bio_full_mod_sb_level)
+qqnorm(resid(fish_bio_full_mod_sb_level))
+qqline(resid(fish_bio_full_mod_sb_level))
+#looks bad*
+
+
+#try with log:
+fish_bio_full_mod_sb_level_log <-lmer(log(sum_fish_biomass+1)~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #depth_max_m + start_distance_to_shore_m  + transect.in.out
+summary(fish_bio_full_mod_sb_level_log)
+plot(fish_bio_full_mod_sb_level_log)
+qqnorm(resid(fish_bio_full_mod_sb_level_log))
+qqline(resid(fish_bio_full_mod_sb_level_log))
+#looks much better - use this**
+
+Anova(fish_bio_full_mod_sb_level_log) #nothing significant***
+vif(fish_bio_full_mod_sb_level_log) #not too sure how to interpret GVIF
+#but for summary correlation of fixed effects - looks like seabird level and structure could have high corr's.
+
+
+
+#re-run with algae at 30 m:----
+fish_bio_full_mod_algae <-lmer(sum_fish_biomass~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+summary(fish_bio_full_mod_algae)
+plot(fish_bio_full_mod_algae)
+qqnorm(resid(fish_bio_full_mod_algae))
+qqline(resid(fish_bio_full_mod_algae))
+#LOOKS BAD
+
+#use log again: 
+fish_bio_full_mod_algae_log <-lmer(log(sum_fish_biomass)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+summary(fish_bio_full_mod_algae_log)
+plot(fish_bio_full_mod_algae_log)
+qqnorm(resid(fish_bio_full_mod_algae_log))
+qqline(resid(fish_bio_full_mod_algae_log))
+#looks better - use this
+#still some high correlations of fixed effects?
+
+Anova(fish_bio_full_mod_algae_log) #nothing significant***
+vif(fish_bio_full_mod_algae_log) #all good
+
+#see below for corr checks between algae n15 and structure
+
+
+
+#species richness----
+fish_rich_full_mod_sb_level <-lmer(SR~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #depth_max_m + start_distance_to_shore_m
+summary(fish_rich_full_mod_sb_level)
+plot(fish_rich_full_mod_sb_level)
+qqnorm(resid(fish_rich_full_mod_sb_level))
+qqline(resid(fish_rich_full_mod_sb_level))
+#all looks good*
+
+Anova(fish_rich_full_mod_sb_level) #nothing significant***
+vif(fish_rich_full_mod_sb_level) #seabird level has high vif?
+
+
+
+fish_rich_full_mod_algae <-lmer(SR~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #depth_max_m + start_distance_to_shore_m
+summary(fish_rich_full_mod_algae)
+plot(fish_rich_full_mod_algae)
+qqnorm(resid(fish_rich_full_mod_algae))
+qqline(resid(fish_rich_full_mod_algae))
+#all looks good*
+
+
+Anova(fish_rich_full_mod_algae) #nothing significant****
+vif(fish_rich_full_mod_algae) #all fine
+
+
+
+#species evenness----
+fish_even_full_mod_sb_level <-lmer(evenness~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #SINGULAR
+summary(fish_even_full_mod_sb_level)
+plot(fish_even_full_mod_sb_level)
+qqnorm(resid(fish_even_full_mod_sb_level))
+qqline(resid(fish_even_full_mod_sb_level))
+#okay, not great
+
+Anova(fish_even_full_mod_sb_level) #nothing significant***
+vif(fish_even_full_mod_sb_level) #seabird level has high vif
+
+fish_even_full_mod_algae <-lmer(evenness~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #singular
+summary(fish_even_full_mod_algae)
+plot(fish_even_full_mod_algae)
+qqnorm(resid(fish_even_full_mod_algae))
+qqline(resid(fish_even_full_mod_algae))
+#looks okay
+
+Anova(fish_even_full_mod_algae) #nothing significant anyway....
+plot_summs(fish_even_full_mod_algae)
+
+#try removing exposure:
+fish_even_red_mod_algae <-lmer(evenness~N.15_at_30m   + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)
+#still singular.
+
+range(fish_comb_dat_levels_algae$evenness) #very small range of values.
+
+
+#shannon----
+fish_shannon_full_mod_sb_level <-lmer(shannon~seabird_level  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)  #singular
+summary(fish_shannon_full_mod_sb_level)
+plot(fish_shannon_full_mod_sb_level)
+qqnorm(resid(fish_shannon_full_mod_sb_level))
+qqline(resid(fish_shannon_full_mod_sb_level))
+#looks okay
+
+Anova(fish_shannon_full_mod_sb_level) #nothing significant***
+vif(fish_shannon_full_mod_sb_level) #seabird level has high vif
+
+
+fish_shannon_full_mod_algae <-lmer(shannon~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
+summary(fish_shannon_full_mod_algae)
+plot(fish_shannon_full_mod_algae)
+qqnorm(resid(fish_shannon_full_mod_algae))
+qqline(resid(fish_shannon_full_mod_algae))
+
+
+Anova(fish_shannon_full_mod_algae) #nothing significant****
+plot_summs(fish_shannon_full_mod_algae)
+
+
+
+```
+
+
+
+##---------create model estimated plots for responses in paper------------
+```{r}
+
+#fish biomass-----
+emmeans(fish_bio_full_mod_sb_level_log, ~ seabird_level|structural_complexity_0to5, type = "response")
+
+pairs(emmeans(fish_bio_full_mod_sb_level_log, ~ seabird_level, type = "response"))
+
+plot_data_fish_bio<-emmip(fish_bio_full_mod_sb_level_log, ~ seabird_level,
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_bio
+
+fish_total_bio_est_plot_sb<-
+ggplot(data = plot_data_fish_bio, aes(x = seabird_level, y = yvar, color = seabird_level, fill = seabird_level, group = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+  geom_point(data = fish_comb_dat_levels_algae, 
+             aes(y = log(sum_fish_biomass), x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish biomass (log kg/ha)")+
+  xlab("seabird biomass")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none")
+
+fish_total_bio_est_plot_sb
+
+range(fish_comb_dat_levels_algae$N.15_at_30m) #3.430000 6.993333
+
+plot_data_fish_bio_n15<-emmip(fish_bio_full_mod_algae_log, ~ N.15_at_30m, at = list(N.15_at_30m = seq(3.430000, 6.994, by = .01)),
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_bio_n15
+
+fish_total_bio_est_plot_n15<-
+fish_comb_dat_levels_algae %>%
+   ggplot(aes(x = N.15_at_30m, y = log(sum_fish_biomass)))+
+   geom_ribbon(data = plot_data_fish_bio_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+ geom_line(data = plot_data_fish_bio_n15, aes(x = N.15_at_30m, y = yvar))+
+    geom_point(alpha = .5, aes(color = seabird_level, fill = seabird_level))+
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish biomass (log kg/ha)")+
+  xlab("algae N15")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none")
+
+fish_total_bio_est_plot_n15
+
+#richness----
+emmeans(fish_rich_full_mod_sb_level, ~ seabird_level|structural_complexity_0to5, type = "response")
+
+pairs(emmeans(fish_rich_full_mod_sb_level, ~ seabird_level, type = "response"))
+
+plot_data_fish_rich<-emmip(fish_rich_full_mod_sb_level, ~ seabird_level,
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_rich
+
+fish_total_rich_est_plot_sb<-
+ggplot(data = plot_data_fish_rich, aes(x = seabird_level, y = yvar, color = seabird_level, fill = seabird_level, group = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+  geom_point(data = fish_comb_dat_levels_algae, 
+             aes(y = SR, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish species richness (#)")+
+  xlab("seabird biomass")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none")
+
+fish_total_rich_est_plot_sb
+
+
+plot_data_fish_rich_n15<-emmip(fish_rich_full_mod_algae, ~ N.15_at_30m, at = list(N.15_at_30m = seq(3.430000, 6.994, by = .01)),
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_rich_n15
+
+fish_total_rich_est_plot_n15<-
+fish_comb_dat_levels_algae %>%
+   ggplot(aes(x = N.15_at_30m, y = SR))+
+   geom_ribbon(data = plot_data_fish_rich_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+ geom_line(data = plot_data_fish_rich_n15, aes(x = N.15_at_30m, y = yvar))+
+    geom_point(alpha = .5, aes(color = seabird_level, fill = seabird_level))+
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish species richness (#)")+
+  xlab("algae N15")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+       legend.position = "none")
+
+fish_total_rich_est_plot_n15
+
+
+
+#evenness----
+emmeans(fish_even_full_mod_sb_level, ~ seabird_level|structural_complexity_0to5, type = "response")
+
+pairs(emmeans(fish_even_full_mod_sb_level, ~ seabird_level, type = "response"))
+
+plot_data_fish_even<-emmip(fish_even_full_mod_sb_level, ~ seabird_level,
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_even
+
+fish_total_even_est_plot_sb<-
+ggplot(data = plot_data_fish_even, aes(x = seabird_level, y = yvar, color = seabird_level, fill = seabird_level, group = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+  geom_point(data = fish_comb_dat_levels_algae, 
+             aes(y = evenness, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish evenness")+
+  xlab("seabird biomass")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none" )
+
+fish_total_even_est_plot_sb
+
+
+plot_data_fish_even_n15<-emmip(fish_even_full_mod_algae, ~ N.15_at_30m, at = list(N.15_at_30m = seq(3.430000, 6.994, by = .01)),
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_even_n15
+
+fish_total_even_est_plot_n15<-
+fish_comb_dat_levels_algae %>%
+   ggplot(aes(x = N.15_at_30m, y = evenness))+
+   geom_ribbon(data = plot_data_fish_even_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+ geom_line(data = plot_data_fish_even_n15, aes(x = N.15_at_30m, y = yvar))+
+    geom_point(alpha = .5, aes(color = seabird_level, fill = seabird_level))+
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish evenness")+
+  xlab("algae N15")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none")
+
+fish_total_even_est_plot_n15
+
+
+
+#shannon----
+emmeans(fish_shannon_full_mod_sb_level, ~ seabird_level|structural_complexity_0to5, type = "response")
+
+pairs(emmeans(fish_shannon_full_mod_sb_level, ~ seabird_level, type = "response"))
+
+plot_data_fish_shannon<-emmip(fish_shannon_full_mod_sb_level, ~ seabird_level,
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_shannon
+
+fish_total_shannon_est_plot_sb<-
+ggplot(data = plot_data_fish_shannon, aes(x = seabird_level, y = yvar, color = seabird_level, fill = seabird_level, group = seabird_level))+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0,  position = position_dodge(.1)) + #,  position = position_dodge(.3)
+  geom_point(data = fish_comb_dat_levels_algae, 
+             aes(y = shannon, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish shannon diversity")+
+  xlab("seabird biomass")+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none" )
+
+fish_total_shannon_est_plot_sb
+
+
+plot_data_fish_shannon_n15<-emmip(fish_shannon_full_mod_algae, ~ N.15_at_30m, at = list(N.15_at_30m = seq(3.430000, 6.994, by = .01)),
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_shannon_n15
+
+fish_total_shannon_est_plot_n15<-
+fish_comb_dat_levels_algae %>%
+   ggplot(aes(x = N.15_at_30m, y = shannon))+
+   geom_ribbon(data = plot_data_fish_shannon_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+ geom_line(data = plot_data_fish_shannon_n15, aes(x = N.15_at_30m, y = yvar))+
+    geom_point(alpha = .5, aes(color = seabird_level, fill = seabird_level))+
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish shannon diversity")+
+  xlab("algae N15")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none")
+
+fish_total_shannon_est_plot_n15
+
+
+##combine all plots and save:----
+fish_comm_tots_mod_est_plots<-
+  plot_grid(fish_total_bio_est_plot_sb, fish_total_bio_est_plot_n15,
+            fish_total_rich_est_plot_sb, fish_total_rich_est_plot_n15,
+            fish_total_even_est_plot_sb, fish_total_even_est_plot_n15,
+            fish_total_shannon_est_plot_sb, fish_total_shannon_est_plot_n15,
+            ncol = 2) #, labels = "auto", label_fontface = "plain"
+
+fish_comm_tots_mod_est_plots
+
+ggsave(fish_comm_tots_mod_est_plots, file = "../output/seabird-fish/fish_comm_tots_mod_est_plots_COMBINED.jpg",
+    width = 7, height = 9)
+
+
+```
+
+
+
+
+####stacked bar plot by seabird levels----
+```{r}
+
+
+##add structure to seabird level stacked bar plot----
+
+fish_fg_bio_stack_barplot_seabird_level_structure<-
+fish_comb_dat_levels_algae%>%
+  pivot_longer(cols = c(Herb_biomass:InvSes_biomass),
+                                          names_to = "feeding_group",
+                                          values_to = "biomass_kg_ha")%>%
+  group_by(feeding_group, seabird_level)%>%
+  summarize(mean_biomass = mean(biomass_kg_ha),
+            mean_structure = mean(structural_complexity_0to5),
+            se_structure = sd(structural_complexity_0to5)/length(structural_complexity_0to5))%>%
+  mutate(feeding_group = str_remove_all(feeding_group, '_biomass'))%>%
+  mutate(feeding_group = as.factor(feeding_group))%>%
+    mutate(feeding_group = fct_relevel(feeding_group, c("Herb", "Omnivr", "Plktiv", "InvSes", "InvMob", "FisCep")))%>%
+  mutate(feeding_group = fct_recode(feeding_group, "Herbivore" = "Herb", "Mobile Invertebrate Feeder" = "InvMob", "Omnivore" = "Omnivr", 
+                                                     "Planktivore" = "Plktiv", "Piscivore" = "FisCep", "Sessile Invertebrate Feeder" = "InvSes"))%>%
+  ggplot(aes(x = seabird_level))+
+  geom_bar(aes(fill = feeding_group, y = mean_biomass), position = "stack", stat =  "identity")+
+  scale_fill_brewer(palette = "Set2")+
+  geom_point(aes(y = mean_structure*120))+
+  geom_line(aes(y =  mean_structure*120, group = feeding_group))+
+  geom_errorbar(aes(y = mean_structure*120, ymin = (mean_structure*120)-se_structure*120, ymax = (mean_structure*120)+se_structure*120), width = .1)+
+    scale_y_continuous(name = "mean biomass (kg/ha)", #    # Features of the first axis
+    sec.axis = sec_axis(~./120, name="structural complexity (0-5)"))+    # Add a second axis and specify its features
+  xlab("seabird level")+
+  ylab("mean biomass (kg/ha)")+
+  labs(fill = "Feeding group")+
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+  
+  fish_fg_bio_stack_barplot_seabird_level_structure
+  
+
+  
+ggsave(fish_fg_bio_stack_barplot_seabird_level_structure, file = "../output/seabird-fish/fish_stack_plot_seabird_structure_1plot.jpg",
+    width = 7, height = 5)
+
+
+##repeat with density-----
+
+fish_fg_dens_stack_barplot_seabird_level_structure<-
+fish_fg_dens_dat_levels_algae%>%
+  pivot_longer(cols = c(Herb_density:InvSes_density),
+                                          names_to = "feeding_group",
+                                          values_to = "density")%>%
+  group_by(feeding_group, seabird_level)%>%
+  summarize(mean_density = mean(density),
+            mean_structure = mean(structural_complexity_0to5),
+            se_structure = sd(structural_complexity_0to5)/length(structural_complexity_0to5))%>%
+  mutate(feeding_group = str_remove_all(feeding_group, '_density'))%>%
+  mutate(feeding_group = as.factor(feeding_group))%>%
+    mutate(feeding_group = fct_relevel(feeding_group, c("Herb", "Omnivr", "Plktiv", "InvSes", "InvMob", "FisCep")))%>%
+  mutate(feeding_group = fct_recode(feeding_group, "Herbivore" = "Herb", "Mobile Invertebrate Feeder" = "InvMob", "Omnivore" = "Omnivr", 
+                                                     "Planktivore" = "Plktiv", "Piscivore" = "FisCep", "Sessile Invertebrate Feeder" = "InvSes"))%>%
+  ggplot(aes(x = seabird_level))+
+  geom_bar(aes(fill = feeding_group, y = mean_density), position = "stack", stat =  "identity")+
+  scale_fill_brewer(palette = "Set2")+
+  geom_point(aes(y = mean_structure*1500))+
+  geom_line(aes(y =  mean_structure*1500, group = feeding_group))+
+  geom_errorbar(aes(y = mean_structure*1500, ymin = (mean_structure*1500)-se_structure*1500, ymax = (mean_structure*1500)+se_structure*1500), width = .1)+
+    scale_y_continuous(name = "mean density (#/ha)", #    # Features of the first axis
+    sec.axis = sec_axis(~./1500, breaks = c(0,1,2,3,4,5), name="structural complexity (0-5)"))+    # Add a second axis and specify its features
+  xlab("seabird level")+
+  labs(fill = "Feeding group")+
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+  
+  fish_fg_dens_stack_barplot_seabird_level_structure
+  
+
+  
+ggsave(fish_fg_dens_stack_barplot_seabird_level_structure, file = "../output/seabird-fish/fish_DENS_stack_plot_seabird_structure_1plot.jpg",
+    width = 7, height = 5)
+
+
+fish_stack_plots<-plot_grid(fish_fg_bio_stack_barplot_seabird_level_structure, fish_fg_dens_stack_barplot_seabird_level_structure, nrow = 2)
+fish_stack_plots
+
+
+ggsave(fish_stack_plots, file = "../output/seabird-fish/fish_stack_plots_COMBINED.jpg",
+    width = 7, height = 7)
+
+
+```
+
+
+#checking seabird~structure relationships:
+```{r}
+cor(fish_comb_dat_levels_algae$N.15_at_30m, fish_comb_dat_levels_algae$structural_complexity_0to5) #-0.6498289
+cor.test(fish_comb_dat_levels_algae$N.15_at_30m, fish_comb_dat_levels_algae$structural_complexity_0to5)
+#t = -4.0101, df = 22, p-value = 0.0005885
+#alternative hypothesis: true correlation is not equal to 0
+#95 percent confidence interval:
+# -0.8344768 -0.3339817
+#sample estimates:
+#       cor 
+#-0.6498289 
+
+
+cor(fish_comb_dat_levels_algae$N.15_at_30m, fish_comb_dat_levels_algae$structural_complexity_0to5, method = "spearman") #-0.6750057
+cor.test(fish_comb_dat_levels_algae$N.15_at_30m, fish_comb_dat_levels_algae$structural_complexity_0to5, method = "spearman")
+
+
+fish_comb_dat_levels_algae%>%
+  ggplot(aes(x = N.15_at_30m, y = structural_complexity_0to5))+ #, fill = seabird_level, colour = seabird_level
+  geom_jitter(height = .05, width = .01, alpha = .4)+
+  geom_smooth (method = "lm")
+
+
+
+fish_comb_dat_levels_algae%>%
+  ggplot(aes(x = seabird_level, y = structural_complexity_0to5, fill = seabird_level, colour = seabird_level))+
+  geom_boxplot(alpha = .4)+
+  geom_jitter(width = .3, height = 0)
+
+
+```
+
+###UPDATE - CHECKING NON-LINEARITIES
+```{r}
+#use log again: 
+fish_bio_full_mod_algae_log_poly <-lmer(log(sum_fish_biomass)~poly(N.15_at_30m,2)  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+summary(fish_bio_full_mod_algae_log_poly)
+plot(fish_bio_full_mod_algae_log_poly)
+qqnorm(resid(fish_bio_full_mod_algae_log_poly))
+qqline(resid(fish_bio_full_mod_algae_log_poly))
+#looks better - use this
+#still some high correlations of fixed effects?
+
+Anova(fish_bio_full_mod_algae_log_poly) #nothing significant***
+vif(fish_bio_full_mod_algae_log_poly) #all good
+
+#see below for corr checks between algae n15 and structure
+
+anova(fish_bio_full_mod_algae_log_poly, fish_bio_full_mod_algae_log) #identical AICs
+
+
+
+range(fish_comb_dat_levels_algae$N.15_at_30m) #3.430000 6.993333
+
+plot_data_fish_bio_n15_poly<-emmip(fish_bio_full_mod_algae_log_poly, ~ N.15_at_30m, at = list(N.15_at_30m = seq(3.430000, 6.994, by = .01)),
+    CIs = TRUE, plotit=FALSE) #      type = "response", 
+
+plot_data_fish_bio_n15_poly
+
+fish_total_bio_est_plot_n15<-
+fish_comb_dat_levels_algae %>%
+   ggplot(aes(x = N.15_at_30m, y = log(sum_fish_biomass)))+
+   geom_ribbon(data = plot_data_fish_bio_n15_poly, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+ geom_line(data = plot_data_fish_bio_n15_poly, aes(x = N.15_at_30m, y = yvar))+
+    geom_point(alpha = .5, aes(color = seabird_level, fill = seabird_level))+
+  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  ylab("fish biomass (log kg/ha)")+
+  xlab("algae N15")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none")
+
+fish_total_bio_est_plot_n15
+
+```
+
+
+
