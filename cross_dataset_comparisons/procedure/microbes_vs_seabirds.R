@@ -635,9 +635,54 @@ ggplot(endo.sum, aes(x = seabird_level, y = mean_endo, fill = Distance_to_shore)
 
 
 
+#Plot alteromonadaceae
+
+
+altero.sum <- ddply(coral.microbes.seabirds, c("seabird_level"), summarise,
+                  mean_altero = mean(RelAbund_Uncultured_Alteromonadaceaeae),
+                  n_altero = length(RelAbund_Uncultured_Alteromonadaceaeae),
+                  se_altero = sd(RelAbund_Uncultured_Alteromonadaceaeae)/sqrt(n_altero) )
+pdf(file = "../output/seabird-microbes/altero_truedata_seabirdlevel.pdf")
+ggplot(altero.sum, aes(x = seabird_level, y = mean_altero))+
+  geom_point(alpha = .5, size = 4, aes(color = seabird_level))+
+  geom_errorbar(aes(ymin = (mean_altero-se_altero), ymax = (mean_altero+se_altero), color = seabird_level), alpha = .5, width = 0.2)+
+  xlab("Seabird Biomass Level")+
+  ylab("Mean Relative Abundance of Alteromonadacaeae \nin Coral Tissue") +
+  labs(color='Seabird Biomass \nLevel') +
+  #scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E")) + 
+  scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" = "#2F9D3E")) +
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+dev.off()
+
+
+p.observed <- ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed))+
+  geom_point(alpha = .5, size = 4)+
+  geom_smooth(method = lm, se = FALSE, color = "black") +
+  xlab("Algal N15")+
+  ylab("Microbiome Species Richness") +
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave(p.observed, file = "../output/seabird-microbes/coral_micro_richness_point.jpg", width = 7, height = 5)
 
 
 
+ggplot(coral.microbes.seabirds, aes(x = seabird_level, y = Observed))+
+  geom_boxplot(alpha = .5) +
+  xlab("Seabird Level")+
+  ylab("Microbiome Species Richness") +
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave(p.observed, file = "../output/seabird-microbes/coral_micro_richness_point.jpg", width = 7, height = 5)
+
+
+#What about a plot that is like a barplot or boxplot or something
 
 ######Deprecated###########
 #Can we plot the model
