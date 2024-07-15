@@ -1,0 +1,499 @@
+---
+title: "seabirds_vs_fish_condition"
+author: "CEB"
+date: '2024-01-23'
+output: html_document
+---
+
+
+#load packages
+```{r}
+library(tidyverse)
+
+library(lme4)
+library(car)
+library(jtools)
+
+library(emmeans)
+
+library(corrplot)
+
+```
+
+
+#load data
+```{r}
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+fish_n15_cond <- read.csv("../../fish_isotopes/output/fish_n15_condition.csv", stringsAsFactors = TRUE)
+algae_n15<-read.csv("../output/n15_seabirds_combined_no_iti.csv")
+
+```
+
+
+
+#merge data
+```{r}
+#make combined site name column in fish_n15
+
+fishn15.seabirds.cond<-right_join(dplyr::select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                  dplyr::select(fish_n15_cond, c("site.name", "motu", "fish.id", "species", 
+                                                   "month.caught", "year.caught", "protection", "TL.cm", "FL.cm", "SL.cm", "whole.weight.g", 
+                                                   "liver.weight.g", "n15", "c13", "n.percent", "c.percent")),
+                            
+                                   by = "site.name")%>%
+  mutate(site.name = as.factor(site.name))
+fishn15.seabirds.cond
+
+```
+
+#calculate condition indices, add seabird levels
+```{r}
+
+#add k and hsi----
+
+fishn15.seabirds.cond<-
+  fishn15.seabirds.cond%>%
+  mutate(K = 100*(whole.weight.g/(TL.cm^3)),
+         HSI = liver.weight.g/whole.weight.g*100)
+fishn15.seabirds.cond
+
+
+#3 sites, add seabird levels because non-linear possible and only 3 sites so needs to be categorical:----
+#Aie protected = 378.720000	
+#Reiono exposed = 115.353333
+#Rimatuu protected = 5.390526
+
+fishn15.seabirds.cond<-
+  fishn15.seabirds.cond%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))%>%
+  relocate(seabird_level, .before = breeding_biomass_kgha_side)
+
+fishn15.seabirds.cond
+
+
+
+##remove C. argus because n = 1 for 'high' (Aie)----
+fishn15.seabirds.cond.r<-
+  fishn15.seabirds.cond%>%
+  filter(species != "Cephalopholis argus")%>%
+  droplevels()
+
+
+##check sample sizes, lengths per site:----
+fishn15.seabirds.cond.r%>%
+  group_by(species, site.name)%>%
+  summarize(n = length(n15))
+
+
+```
+
+
+#run regular lm's USING ALGAE N15 AT 40, because now only one site per motu (so random effects don't make much sense): - still need to clean up figures, likely for supplement*
+```{r}
+
+#combine data with algae n15----
+fishn15.seabirds.cond.algae<-
+  left_join(fishn15.seabirds.cond.r, 
+            select(algae_n15, c("site.name", "N.15_at_10m", "N.15_at_20m","N.15_at_30m","N.15_at_40m")), 
+            by = "site.name")
+fishn15.seabirds.cond.algae
+
+
+#n15----
+fish_n15_algae_lm<-lm(n15~ N.15_at_40m*species, 
+                          data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lm)
+anova(fish_n15_algae_lm)#everything significant
+plot(fish_n15_algae_lm) #okay
+
+
+#look at emmeans:
+emtrends(fish_n15_algae_lm,  ~ species, var = "N.15_at_40m")
+#looks like Ab sept and Ac tri both are positive. Other two trending towards positive but overlaps 0
+
+test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m", adjust = "none"))
+
+
+#try with lmer:
+fish_n15_algae_lmer<-lmer(n15~ N.15_at_40m*species + (1|site.name), 
+                          data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lmer)
+Anova(fish_n15_algae_lmer)
+
+test(emtrends(fish_n15_algae_lmer, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+emtrends(fish_n15_algae_lmer, ~ species, var = "N.15_at_40m")
+
+
+fish_n15_algae_lmer.add<-lmer(n15~ N.15_at_40m+species + (1|site.name), 
+                          data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lmer.add)
+Anova(fish_n15_algae_lmer.add)
+
+
+# plot - maybe just for supplement---------
+range(fishn15.seabirds.cond.algae$N.15_at_40m) #3.043333 6.003333
+levels(fishn15.seabirds.cond.algae$species)
+(mylist <- list(
+    N.15_at_40m = seq(3, 6, by = 1),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+
+emmip(fish_n15_algae_lm, species ~ N.15_at_40m, at = mylist, CIs = TRUE)
+
+
+
+#plot raw data + lines: 
+plot_dat<-emmip(fish_n15_algae_lm, species ~ N.15_at_40m, at = mylist, CIs = TRUE, plotit=FALSE)
+plot_dat
+
+fishn15.seabirds.cond.algae %>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+geom_line(data = plot_dat, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+
+(mylist2 <- list(
+    N.15_at_40m = c(3.043333, 5.233333, 6.003333),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+plot_dat2<-emmip(fish_n15_algae_lm, species ~ N.15_at_40m, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2
+
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+fishn15.algan15.plot<-
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .8)+
+   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  ylab(expression(Fish~delta^15~N))+
+  xlab(expression(Algae~delta^15~N))+
+  labs(color = "", fill = "")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+fishn15.algan15.plot
+
+
+#ggsave("../output/seabird-fishn15/fish_n15_algae_n15_estplot_lines_points.jpg", plot = fishn15.algan15.plot, width = 7, height = 5)
+
+#just raw data:
+fishn15.seabirds.cond.algae %>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+  stat_smooth(method = "lm")+
+  theme_bw() 
+
+fishn15.seabirds.cond.algae%>%
+  group_by(species, N.15_at_40m)%>%
+  summarize(mean_n15 = mean(n15),
+            n_n15 = length(n15),
+            se_n15 = sd(n15)/sqrt(n_n15))%>%
+  ggplot(aes(x = N.15_at_40m, y = mean_n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+  geom_errorbar(aes(ymin = (mean_n15-se_n15), ymax = (mean_n15+se_n15)), alpha = .5, width = 0)+
+  geom_line(alpha = .5)+
+  theme_bw() 
+
+
+```
+
+##could be non-linear, so try GAM
+```{r}
+
+#add quadratic:0----
+fish_n15_algae_lm_quad<-lm(n15~ N.15_at_40m*species + I(N.15_at_40m^2)*species, 
+                          data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lm_quad)
+anova(fish_n15_algae_lm_quad)#everything significant, except poly2*species
+plot(fish_n15_algae_lm_quad) #okay
+
+test(emtrends(fish_n15_algae_lm_quad, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+test(emtrends(fish_n15_algae_lm_quad, ~ species, var = "I(N.15_at_40m^2)", adjust = "fdr"))
+test(emtrends(fish_n15_algae_lm_quad, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
+
+
+fish_n15_algae_lm_quad2<-lm(n15~ N.15_at_40m*species + poly(N.15_at_40m,2)*species, 
+                          data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lm_quad2)
+
+test(emtrends(fish_n15_algae_lm_quad2, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
+
+
+(mylist2 <- list(
+    N.15_at_40m = c(3.043333, 5.233333, 6.003333),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m,  at = mylist2, CIs = TRUE, plotit=TRUE)
+
+plot_dat2<-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2
+
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+
+
+(mylist3 <- list(
+    N.15_at_40m = seq(3,6,.1),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+plot_dat3<-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m, at = mylist3, CIs = TRUE, plotit=FALSE)
+plot_dat3
+
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+
+
+fish_n15_algae_lm_poly <- lm(n15 ~ poly(N.15_at_40m, degree = 2)*species, data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lm_poly)
+anova(fish_n15_algae_lm_poly)
+anova(fish_n15_algae_lm_quad2)
+
+test(emtrends(fish_n15_algae_lm_poly, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
+
+em_means<-emmeans(fish_n15_algae_lm, pairwise ~  N.15_at_40m|species)
+
+contrast(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m"), "poly") 
+contrast(em_means[[1]], "poly") 
+ 
+test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m"), interaction = c("poly", "species")) 
+
+
+emmip(fish_n15_algae_lm_poly, ~ N.15_at_40m*species, plotit = TRUE)
+
+
+##GAMS----
+library(mgcv) #for gams
+library(mgcViz) #for gam visualization 
+
+fish_n15_gam_lm<-gam(n15~N.15_at_40m, data = fishn15.seabirds.cond.algae, method = "REML")
+summary(fish_n15_gam_lm)
+
+fish_n15_gam_1 = gam(n15~s(N.15_at_40m, k = 3, bs='cr'), data = fishn15.seabirds.cond.algae, method = "REML")
+summary(fish_n15_gam_1)
+plot(fish_n15_gam_1)
+
+anova(fish_n15_gam_lm, fish_n15_gam_1, test = "Chisq")
+AIC(fish_n15_gam_lm)
+AIC(fish_n15_gam_1)
+
+fish_n15_gam_2 = gam(n15~species + s(N.15_at_40m, k = 3) + s(N.15_at_40m, by = species, k = 3), data = fishn15.seabirds.cond.algae, method = "REML")
+summary(fish_n15_gam_2)
+plot(fish_n15_gam_2)
+
+
+fish_n15_gamm <- gamm(n15~ s(N.15_at_40m, bs='cr', k = 3), data = fishn15.seabirds.cond.algae)
+gam.check(fish_n15_gamm$gam)
+
+test(emtrends(fish_n15_gam_2, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+
+
+fish_n15_gam_2_viz<-getViz(fish_n15_gam_2)
+
+print(plot(fish_n15_gam_2_viz, allTerms = T, seWithMean=TRUE), pages = 1) # Calls print.plotGam()
+
+
+plot( sm(fish_n15_gam_2_viz, 1, ))+ 
+  l_fitLine(colour = "red") + #l_rug(mapping = aes(x=x, y=y), alpha = 0.8) +
+    l_ciLine(mul = 5, colour = "blue", linetype = 2) + 
+    l_points(shape = 19, size = 1, alpha = 0.1) + theme_classic()
+
+
+plot( sm(fish_n15_gam_2_viz, 2))+ 
+  l_fitLine(colour = "red") + #l_rug(mapping = aes(x=x, y=y), alpha = 0.8) +
+    l_ciLine(mul = 5, colour = "blue", linetype = 2) + 
+    l_points(shape = 19, size = 1, alpha = 0.1) + theme_classic()
+
+```
+
+##INTERPRETATION OF NON-LINEAR
+Gams seem hard to deal with...maybe just compare linear to polynomial models and see which works better. Then interpret results using emmeans. should be able to apply to lmer, glmer, etc??
+
+
+#OR here because only 3 values anyway, just treat as factor:
+```{r}
+
+fish_n15_algae_lm_factor<-lm(n15~ as.factor(N.15_at_40m)*species, 
+                          data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lm_factor)
+anova(fish_n15_algae_lm_factor)#everything significant
+Anova(fish_n15_algae_lm_factor)
+plot(fish_n15_algae_lm_factor)
+
+
+#look at emmeans:
+fish_n15_algae_lm_factor %>% 
+  emmeans(~ N.15_at_40m|species,
+          type = "response") 
+
+
+EMM_fish_n15 <- emmeans(fish_n15_algae_lm_factor, ~ species * N.15_at_40m)
+
+pairs(EMM_fish_n15, simple = "N.15_at_40m", type = "response")
+
+emmeans(fish_n15_algae_lm_factor, list(pairwise ~ N.15_at_40m|species), adjust = "fdr")
+
+```
+
+
+
+#correlation test
+```{r}
+##also include n15 at various distances just to see if matches up:
+
+fishn15.seabirds.cond.algae<-
+  left_join(fishn15.seabirds.cond.r, 
+            select(algae_n15, c("site.name", "N.15_at_10m", "N.15_at_20m","N.15_at_30m","N.15_at_40m")), 
+            by = "site.name")
+fishn15.seabirds.cond.algae
+
+
+##separate fish species----
+#a little complicated bc different sample sizes for different species/site combos:
+fishn15.seabirds.long<- 
+  fishn15.seabirds.cond.algae %>%
+    select(c(site.name, species, n15, breeding_biomass_kgha_side, N.15_at_10m, N.15_at_20m, N.15_at_30m, N.15_at_40m))%>%
+  group_by(site.name, species) %>%
+  mutate(Index=row_number())%>%
+  relocate(Index, .before = site.name)
+fishn15.seabirds.long
+
+fishn15.seabirds.wide <- 
+  pivot_wider(fishn15.seabirds.long,names_from = c("species"),values_from = c("n15"))
+fishn15.seabirds.wide
+
+corr_mat_fish_n15_sb_sp<-as.data.frame(fishn15.seabirds.wide[c(3,7:11)]) #only need to start with seabird biomass and offshore algae
+
+cor(corr_mat_fish_n15_sb_sp, method = "spearman", use = "pairwise.complete.obs")
+cor(corr_mat_fish_n15_sb_sp, method = "pearson", use = "pairwise.complete.obs")
+
+##spearman:
+cor.mat_sb_fishn15_byspp<- cor(fishn15.seabirds.wide[c(3,7,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+cor.mat_sb_fishn15_byspp
+corrplot(cor.mat_sb_fishn15_byspp, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+
+##pearson:
+cor.mat_sb_fishn15_byspp_pearson<- cor(fishn15.seabirds.wide[c(3,7,8,10,11,9)], method = "pearson", use = "pairwise.complete.obs")
+cor.mat_sb_fishn15_byspp_pearson
+corrplot(cor.mat_sb_fishn15_byspp_pearson, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+
+
+##spearman, no algae:
+cor.mat_sb_fishn15_byspp_no_algae<- cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+cor.mat_sb_fishn15_byspp_no_algae
+corrplot(cor.mat_sb_fishn15_byspp_no_algae, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+
+##save outputs----
+#chunk 1
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_SPEARMAN.pdf")
+corrplot(cor.mat_sb_fishn15_byspp, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+dev.off()
+
+
+#chunk 2
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_PEARSON.pdf")
+corrplot(cor.mat_sb_fishn15_byspp_pearson, type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+dev.off()
+
+
+##Oh wait, all a bit weird because of NAs, and correlations among fish species depend on order-----
+cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,10)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,11)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,9)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,8)], method = "spearman", use = "pairwise.complete.obs")
+#okay, each species corr with seabird biomass matches*
+
+#what if we arrange within each species/biomass level, n15 from high to low:
+fishn15.seabirds.long2<- 
+  fishn15.seabirds.cond.algae %>%
+    select(c(site.name, species, n15, breeding_biomass_kgha_side, N.15_at_10m, N.15_at_20m, N.15_at_30m, N.15_at_40m))%>%
+    arrange(desc(n15))%>%
+  group_by(site.name, species) %>%
+  mutate(Index=row_number())%>%
+  relocate(Index, .before = site.name)
+fishn15.seabirds.long
+
+fishn15.seabirds.wide2 <- 
+  pivot_wider(fishn15.seabirds.long2,names_from = c("species"),values_from = c("n15"))
+fishn15.seabirds.wide2
+
+corrplot(cor(fishn15.seabirds.wide2[c(3,8,11,9, 10)], method = "spearman", use = "pairwise.complete.obs"), type = "upper",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+
+cor(fishn15.seabirds.wide2[c(3,8,11,9, 10)], method = "spearman", use = "pairwise.complete.obs")
+cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+#YUP, now really different cors***
+#SO: can't show correlations across different fish species, unless we were to take a mean per site or something, but then we'd only have 3 points....
+
+
+###save:----
+cor.mat_sb_fishn15_byspp_no_algae<- cor(fishn15.seabirds.wide[c(3,8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+
+cor.mat_sb_fishn15_fish_by_sb_only<- cor(x = fishn15.seabirds.wide[c(3)], y =fishn15.seabirds.wide[c(8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+
+
+
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_sb_onlySPEARMAN.pdf")
+corrplot(cor.mat_sb_fishn15_fish_by_sb_only, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
+dev.off()
+
+
+pdf(file = "../output/seabird-fishn15/seabirds_fishn15_corr_plot_by_sp_sb_onlySPEARMAN_LEGEND.pdf")
+corrplot(cor.mat_sb_fishn15_byspp_no_algae, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "b")
+dev.off()
+
+
+#try with seabirds and algae:
+cor.mat_sb_fishn15_fish_by_sb_algae_only<- cor(x = fishn15.seabirds.wide[c(3,4,5,6,7)], y =fishn15.seabirds.wide[c(8,10,11,9)], method = "spearman", use = "pairwise.complete.obs")
+
+
+```
+
+
+
+#any way to combine algae and fish corr plots?? - NOPE
+
