@@ -497,3 +497,79 @@ cor.mat_sb_fishn15_fish_by_sb_algae_only<- cor(x = fishn15.seabirds.wide[c(3,4,5
 
 #any way to combine algae and fish corr plots?? - NOPE
 
+
+
+##could be non-linear,CLEAN RO SEND CODE
+```{r}
+#two ways to formulate polynomial, works with random effects, too:
+
+fish_n15_algae_lm_quad1<-lm(n15~ N.15_at_40m*species + I(N.15_at_40m^2)*species, 
+                          data = fishn15.seabirds.cond.algae)
+
+fish_n15_algae_lm_quad2<-lm(n15~ N.15_at_40m*species + poly(N.15_at_40m,2)*species, 
+                          data = fishn15.seabirds.cond.algae)
+#some discussion online of poly() function giving different coefficient estimates, because it fits orthogonal contrasts rather than raw. can add raw = TRUE inside of poly() call to make the coefficients be identical. But I think when use emmeans it all works out okay anyway. (e.g., https://stackoverflow.com/questions/69074619/fitting-an-r-linear-model-with-poly-gives-incorrect-coefficients)
+
+
+
+#check significance of linear and quad terms in emmeans
+test(emtrends(fish_n15_algae_lm_quad1, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
+test(emtrends(fish_n15_algae_lm_quad2, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
+#identical results.
+
+#plots - with just 3 levels (matches raw data):----
+(mylist2 <- list(
+    N.15_at_40m = c(3.043333, 5.233333, 6.003333),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m,  at = mylist2, CIs = TRUE, plotit=TRUE)
+
+plot_dat2<-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+
+#plots - continuous within full data range:----
+(mylist3 <- list(
+    N.15_at_40m = seq(3,6,.1),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+plot_dat3<-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m, at = mylist3, CIs = TRUE, plotit=FALSE)
+plot_dat3
+
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+
+#another possible formula...still looks all the same:
+fish_n15_algae_lm_poly <- lm(n15 ~ poly(N.15_at_40m, degree = 2)*species, data = fishn15.seabirds.cond.algae)
+test(emtrends(fish_n15_algae_lm_poly, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
+
+
+#compare linear to polynomial model, LRT:-----
+fish_n15_algae_lm_linear <- lm(n15 ~ N.15_at_40m*species, data = fishn15.seabirds.cond.algae)
+test(emtrends(fish_n15_algae_lm_linear, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+#only weird thing is here all linear estimates are positive, whereas in polynomial formauls some linear coefficients are negative...
+
+anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_poly, fish_n15_algae_lm_quad1, fish_n15_algae_lm_quad2)
+anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_quad2)
+anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_quad1)
+##quadratic/polynomial model is WAY better fit than linear model. AND all quadratic/polynomial models looks the same, so that's good!
+
+
+```
+
+
