@@ -996,7 +996,6 @@ plot(fish_bio_full_mod_algae_log_poly)
 qqnorm(resid(fish_bio_full_mod_algae_log_poly))
 qqline(resid(fish_bio_full_mod_algae_log_poly))
 #looks better - use this
-#still some high correlations of fixed effects?
 
 Anova(fish_bio_full_mod_algae_log_poly) #nothing significant***
 vif(fish_bio_full_mod_algae_log_poly) #all good
@@ -1005,6 +1004,15 @@ vif(fish_bio_full_mod_algae_log_poly) #all good
 
 anova(fish_bio_full_mod_algae_log_poly, fish_bio_full_mod_algae_log) #identical AICs
 
+#compare to no inclusion of algae n15:
+fish_bio_full_mod_algae_log_no_algae <-lmer(log(sum_fish_biomass)~ wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+anova(fish_bio_full_mod_algae_log_poly, fish_bio_full_mod_algae_log, fish_bio_full_mod_algae_log_no_algae) #no algae is better
+
+#intercept only:
+fish_bio_full_mod_algae_log_int <-lmer(log(sum_fish_biomass)~   (1|site.name), data = fish_comb_dat_levels_algae) #
+anova(fish_bio_full_mod_algae_log_poly, fish_bio_full_mod_algae_log, fish_bio_full_mod_algae_log_no_algae, fish_bio_full_mod_algae_log_int) #intercept only same as no algae
+
+#probably don't go down that root, just compare linear versus non-linear....
 
 
 range(fish_comb_dat_levels_algae$N.15_at_30m) #3.430000 6.993333
