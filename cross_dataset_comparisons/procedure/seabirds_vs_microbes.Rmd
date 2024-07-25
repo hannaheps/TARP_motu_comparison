@@ -81,146 +81,175 @@ qqPlot(coral.microbes.seabirds$Observed) #terrible fit
 #Check poisson and nbinomial because these are count data
 distplot(coral.microbes.seabirds$Observed, type="poisson") #looks pretty good!
 
-mod.glmm1 <- glmer(Observed~seabird_level*Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
-summary(mod.glmm1)
+#Predictor variable is algae N15
+#Fixed Effects = Distance to shore, exposure
+#Random effect = site name 
+
+mod.glmm1 <- glmer(Observed~algae.N15*Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
+summary(mod.glmm1) #yes significant!
 anova(mod.glmm1)
-Anova(mod.glmm1)
-car::Anova(mod.glmm1)
 #Analysis of Variance Table
-#                                npar Sum Sq Mean Sq F value
-#seabird_level                      2  20.90  10.451 10.4514
-#Distance_to_shore                  3 103.38  34.460 34.4603
-#Exposure                           1   6.36   6.363  6.3635
-#seabird_level:Distance_to_shore    6 544.10  90.683 90.6829
-
-
-#Analysis of Deviance Table (Type II Wald chisquare tests)
-
-#Response: Observed
-#                                   Chisq Df Pr(>Chisq)    
-#seabird_level                    21.6564  2  1.983e-05 ***
-#Distance_to_shore               103.0863  3  < 2.2e-16 ***
-#Exposure                          6.5432  1    0.01053 *  
-#seabird_level:Distance_to_shore 544.4811  6  < 2.2e-16 ***
-
-#Fixed effects:
-#                                      Estimate Std. Error z value Pr(>|z|)    
-#(Intercept)                            4.13043    0.27251  15.157  < 2e-16 ***
-#seabird_levelmid                       0.24318    0.33346   0.729  0.46583    
-#seabird_levelhigh                     -0.14842    0.36376  -0.408  0.68327    
-#Distance_to_shore20                   -0.40370    0.10162  -3.973 7.11e-05 ***
-#Distance_to_shore30                   -0.16461    0.09202  -1.789  0.07364 .  
-#Distance_to_shore40                   -0.69699    0.11931  -5.842 5.17e-09 ***
-#ExposureProtected                     -0.97991    0.38308  -2.558  0.01053 *  
-#seabird_levelmid:Distance_to_shore20   0.37837    0.11925   3.173  0.00151 ** 
-#seabird_levelhigh:Distance_to_shore20  2.33251    0.17799  13.104  < 2e-16 ***
-#seabird_levelmid:Distance_to_shore30   0.56877    0.10992   5.175 2.28e-07 ***
-#seabird_levelhigh:Distance_to_shore30  0.55734    0.18482   3.016  0.00256 ** 
-#seabird_levelmid:Distance_to_shore40   0.82496    0.13360   6.175 6.62e-10 ***
-#seabird_levelhigh:Distance_to_shore40  1.81011    0.19259   9.399  < 2e-16 ***
-
-mod.glmm.r <- glmer(Observed~Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
-anova(mod.glmm1, mod.glmm.r)
-#           npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
-#mod.glmm.r    6 3841.3 3854.4 -1914.6   3829.3                         
-#mod.glmm1    14 3234.3 3265.0 -1603.2   3206.3 622.97  8  < 2.2e-16 ***
-
-mod.glmm2 <- glmer(Observed~algae.N15*Distance_to_shore + Exposure  + (1|site.name), data=coral.microbes.seabirds, family="poisson")
-
-#Fixed effects:
-#                               Estimate Std. Error z value Pr(>|z|)    
-#(Intercept)                    3.746877   0.336037  11.150  < 2e-16 ***
-#algae.N15                      0.067630   0.028947   2.336   0.0195 *  
-#Distance_to_shore20           -3.116892   0.277343 -11.238  < 2e-16 ***
-#Distance_to_shore30            0.218754   0.308577   0.709   0.4784    
-#Distance_to_shore40            1.807384   0.273079   6.619 3.63e-11 ***
-#ExposureProtected             -0.714900   0.368326  -1.941   0.0523 .  
-#algae.N15:Distance_to_shore20  0.515105   0.038044  13.540  < 2e-16 ***
-#algae.N15:Distance_to_shore30 -0.001467   0.050233  -0.029   0.9767    
-#algae.N15:Distance_to_shore40 -0.312308   0.046022  -6.786 1.15e-11 ***
-
-summary(mod.glmm2)
-Anova(mod.glmm2)
-#Analysis of Deviance Table (Type II tests)#
-
-#Response: Observed
- #                              Chisq Df Pr(>Chisq)    
-#algae.N15                    89.8691  1    < 2e-16 ***
-#Distance_to_shore           172.7879  3    < 2e-16 ***
-#Exposure                      3.7673  1    0.05227 .  
-#algae.N15:Distance_to_shore 308.0568  3    < 2e-16 ***
-
-
-#Okay these are significant????!!!
-
-emmeans(mod.glmm1, list(pairwise ~ seabird_level*Distance_to_shore), adjust = "fdr")
-
-
-emmeans(mod.glmm2, list(pairwise~ algae.N15*Distance_to_shore), adjust = "fdr")
-
-
-
-mod.glmm1 %>% 
-  emmeans(~ seabird_level,
-          type = "response") 
-
-emmeans(mod.glmm1, list(pairwise ~ seabird_level*Distance_to_shore), type = "response", adjust = "fdr")
-
-
-plot_data_richness_sb<-emmip(mod.glmm1, ~ seabird_level*Distance_to_shore,
-          type = "response", CIs = TRUE, plotit=FALSE)
-
-plot_data_richness_sb
-
-response_plot_richness<-
-  ggplot(data = plot_data_richness_sb, aes(x = Distance_to_shore, y = yvar, colour = seabird_level, fill = seabird_level)) +#, group = seabird_level))+
-  #ggplot(data = plot_data_richness_sb, aes(x = seabird_level, y = yvar, colour = seabird_level, fill = seabird_level))+
-  geom_pointrange(aes(ymin = UCL, ymax = LCL), alpha = .3, linewidth = 2, size = 0.2, position = position_dodge(.1)) +
-  geom_line(alpha = .5 ,  position = position_dodge(.1)) +
-  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E")) + 
-  scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" = "#2F9D3E")) +
-  ylab("Coral Microbiome Observed ASV Richness") +
-  xlab("Distance From Shore (m)")+
-  labs(color='Seabird Level', fill = 'Seabird Level') +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.85,.85))
-
-response_plot_richness
-ggsave(response_plot_richness, file = "../output/seabird-microbes/coral_micro_richness_model.jpg", width = 7, height = 5)
-
-
-
-##N15
-mod.glmm.n15 <-glmer(Observed~algae.N15*Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
-summary(mod.glmm.n15)
-#Fixed effects:
-#                               Estimate Std. Error z value Pr(>|z|)    
-#(Intercept)                    3.746877   0.336037  11.150  < 2e-16 ***
-#algae.N15                      0.067630   0.028947   2.336   0.0195 *  
-#Distance_to_shore20           -3.116892   0.277343 -11.238  < 2e-16 ***
-#Distance_to_shore30            0.218754   0.308577   0.709   0.4784    
-#Distance_to_shore40            1.807384   0.273079   6.619 3.63e-11 ***
-#ExposureProtected             -0.714900   0.368326  -1.941   0.0523 .  
-#algae.N15:Distance_to_shore20  0.515105   0.038044  13.540  < 2e-16 ***
-#algae.N15:Distance_to_shore30 -0.001467   0.050233  -0.029   0.9767    
-#algae.N15:Distance_to_shore40 -0.312308   0.046022  -6.786 1.15e-11 ***
-
-
-anova(mod.glmm.n15)
 #                            npar  Sum Sq Mean Sq  F value
 #algae.N15                      1  93.016  93.016  93.0164
 #Distance_to_shore              3 171.078  57.026  57.0261
 #Exposure                       1   1.012   1.012   1.0123
 #algae.N15:Distance_to_shore    3 309.200 103.067 103.0668
 
-effect_plot(mod.glmm.n15, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
+Anova(mod.glmm1)
+
+#Analysis of Deviance Table (Type II Wald chisquare tests)
+
+#Response: Observed
+#                               Chisq Df Pr(>Chisq)    
+#algae.N15                    89.8691  1    < 2e-16 ***
+#Distance_to_shore           172.7879  3    < 2e-16 ***
+#Exposure                      3.7673  1    0.05227 .  
+#algae.N15:Distance_to_shore 308.0568  3    < 2e-16 ***
+
+#Can't do a post-hoc test bc we do not have levels. 
+
+effect_plot(mod.glmm1, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
+
+#Even though Poisson distribution seems to fit the data well, perhaps we need a GAM?
+#Aka is this linear or it peaks in intermediate
+
+
+p.glmm1 <- effect_plot(mod.glmm1, pred = algae.N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = coral.microbes.seabirds)
+
+p.glmm1 <- p.glmm1 +
+  ylab("Coral Microbiome Observed ASV Richness") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/1_mod_coral_richness.jpg", plot = p.glmm1, width = 7, height = 5)
+
+plot_summs(mod.glmm1)
+range(coral.microbes.seabirds$algae.N15)
+levels(coral.microbes.seabirds$Distance_to_shore)
+(mylist <- list(
+    algae.N15 = seq(0, 12, by = 5),
+    Distance_to_shore = c("10", "20" ,    "30"   ,    "40")
+))
+
+p.glmm1.dist <- emmip(mod.glmm1, Distance_to_shore ~ algae.N15, at = mylist, CIs = TRUE)
+ggsave("../output/seabird-microbes/organised_output/2_mod_coral_richness_dist.jpg", plot = p.glmm1.dist, width = 7, height = 5)
 
 
 ```
 
+
+#What about fitting to a non-linear model?
+```{r}
+coral.microbes.seabirds.naomit <- coral.microbes.seabirds[!is.na(coral.microbes.seabirds$algae.N15),]
+
+#two ways to formulate polynomial, works with random effects, too:--------
+coral_rich_algae_lm_quad1<-lmer(Observed ~ algae.N15*Distance_to_shore + Exposure + (1|site.name) + I(algae.N15^2)*Distance_to_shore, 
+                          data = coral.microbes.seabirds.naomit)
+
+
+coral_rich_algae_lm_quad2<-lmer(Observed ~ algae.N15*Distance_to_shore + Exposure + (1|site.name) + poly(algae.N15,2)*Distance_to_shore, 
+                          data = coral.microbes.seabirds.naomit)
+#some discussion online of poly() function giving different coefficient estimates, because it fits orthogonal contrasts rather than raw. can add raw = TRUE inside of poly() call to make the coefficients be identical. But I think when use emmeans it all works out okay anyway. (e.g., https://stackoverflow.com/questions/69074619/fitting-an-r-linear-model-with-poly-gives-incorrect-coefficients)
+
+#check significance of linear and quad terms in emmeans-----------
+test(emtrends(coral_rich_algae_lm_quad1, ~ Distance_to_shore, var = "algae.N15", adjust = "fdr", max.degree=2))
+test(emtrends(coral_rich_algae_lm_quad2, ~ Distance_to_shore, var = "algae.N15", adjust = "fdr", max.degree=2))
+#identical results.
+
+#another possible formula...still looks all the same:----------
+coral_rich_algae_lm_poly <- lmer(Observed ~ poly(algae.N15, degree = 2)*Distance_to_shore + Exposure + (1|site.name), data = coral.microbes.seabirds.naomit)
+
+test(emtrends(coral_richness_algae_lm_poly, ~ Distance_to_shore, var = "algae.N15", adjust = "fdr", max.degree=2))
+
+
+#compare linear to polynomial model, LRT:-----
+
+coral_rich_algae_lm_linear <- glmer(Observed~algae.N15*Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds.naomit)
+test(emtrends(coral_rich_algae_lm_linear, ~ Distance_to_shore, var = "algae.N15", adjust = "fdr"))
+#only weird thing is here all linear estimates are positive, whereas in polynomial formauls some linear coefficients are negative...
+
+anova(coral_rich_algae_lm_linear, coral_rich_algae_lm_poly, coral_rich_algae_lm_quad1, coral_rich_algae_lm_quad2)
+#Poly model is significant, and all quadratic/polynomial models fit better than linear
+anova(coral_rich_algae_lm_linear, coral_rich_algae_lm_quad2)
+anova(coral_rich_algae_lm_linear, coral_rich_algae_lm_quad1)
+
+Anova(coral_rich_algae_lm_poly)
+
+#Can we graph this?
+(mylist3 <- list(
+    algae.N15 = seq(2.6,10.8,.2),
+    Distance_to_shore = c("10", "20", "30", "40")
+))
+plot_dat3<-emmip(coral_rich_algae_lm_poly, Distance_to_shore ~ algae.N15, at = mylist3, CIs = TRUE, plotit=FALSE)
+plot_dat3
+
+
+p.poly.cor.rich <- coral.microbes.seabirds.naomit %>%
+      mutate(Distance_to_shore = fct_relevel(Distance_to_shore, c("10", "20", "30", "40")))%>%
+   ggplot(aes(x = algae.N15, y = Observed, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat3, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat3, aes(x = algae.N15, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() 
+
+p.poly.cor.rich
+
+ggsave("../output/seabird-microbes/organised_output/1b_mod_poly_cor_richness.jpg", plot = p.poly.cor.rich, width = 7, height = 5)
+
+##ayayay unsure what to think of this... 
+```
+
+
+```{r}
+#what about just n15 x richness without interaction with distance from shore
+
+cor.rich.n15 <- glmer(Observed~algae.N15 + Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds.naomit)
+
+test(emtrends(cor.rich.n15, var = "algae.N15", adjust = "fdr", max.degree=2))
+
+coral.rich.n15.poly <- lmer(Observed ~ poly(algae.N15, degree = 2) + Exposure + (1|site.name), data = coral.microbes.seabirds.naomit)
+
+test(emtrends(coral.rich.n15.poly, var = "algae.N15", adjust = "fdr", max.degree=2))
+Anova(coral.rich.n15.poly)
+
+coral.rich.n15.quad1<-lmer(Observed ~ algae.N15 + Exposure + (1|site.name) + I(algae.N15^2), 
+                          data = coral.microbes.seabirds.naomit)
+
+
+coral.rich.n15.quad2<-lmer(Observed ~ algae.N15 + Exposure + (1|site.name) + poly(algae.N15,2), 
+                          data = coral.microbes.seabirds.naomit)
+
+
+anova(cor.rich.n15, coral.rich.n15.poly, coral.rich.n15.quad1, coral.rich.n15.quad2)
+
+#All the AIC values are the same for quadratic & poly
+
+#Can we graph this?
+(mylist3 <- list(
+    algae.N15 = seq(2.6,10.8,.1)
+))
+plot_dat3<-emmip(coral.rich.n15.poly,  ~ algae.N15, at = mylist3, CIs = TRUE, plotit=FALSE)
+plot_dat3
+
+
+p.poly.cor.rich.n15 <- coral.microbes.seabirds.naomit %>%
+   ggplot(aes(x = algae.N15, y = Observed))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat3, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat3, aes(x = algae.N15, y = yvar))+
+  theme_bw() 
+
+p.poly.cor.rich.n15
+
+#Not much of a difference from linear tbh??
+ggsave("../output/seabird-microbes/organised_output/1c_mod_poly_cor_richness_n15only.jpg", plot = p.poly.cor.rich.n15, width = 7, height = 5)
+
+
+```
 
 #Shannon
 ```{r}
@@ -230,71 +259,37 @@ qqPlot(coral.microbes.seabirds$Shannon)
 
 ##Can't use poisson though because it isn't count data
 #gaussian
-gauss.lm<-lmerTest(Shannon~ seabird_level*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
-summary(gauss.lm)
-Anova(gauss.lm)
-summary(gauss.lm)
-#Type III Analysis of Variance Table with Satterthwaite's method
-#                                Sum Sq Mean Sq NumDF  DenDF F value Pr(>F)
-#seabird_level                   0.7569 0.37845     2  2.018  0.4228 0.7025
-#Distance_to_shore               0.6302 0.21006     3 51.301  0.2347 0.8718
-#Exposure                        0.0772 0.07717     1  2.021  0.0862 0.7965
-#seabird_level:Distance_to_shore 5.6919 0.94865     6 51.260  1.0598 0.3987
 
-plot(gauss.lm)
-plot_grid(plot_model(gauss.lm, type = "diag")) #not bad
-emmeans(gauss.lm, list(pairwise ~ seabird_level*Distance_to_shore), adjust = "fdr")
-#Nothing passes FDR correction
-
-gauss.lm %>% 
-  emmeans(~ seabird_level,
-          type = "response") 
-
-emmeans(gauss.lm, list(pairwise ~ seabird_level*Distance_to_shore), type = "response", adjust = "fdr")
-#Could not pull out any significant results with FDR correction
-
-plot_data_shannon_sb<-emmip(gauss.lm, ~ seabird_level*Distance_to_shore,
-          type = "response", CIs = TRUE, plotit=FALSE)
-
-
-plot_data_shannon_sb
-
-response_plot_shannon<-
-  ggplot(data = plot_data_shannon_sb, aes(x = Distance_to_shore, y = yvar, color = seabird_level, fill = seabird_level))+
-#  geom_point(pch = 4,  position = position_dodge(.3))+
-  geom_pointrange(aes(ymin = UCL, ymax = LCL), alpha = .3, linewidth = 2, size = 0.2,  position = position_dodge(.1)) + #,  position = position_dodge(.3) 
- # geom_point(data = fishn15.seabirds.cond.r, 
-           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
-    geom_line(alpha = .5 ,  position = position_dodge(.1))+
-  #scale_fill_manual(values = my_colors)+
- # scale_color_manual(values = my_colors) +
-  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E")) + 
-  scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" = "#2F9D3E")) +
-  ylab("Coral Microbiome Shannon Diversity") +
-  xlab("Distance From Shore (m)")+
-  labs(color='Seabird Level', fill = 'Seabird Level') +
-   theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank())#,
-        #legend.position = "none" )
-
-response_plot_shannon
-
-ggsave(response_plot_shannon, file = "../output/seabird-microbes/coral_micro_shannon_model.jpg", width = 7, height = 5)
-
-
-gauss.lm2<-lmerTest::lmer(Shannon ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
-summary(gauss.lm2)
-anova(gauss.lm2)
+mod.lm1<-lmerTest::lmer(Shannon ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
+summary(mod.lm1)
+anova(mod.lm1)
 #                           Sum Sq Mean Sq NumDF  DenDF F value Pr(>F)
 #algae.N15                   1.9641 1.96412     1 12.209  2.0706 0.1753
 #Distance_to_shore           1.4133 0.47110     3 50.450  0.4966 0.6863
 #Exposure                    0.6067 0.60670     1  3.543  0.6396 0.4740
 #algae.N15:Distance_to_shore 2.0800 0.69335     3 51.176  0.7309 0.5383
 
-effect_plot(gauss.lm2, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
+Anova(mod.lm1)
 
+#Response: Shannon
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   2.1678  1     0.1409
+#Distance_to_shore           1.1818  3     0.7574
+#Exposure                    0.6396  1     0.4239
+#algae.N15:Distance_to_shore 2.1928  3     0.5334
+
+p.mod.lm1 <- effect_plot(mod.lm1, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
+
+p.mod.lm1 <- p.mod.lm1 +
+  ylab("Coral Microbiome Shannon Diversity") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/3_mod_coral_shannon.jpg", plot = p.mod.lm1, width = 7, height = 5)
 
 ```
 
@@ -305,17 +300,36 @@ hist(coral.microbes.seabirds$Evenness) #not bad
 plot(Evenness ~ seabird_level, coral.microbes.seabirds)
 qqPlot(coral.microbes.seabirds$Evenness)
 #gaussian
-gauss.ev.lm<-lmerTest::lmer(Evenness~ seabird_level*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
-summary(gauss.ev.lm)
-Anova(gauss.ev.lm)
-summary(gauss.ev.lm)
-anova(gauss.ev.lm)
-#no need to do multiple comparisons
+
 gauss.ev.n15.lm<-lmerTest::lmer(Evenness~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
 summary(gauss.ev.n15.lm)
 Anova(gauss.ev.n15.lm)
-summary(gauss.ev.n15.lm)
+#Response: Evenness
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   0.9358  1     0.3334
+#Distance_to_shore           0.8184  3     0.8451
+#Exposure                    0.0569  1     0.8114
+#algae.N15:Distance_to_shore 1.3253  3     0.7231
+
 anova(gauss.ev.n15.lm)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                              Sum Sq   Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                   0.021829 0.0218286     1  6.026  0.6840 0.4397
+#Distance_to_shore           0.028391 0.0094638     3 50.608  0.2965 0.8277
+#Exposure                    0.001817 0.0018166     1  3.066  0.0569 0.8265
+#algae.N15:Distance_to_shore 0.042296 0.0140985     3 51.338  0.4418 0.7241
+
+p.gauss.ev.lm <- effect_plot(gauss.ev.n15.lm, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
+
+p.gauss.ev.lm <- p.gauss.ev.lm +
+  ylab("Coral Microbiome Evenness") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+ggsave("../output/seabird-microbes/organised_output/4_mod_coral_evenness.jpg", plot = p.gauss.ev.lm, width = 7, height = 5)
 
 ```
 
@@ -323,25 +337,85 @@ anova(gauss.ev.n15.lm)
 
 ```{r}
 hist(log(coral.microbes.seabirds$FaithPD))
-plot(log(FaithPD) ~ seabird_level, coral.microbes.seabirds)
+plot(log(FaithPD) ~ algae.N15, coral.microbes.seabirds)
 qqPlot(log(coral.microbes.seabirds$Evenness))
 
-gauss.pd.lm<-lmerTest::lmer(Evenness~ seabird_level*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
-summary(gauss.pd.lm)
-Anova(gauss.pd.lm)
-summary(gauss.pd.lm)
-anova(gauss.pd.lm)
-#no need to do multiple comparisons
-gauss.pd.n15.lm<-lmerTest::lmer(Evenness~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
+gauss.pd.n15.lm<-lmerTest::lmer(FaithPD~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds)
 summary(gauss.pd.n15.lm)
 Anova(gauss.pd.n15.lm)
+# Response: FaithPD
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   2.0481  1     0.1524
+#Distance_to_shore           3.0541  3     0.3834
+#Exposure                    1.3867  1     0.2390
+#algae.N15:Distance_to_shore 4.5703  3     0.2061
 summary(gauss.pd.n15.lm)
 anova(gauss.pd.n15.lm)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                             Sum Sq Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                   107.937 107.937     1  7.954  1.6171 0.2394
+#Distance_to_shore           202.652  67.551     3 50.639  1.0121 0.3951
+#Exposure                     92.554  92.554     1  3.368  1.3867 0.3154
+#algae.N15:Distance_to_shore 305.050 101.683     3 51.344  1.5234 0.2195
+p.gauss.fpd.c <- effect_plot(gauss.pd.n15.lm, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = coral.microbes.seabirds)
 
+p.gauss.fpd.c <- p.gauss.fpd.c +
+  ylab("Coral Microbiome Phylogenetic Diversity") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+ggsave("../output/seabird-microbes/organised_output/5_mod_coral_fpd.jpg", plot = p.gauss.fpd.c, width = 7, height = 5)
 
 ```
 
-*Water*
+
+#NMDS1 & 2
+```{r}
+#NMDs1
+mod.lm.c.nmds1 <- lmerTest::lmer(NMDS1~algae.N15*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds, na.action = na.omit)
+summary(mod.lm.c.nmds1)
+anova(mod.lm.c.nmds1)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                            Sum Sq Mean Sq NumDF DenDF F value  Pr(>F)  
+#algae.N15                   36.316  36.316     1    53  4.7901 0.03305 *
+#Distance_to_shore           34.576  11.525     3    53  1.5202 0.21995  
+#Exposure                    16.071  16.071     1    53  2.1198 0.15131  
+#algae.N15:Distance_to_shore 55.213  18.404     3    53  2.4275 0.07559 .
+Anova(mod.lm.c.nmds1)
+#Response: NMDS1
+#                             Chisq Df Pr(>Chisq)  
+#algae.N15                   5.6319  1    0.01764 *
+#Distance_to_shore           7.8454  3    0.04932 *
+#Exposure                    2.1198  1    0.14541  
+#algae.N15:Distance_to_shore 7.2825  3    0.06342 .
+plot(mod.lm.c.nmds1) #residuals look okay
+
+#NMDS2
+mod.lm.c.nmds2 <- lmerTest::lmer(NMDS2~algae.N15*Distance_to_shore + Exposure + (1|site.name), data=coral.microbes.seabirds, na.action = na.omit)
+plot(mod.lm.c.nmds2) #residuals look good
+summary(mod.lm.c.nmds2) 
+anova(mod.lm.c.nmds2)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                            Sum Sq Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                   3.9893  3.9893     1 14.747  1.5681 0.2300
+#Distance_to_shore           1.5814  0.5271     3 49.941  0.2072 0.8909
+#Exposure                    0.3683  0.3683     1  3.191  0.1448 0.7275
+#algae.N15:Distance_to_shore 2.8881  0.9627     3 50.774  0.3784 0.7690
+Anova(mod.lm.c.nmds2)
+#Response: NMDS2
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   0.7618  1     0.3828
+#Distance_to_shore           3.0509  3     0.3838
+#Exposure                    0.1448  1     0.7036
+#algae.N15:Distance_to_shore 1.1352  3     0.7686
+
+```
+
+
+*Water Alpha Diversity*
 
 #Observed
 ```{r}
@@ -354,41 +428,491 @@ distplot(water.microbes.seabirds$Observed, type="poisson") #looks literally perf
 
 #Can we do glmer family = "poisson" lme4
 
-mod.glmm <- glmmPQL(Observed~seabird_level*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family="poisson")
-summary(mod.glmm)
-Anova(mod.glmm)
+mod.glmm.w.rich <- glmer(Observed~algae.N15*Distance_to_shore + Exposure + (1|site.name), family = "poisson", data = water.microbes.seabirds)
+summary(mod.glmm.w.rich) #yes significant!
+anova(mod.glmm.w.rich)
+#Analysis of Variance Table
+#                            npar Sum Sq Mean Sq F value
+#algae.N15                      1 28.623 28.6225 28.6225
+#Distance_to_shore              3 83.008 27.6693 27.6693
+#Exposure                       1  0.132  0.1315  0.1315
+#algae.N15:Distance_to_shore    3 54.228 18.0761 18.0761
+Anova(mod.glmm.w.rich)
 #Analysis of Deviance Table (Type II tests)
+#Response: Observed
+#                              Chisq Df Pr(>Chisq)    
+#algae.N15                    2.3994  1     0.1214    
+#Distance_to_shore           83.0216  3  < 2.2e-16 ***
+#Exposure                     0.1150  1     0.7345    
+#algae.N15:Distance_to_shore 54.2263  3  1.004e-11 ***
 
-#Response: zz
-#                                 Chisq Df Pr(>Chisq)
-#seabird_level                   0.8933  2     0.6398
-#Distance_to_shore               3.6364  3     0.3035
-#Exposure                        0.0430  1     0.8357
-#seabird_level:Distance_to_shore 8.5625  6     0.1997
 
-library(aod)
-?wald.test()
-wald.test(b=fixef(mod.glmm),
- Sigma=vcov(mod.glmm), Terms = 2:7 )
-intervals(mod.glmm)
-library(gmodels)
-ci(mod.glmm)
-#No significant parameters. 
 
-#What about a quasi-R2?
-totalss <- var(resid(mod.glmm,type='pearson')+predict(mod.glmm, type='link'))
-1-var(residuals(mod.glmm, type='pearson'))/(totalss)
-#0.2502419
+effect_plot(mod.glmm.w.rich, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = water.microbes.seabirds)
 
-#type = response emmeans  for beta as long as family is specified in model 
 
-mod.glmm2 <- glmmPQL(Observed~algae.N15*Distance_to_shore + Exposure, random=~1|site.name, data=water.microbes.seabirds, family="poisson")
-summary(mod.glmm2)
-Anova(mod.glmm2)
+p.glmm.w.rich <- effect_plot(mod.glmm.w.rich, pred = algae.N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = water.microbes.seabirds)
 
+p.glmm.w.rich <- p.glmm.w.rich +
+  ylab("Water Microbiome Observed ASV Richness") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/6_mod_wat_richness.jpg", plot = p.glmm.w.rich, width = 7, height = 5)
+
+plot_summs(mod.glmm.w.rich)
+range(water.microbes.seabirds$algae.N15)
+levels(water.microbes.seabirds$Distance_to_shore)
+(mylist <- list(
+    algae.N15 = seq(0, 12, by = 5),
+    Distance_to_shore = c("10", "20" ,    "30"   ,    "40")
+))
+
+p.glmm.w.rich.dist <- emmip(mod.glmm.w.rich, Distance_to_shore ~ algae.N15, at = mylist, CIs = TRUE)
+
+ggsave("../output/seabird-microbes/organised_output/7_mod_wat_richness_dist.jpg", plot = p.glmm.w.rich.dist, width = 7, height = 5)
+
+```
+
+
+#Shannon
+```{r}
+hist(water.microbes.seabirds$Shannon) #not great, looks bimoodal??
+
+plot(Shannon ~ algae.N15, water.microbes.seabirds)
+qqPlot(water.microbes.seabirds$Shannon) #oooooof
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon)) +
+  geom_point(aes(color = site.name)) ##This is definitely driven by location differences, confounded with rat history
+
+
+mod.lmer.w.sh <-lmerTest::lmer(Shannon ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=water.microbes.seabirds)
+plot(mod.lmer.w.sh) #the residual plot actually isnt that crazy
+summary(mod.lmer.w.sh)
+Anova(mod.lmer.w.sh)
+#Response: Shannon
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   0.8316  1     0.3618
+#Distance_to_shore           1.1242  3     0.7712
+#Exposure                    0.0002  1     0.9891
+#algae.N15:Distance_to_shore 1.4426  3     0.6956
+
+anova(mod.lmer.w.sh)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                             Sum Sq  Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                   0.00739 0.007386     1 55.894  0.0351 0.8520
+#Distance_to_shore           0.44888 0.149626     3 52.291  0.7112 0.5497
+#Exposure                    0.00004 0.000040     1  3.981  0.0002 0.9897
+#algae.N15:Distance_to_shore 0.30349 0.101163     3 52.635  0.4809 0.6970
+
+
+
+effect_plot(mod.lmer.w.sh, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = water.microbes.seabirds)
+
+p.lmer.w.sh <- effect_plot(mod.lmer.w.sh, pred = algae.N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = water.microbes.seabirds)
+
+p.lmer.w.sh <- p.lmer.w.sh +
+  ylab("Water Microbiome Shannon") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/8_mod_wat_shannon.jpg", plot = p.lmer.w.sh, width = 7, height = 5)
+
+
+plot_summs(mod.lmer.w.sh)
+range(water.microbes.seabirds$algae.N15)
+levels(water.microbes.seabirds$Distance_to_shore)
+(mylist <- list(
+    algae.N15 = seq(0, 12, by = 5),
+    Distance_to_shore = c("10", "20" ,    "30"   ,    "40")
+))
+
+emmip(mod.lmer.w.sh, Distance_to_shore ~ algae.N15, at = mylist, CIs = TRUE)
+
+
+##seems to be drivne by motu
+p.sh.motu <- ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon)) +
+  geom_point(aes(color = site.name), size = 4, alpha = 0.5) +
+  xlab(expression(italic(delta)^15*N))+
+  ylab("Water Microbiome Shannon Diversity") +
+  labs(color='Site') +
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.25)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave( "../output/seabird-microbes/organised_output/9_truedata_wat_shannon_motu.jpg",plot = p.sh.motu, width = 7, height = 5)
 
 
 ```
+
+
+#Evenness
+```{r}
+hist((water.microbes.seabirds$Evenness)) #not great, looks bimoodal??
+
+plot(Evenness ~ algae.N15, water.microbes.seabirds)
+qqPlot(water.microbes.seabirds$Evenness) #a bit similar to shannon (makes sense)
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Evenness)) +
+  geom_point(aes(color = site.name)) ##This is definitely driven by location differences, confounded with rat history
+
+mod.lmer.w.ev <-lmerTest::lmer(Evenness~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=water.microbes.seabirds)
+plot(mod.lmer.w.ev) #the residual plot actually isnt that crazy
+summary(mod.lmer.w.ev)
+Anova(mod.lmer.w.ev)
+#Response: Evenness
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   1.0825  1     0.2981
+#Distance_to_shore           0.4429  3     0.9312
+#Exposure                    0.0054  1     0.9416
+#algae.N15:Distance_to_shore 1.3621  3     0.7144
+anova(mod.lmer.w.ev)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                               Sum Sq    Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                   0.0004725 0.00047252     1 53.921  0.1490 0.7010
+#Distance_to_shore           0.0053108 0.00177028     3 52.425  0.5582 0.6450
+#Exposure                    0.0000170 0.00001699     1  3.977  0.0054 0.9452
+#algae.N15:Distance_to_shore 0.0043195 0.00143983     3 52.884  0.4540 0.7155
+
+effect_plot(mod.lmer.w.ev, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = water.microbes.seabirds)
+
+p.lmer.w.ev <- effect_plot(mod.lmer.w.sh, pred = algae.N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = water.microbes.seabirds)
+
+p.lmer.w.ev <- p.lmer.w.ev +
+  ylab("Water Microbiome Evenness") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/10_mod_wat_evenness.jpg", plot = p.lmer.w.ev, width = 7, height = 5)
+
+
+plot_summs(mod.lmer.w.ev)
+range(water.microbes.seabirds$algae.N15)
+levels(water.microbes.seabirds$Distance_to_shore)
+(mylist <- list(
+    algae.N15 = seq(0, 12, by = 5),
+    Distance_to_shore = c("10", "20" ,    "30"   ,    "40")
+))
+
+emmip(mod.lmer.w.ev, Distance_to_shore ~ algae.N15, at = mylist, CIs = TRUE)
+
+
+#Just a quick trial by motu - if it's not significantly different by distance from shore or exposure, how about just motu?
+motu.mod <- lm(Evenness ~ algae.N15*motu, data = water.microbes.seabirds)
+anova(motu.mod)
+#Response: Evenness
+#               Df  Sum Sq  Mean Sq F value    Pr(>F)    
+#algae.N15       1 0.01741 0.017414  5.8060   0.01911 *  
+#motu            2 0.37092 0.185458 61.8327 3.321e-15 ***
+#algae.N15:motu  2 0.00660 0.003302  1.1008   0.33935    
+#Residuals      59 0.17696 0.002999   
+#yes this is significantly different by motu
+
+
+
+p.ev.motu <- ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Evenness)) +
+  geom_point(aes(color = site.name), size = 4, alpha = 0.5) +
+  xlab(expression(italic(delta)^15*N))+
+  ylab("Water Microbiome Evenness") +
+  labs(color='Site') +
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.25)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave( "../output/seabird-microbes/organised_output/11_trudata_wat_evenness_motu.jpg",plot = p.ev.motu, width = 7, height = 5)
+
+```
+
+#Faith's Phylogenetic Diversity
+```{r}
+
+hist(water.microbes.seabirds$FaithPD) #not bad
+
+plot(FaithPD ~ algae.N15, water.microbes.seabirds) #pretty good
+qqPlot(water.microbes.seabirds$FaithPD) #not the worst
+
+
+mod.lmer.w.fpd <-lmerTest::lmer(FaithPD ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=water.microbes.seabirds)
+plot(mod.lmer.w.fpd) #the residual plot actually isnt that crazy
+summary(mod.lmer.w.fpd)
+Anova(mod.lmer.w.fpd)
+#Response: FaithPD
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   0.2646  1     0.6070
+#Distance_to_shore           3.9606  3     0.2658
+#Exposure                    0.0017  1     0.9669
+#algae.N15:Distance_to_shore 1.9972  3     0.5730
+anova(mod.lmer.w.fpd)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                            Sum Sq Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                     9.89   9.890     1 55.984  0.0634 0.8021
+#Distance_to_shore           600.02 200.007     3 52.260  1.2821 0.2902
+#Exposure                      0.27   0.269     1  3.973  0.0017 0.9689
+#algae.N15:Distance_to_shore 311.57 103.856     3 52.581  0.6657 0.5769
+
+
+effect_plot(mod.lmer.w.fpd, pred = algae.N15, interval = TRUE, plot.points = TRUE, data = water.microbes.seabirds)
+
+p.lmer.w.fpd <- effect_plot(mod.lmer.w.fpd, pred = algae.N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = water.microbes.seabirds)
+
+p.lmer.w.fpd <- p.lmer.w.fpd +
+  ylab("Water Microbiome Phylogenetic Diversity") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/12_mod_wat_fpd.jpg", plot = p.lmer.w.fpd, width = 7, height = 5)
+
+
+plot_summs(mod.lmer.w.fpd)
+range(water.microbes.seabirds$algae.N15)
+levels(water.microbes.seabirds$Distance_to_shore)
+(mylist <- list(
+    algae.N15 = seq(0, 12, by = 5),
+    Distance_to_shore = c("10", "20" ,    "30"   ,    "40")
+))
+
+emmip(mod.lmer.w.fpd, Distance_to_shore ~ algae.N15, at = mylist, CIs = TRUE)
+```
+
+
+#NMDS1 & 2
+```{r}
+#NMDS1
+mod.lm.w.nmds1 <- lmerTest::lmer(NMDS1~algae.N15*Distance_to_shore + Exposure + (1|site.name), data=water.microbes.seabirds, na.action = na.omit)
+summary(mod.lm.w.nmds1)
+anova(mod.lm.w.nmds1)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                              Sum Sq  Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                   0.021558 0.021558     1 54.181  0.2222 0.6393
+#Distance_to_shore           0.211472 0.070491     3 52.076  0.7266 0.5407
+#Exposure                    0.010991 0.010991     1  3.981  0.1133 0.7534
+#algae.N15:Distance_to_shore 0.099153 0.033051     3 52.193  0.3407 0.7960
+Anova(mod.lm.w.nmds1)
+#Response: NMDS1
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   1.2019  1     0.2729
+#Distance_to_shore           2.6453  3     0.4496
+#Exposure                    0.1133  1     0.7364
+#algae.N15:Distance_to_shore 1.0220  3     0.7959
+plot(mod.lm.w.nmds1) #residuals look weird like the rest of it
+
+#NMDS2
+mod.lm.w.nmds2 <- lmerTest::lmer(NMDS2~algae.N15*Distance_to_shore + Exposure + (1|site.name), data=water.microbes.seabirds, na.action = na.omit)
+plot(mod.lm.w.nmds2) #residuals look good
+summary(mod.lm.w.nmds2) 
+anova(mod.lm.w.nmds2)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                              Sum Sq  Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15                   0.082599 0.082599     1 48.940  1.5085 0.2252
+#Distance_to_shore           0.052338 0.017446     3 52.413  0.3186 0.8118
+#Exposure                    0.000741 0.000741     1  3.801  0.0135 0.9133
+#algae.N15:Distance_to_shore 0.017481 0.005827     3 52.995  0.1064 0.9560
+Anova(mod.lm.w.nmds2)
+#Response: NMDS2
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   1.2438  1     0.2647
+#Distance_to_shore           3.0050  3     0.3909
+#Exposure                    0.0135  1     0.9074
+#algae.N15:Distance_to_shore 0.3193  3     0.9564
+
+```
+
+*Top Taxa*
+
+#Corals 
+#Top taxa include: 
+
+```{r}
+hist(coral.microbes.seabirds$RelAbund_Endozoicomonas)
+qqPlot(coral.microbes.seabirds$RelAbund_Endozoicomonas)#terrible
+#Hmmm can't use log-link because it is skewed the opposite way. 
+#What about proportional data?
+
+##Since Endoz are skewed toward 1, what about using a beta distribution?
+?glmmTMB()
+
+#Cool let's loop! 
+head(coral.microbes.seabirds)
+###If they are all betas, can we transform & then loop it 
+beta_trans_coral_microbes <- dplyr::mutate(coral.microbes.seabirds, RelAbund_Cellvibrionales_Aestuariicella = (RelAbund_Cellvibrionales_Aestuariicella*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Alteromonadales_Agaribacter = (RelAbund_Alteromonadales_Agaribacter*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Cytophagales_Candidatus_Amoebophilus = (RelAbund_Cytophagales_Candidatus_Amoebophilus*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Endozoicomonas = (RelAbund_Endozoicomonas*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Alteromonadales_Glaciecola = (RelAbund_Alteromonadales_Glaciecola*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Oceanospirillales_Neptuniibacter = (RelAbund_Oceanospirillales_Neptuniibacter*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Cellvibrionales_Porticoccus = (RelAbund_Cellvibrionales_Porticoccus*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Woesearchaeales_SCGC_AAA286E23 = (RelAbund_Woesearchaeales_SCGC_AAA286E23*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Litoricola = (RelAbund_Litoricola*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Uncultured_Alteromonadaceaeae = (RelAbund_Uncultured_Alteromonadaceaeae*(n()-1) + 0.5)/n())
+
+print(colnames(beta_trans_coral_microbes))
+columns <- c( "RelAbund_Cellvibrionales_Aestuariicella" , "RelAbund_Alteromonadales_Agaribacter",
+              "RelAbund_Cytophagales_Candidatus_Amoebophilus", "RelAbund_Endozoicomonas","RelAbund_Alteromonadales_Glaciecola",
+              "RelAbund_Oceanospirillales_Neptuniibacter","RelAbund_Cellvibrionales_Porticoccus",
+              "RelAbund_Woesearchaeales_SCGC_AAA286E23","RelAbund_Litoricola","RelAbund_Uncultured_Alteromonadaceaeae")
+#Loop
+dat <- beta_trans_coral_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ algae.N15*Distance_to_shore + Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+
+#Alteromonadaceae only
+
+mod.altero <- glmmTMB(RelAbund_Uncultured_Alteromonadaceaeae ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=beta_trans_coral_microbes, family = beta_family(), na.action = na.omit)
+p.alter <- effect_plot(mod.altero, pred = algae.N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = beta_trans_coral_microbes)
+
+p.alter<- p.alter+
+  ylab("Relative Abundance Uncultured Alteromonadaceae (Coral Microbiome)") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/13_mod_coral_alteromonadaceae.jpg", plot = p.alter, width = 7, height = 5)
+#effects model is a little odd bc of the transformation - probably good to present true data? 
+
+ggplot(coral.microbes.seabirds, aes(y = RelAbund_Uncultured_Alteromonadaceaeae, x = algae.N15 ))+
+  geom_point()
+
+p.altero.true <- ggplot(coral.microbes.seabirds, aes(y = RelAbund_Uncultured_Alteromonadaceaeae, x = algae.N15 ))+
+  geom_point(size = 4, alpha = 0.9) +
+  ylab("Relative Abundance \nUncultured Alteromonadaceae (Coral Microbiome") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+ggsave("../output/seabird-microbes/organised_output/13b_truedat_coral_alteromonadaceae.jpg", plot = p.altero.true, width = 7, height = 5)
+
+
+```
+
+#Water
+#Top taxa include: Synnechococcus, Litoricola, Prochlorococcus, Uncultured Alteromonadaceae & SAR86
+
+```{r}
+hist(water.microbes.seabirds$RelAbund_Synechococcus)
+qqPlot(water.microbes.seabirds$RelAbund_Synechococcus) #yuck
+
+
+#use a beta distribution - can't use poisson (not count data), negative binomial looked terrible
+
+###If they are all betas, can we transform & then loop it 
+beta_trans_water_microbes <- dplyr::mutate(water.microbes.seabirds, RelAbund_Synechococcus = (RelAbund_Synechococcus*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Litoricola = (RelAbund_Litoricola*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Prochlorococcus = (RelAbund_Prochlorococcus*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR86_Clade = (RelAbund_SAR86_Clade*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Uncultured_Alteromonadaceaeae = (RelAbund_Uncultured_Alteromonadaceaeae*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR116_Clade = (RelAbund_SAR116_Clade*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR11_CladeIa = (RelAbund_SAR11_CladeIa*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR11_CladeIb = (RelAbund_SAR11_CladeIb*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Rhodospirillales_AEGEAN_169_marine_group = (RelAbund_Rhodospirillales_AEGEAN_169_marine_group*(n()-1) + 0.5)/n())
+
+print(colnames(beta_trans_water_microbes))
+columns <- c( "RelAbund_Synechococcus" , "RelAbund_Litoricola", "RelAbund_Prochlorococcus", "RelAbund_SAR86_Clade",
+              "RelAbund_Uncultured_Alteromonadaceaeae", "RelAbund_SAR116_Clade", 
+              "RelAbund_SAR11_CladeIa", "RelAbund_SAR11_CladeIb","RelAbund_Rhodospirillales_AEGEAN_169_marine_group")
+#Loop
+dat <- beta_trans_water_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ algae.N15*Distance_to_shore + Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+#Only Synechococcus was significant BUT seems like it's driven by aie protected?
+
+#Can we remove protected side of Aie?
+water.microbes.seabirds.noaiepro <- filter(water.microbes.seabirds, site.name != "Aie_Protected")
+
+syn_trans_noaie <- dplyr::mutate(water.microbes.seabirds.noaiepro, RelAbund_Synechococcus = (RelAbund_Synechococcus*(n()-1) + 0.5)/n())
+syn.beta.noaie <- glmmTMB(RelAbund_Synechococcus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), family = beta_family(), data = syn_trans_noaie, na.action = na.omit)
+
+Anova(syn.beta.noaie)
+#Response: RelAbund_Synechococcus
+#                             Chisq Df Pr(>Chisq)
+#algae.N15                   0.1334  1     0.7150
+#Distance_to_shore           1.4725  3     0.6886
+#Exposure                    0.0235  1     0.8781
+#algae.N15:Distance_to_shore 5.3335  3     0.1489
+
+water.microbes.seabirds.noaiepro %>%
+  group_by(seabird_level)%>%
+  summarize(mean_syn = mean(RelAbund_Synechococcus),
+            n_syn = length(RelAbund_Synechococcus),
+            se_syn = sd(RelAbund_Synechococcus)/sqrt(n_syn))
+
+ggplot(water.microbes.seabirds.noaiepro, aes(x = algae.N15, y = RelAbund_Synechococcus)) +
+  geom_point()+
+  theme_bw()
+
+
+mod.syn <- glmmTMB(RelAbund_Synechococcus ~ algae.N15*Distance_to_shore + Exposure + (1|site.name), data=beta_trans_water_microbes, family = beta_family(), na.action = na.omit)
+p.syn <- effect_plot(mod.syn, pred = algae.N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = beta_trans_water_microbes)
+
+p.syn<- p.syn+
+  ylab("Relative Abundance Uncultured Alteromonadaceae (Coral Microbiome)") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+ggsave("../output/seabird-microbes/organised_output/14_mod_water_synnechococcus.jpg", plot = p.alter, width = 7, height = 5)
+
+
+
+#Model is a little odd - probably good to present true data? 
+
+ggplot(water.microbes.seabirds, aes(y = RelAbund_Synechococcus, x = algae.N15 ))+
+  geom_point()
+
+p.syn.true <- ggplot(water.microbes.seabirds, aes(y = RelAbund_Synechococcus, x = algae.N15 ))+
+  geom_point(size = 4, alpha = 0.8, aes(color = site.name)) +
+  ylab("Relative Abundance \nSynechococcus (Seawater Microbiome") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.12,.75))
+ggsave("../output/seabird-microbes/organised_output/14b_truedat_water_synecho.jpg", plot = p.syn.true, width = 7, height = 5)
+
+```
+
+
+
+
+
+
+
 
 
 
