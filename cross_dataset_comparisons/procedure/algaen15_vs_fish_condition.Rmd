@@ -38,45 +38,14 @@ algae_n15<-read.csv("../output/n15_seabirds_combined_no_iti.csv")
 fishn15.seabirds.cond<-right_join(dplyr::select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
                                   dplyr::select(fish_n15_cond, c("site.name", "motu", "fish.id", "species", 
                                                    "month.caught", "year.caught", "protection", "TL.cm", "FL.cm", "SL.cm", "whole.weight.g", 
-                                                   "liver.weight.g", "n15", "c13", "n.percent", "c.percent")),
+                                                    "n15", "c13", "n.percent", "c.percent")),
                             
                                    by = "site.name")%>%
   mutate(site.name = as.factor(site.name))
 fishn15.seabirds.cond
 
-```
 
-#calculate condition indices, add seabird levels
-```{r}
-
-#add k and hsi----
-
-fishn15.seabirds.cond<-
-  fishn15.seabirds.cond%>%
-  mutate(K = 100*(whole.weight.g/(TL.cm^3)),
-         HSI = liver.weight.g/whole.weight.g*100)
-fishn15.seabirds.cond
-
-
-#3 sites, add seabird levels because non-linear possible and only 3 sites so needs to be categorical:----
-#Aie protected = 378.720000	
-#Reiono exposed = 115.353333
-#Rimatuu protected = 5.390526
-
-fishn15.seabirds.cond<-
-  fishn15.seabirds.cond%>%
-  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
-                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
-                                   breeding_biomass_kgha_side>200 ~"high"))%>%
-  mutate(seabird_level = as.factor(seabird_level))%>%
-  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))%>%
-  relocate(seabird_level, .before = breeding_biomass_kgha_side)
-
-fishn15.seabirds.cond
-
-
-
-##remove C. argus because n = 1 for 'high' (Aie)----
+##remove C. argus because n = 1 for Aie----
 fishn15.seabirds.cond.r<-
   fishn15.seabirds.cond%>%
   filter(species != "Cephalopholis argus")%>%
@@ -88,12 +57,14 @@ fishn15.seabirds.cond.r%>%
   group_by(species, site.name)%>%
   summarize(n = length(n15))
 
-
 ```
 
-
-#run regular lm's USING ALGAE N15 AT 40, because now only one site per motu (so random effects don't make much sense): - still need to clean up figures, likely for supplement*
+#run lm's USING ALGAE N15 AT 40
 ```{r}
+
+#can use algae n15 at 40 m from shore as offshore, because this is present at all sites where we have fish
+#because only one site per motu, random effects don't make sense, so run regular lm
+
 
 #combine data with algae n15----
 fishn15.seabirds.cond.algae<-
@@ -108,6 +79,7 @@ fish_n15_algae_lm<-lm(n15~ N.15_at_40m*species,
                           data = fishn15.seabirds.cond.algae)
 summary(fish_n15_algae_lm)
 anova(fish_n15_algae_lm)#everything significant
+Anova(fish_n15_algae_lm)
 plot(fish_n15_algae_lm) #okay
 
 
@@ -119,23 +91,7 @@ test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m", adjust = "fdr")
 test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m", adjust = "none"))
 
 
-#try with lmer:
-fish_n15_algae_lmer<-lmer(n15~ N.15_at_40m*species + (1|site.name), 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_n15_algae_lmer)
-Anova(fish_n15_algae_lmer)
-
-test(emtrends(fish_n15_algae_lmer, ~ species, var = "N.15_at_40m", adjust = "fdr"))
-emtrends(fish_n15_algae_lmer, ~ species, var = "N.15_at_40m")
-
-
-fish_n15_algae_lmer.add<-lmer(n15~ N.15_at_40m+species + (1|site.name), 
-                          data = fishn15.seabirds.cond.algae)
-summary(fish_n15_algae_lmer.add)
-Anova(fish_n15_algae_lmer.add)
-
-
-# plot - maybe just for supplement---------
+# plot ---------
 range(fishn15.seabirds.cond.algae$N.15_at_40m) #3.043333 6.003333
 levels(fishn15.seabirds.cond.algae$species)
 (mylist <- list(
@@ -153,10 +109,35 @@ plot_dat<-emmip(fish_n15_algae_lm, species ~ N.15_at_40m, at = mylist, CIs = TRU
 plot_dat
 
 fishn15.seabirds.cond.algae %>%
-   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  group_by(species, N.15_at_40m)%>%
+  summarize(mean_n15 = mean(n15))%>%
+   ggplot(aes(x = N.15_at_40m, y = mean_n15, color = species, fill = species, group = species))+
   geom_point(alpha = .5)+
 geom_line(data = plot_dat, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
   theme_bw() 
+
+
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+  group_by(species, N.15_at_40m)%>%
+  summarize(mean_n15 = mean(n15),
+            se = sd(n15)/sqrt(length(n15)))%>%
+   ggplot(aes(x = N.15_at_40m, y = mean_n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .8)+
+  geom_errorbar(aes(ymin = mean_n15 - se, ymax = mean_n15+se))+
+   geom_line(data = plot_dat, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  ylab(expression(Fish~delta^15~N))+
+  xlab(expression(Algae~delta^15~N))+
+  labs(color = "", fill = "")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
 
 
 (mylist2 <- list(
@@ -179,11 +160,14 @@ fishn15.algan15.plot<-
 fishn15.seabirds.cond.algae %>%
       mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
    ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
-  geom_point(alpha = .8)+
-   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
- geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+ # geom_point(alpha = .8)+
+    geom_jitter(alpha = .7, width = .05, height = 0, size = 2.5)+
+   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .1, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species), lwd =1.5)+
   ylab(expression(Fish~delta^15~N))+
-  xlab(expression(Algae~delta^15~N))+
+  xlab(expression(Algal~delta^15~N))+
+  scale_fill_viridis_d(labels = c("Acanthurus triostegus (herbivore)", "Stegastes nigricans (herbivore)", "Abudefduf septemfasciatus (omnivore)", "Lutjanus fulvus (piscivore)"))+
+  scale_color_viridis_d(labels = c("Acanthurus triostegus (herbivore)", "Stegastes nigricans (herbivore)", "Abudefduf septemfasciatus (omnivore)", "Lutjanus fulvus (piscivore)"))+
   labs(color = "", fill = "")+
   theme_bw() +
   theme(panel.grid.major = element_blank(), # remove gridlines
@@ -197,7 +181,7 @@ fishn15.seabirds.cond.algae %>%
 fishn15.algan15.plot
 
 
-#ggsave("../output/seabird-fishn15/fish_n15_algae_n15_estplot_lines_points.jpg", plot = fishn15.algan15.plot, width = 7, height = 5)
+#ggsave("../output/seabird-fishn15/fish_n15_algae_n15_estplot_lines_points_update.jpg", plot = fishn15.algan15.plot, width = 7, height = 5)
 
 #just raw data:
 fishn15.seabirds.cond.algae %>%
@@ -206,42 +190,30 @@ fishn15.seabirds.cond.algae %>%
   stat_smooth(method = "lm")+
   theme_bw() 
 
-fishn15.seabirds.cond.algae%>%
-  group_by(species, N.15_at_40m)%>%
-  summarize(mean_n15 = mean(n15),
-            n_n15 = length(n15),
-            se_n15 = sd(n15)/sqrt(n_n15))%>%
-  ggplot(aes(x = N.15_at_40m, y = mean_n15, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-  geom_errorbar(aes(ymin = (mean_n15-se_n15), ymax = (mean_n15+se_n15)), alpha = .5, width = 0)+
-  geom_line(alpha = .5)+
-  theme_bw() 
 
 
 ```
 
-##could be non-linear, so try GAM
+
+##could be non-linear, so try comparing linear to quadratic
 ```{r}
+#two ways to formulate polynomial, works with random effects, too:
 
-#add quadratic:0----
-fish_n15_algae_lm_quad<-lm(n15~ N.15_at_40m*species + I(N.15_at_40m^2)*species, 
+fish_n15_algae_lm_quad1<-lm(n15~ N.15_at_40m*species + I(N.15_at_40m^2)*species, 
                           data = fishn15.seabirds.cond.algae)
-summary(fish_n15_algae_lm_quad)
-anova(fish_n15_algae_lm_quad)#everything significant, except poly2*species
-plot(fish_n15_algae_lm_quad) #okay
-
-test(emtrends(fish_n15_algae_lm_quad, ~ species, var = "N.15_at_40m", adjust = "fdr"))
-test(emtrends(fish_n15_algae_lm_quad, ~ species, var = "I(N.15_at_40m^2)", adjust = "fdr"))
-test(emtrends(fish_n15_algae_lm_quad, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
-
 
 fish_n15_algae_lm_quad2<-lm(n15~ N.15_at_40m*species + poly(N.15_at_40m,2)*species, 
                           data = fishn15.seabirds.cond.algae)
-summary(fish_n15_algae_lm_quad2)
+#some discussion online of poly() function giving different coefficient estimates, because it fits orthogonal contrasts rather than raw. can add raw = TRUE inside of poly() call to make the coefficients be identical. But I think when use emmeans it all works out okay anyway. (e.g., https://stackoverflow.com/questions/69074619/fitting-an-r-linear-model-with-poly-gives-incorrect-coefficients)
 
+
+
+#check significance of linear and quad terms in emmeans
+test(emtrends(fish_n15_algae_lm_quad1, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
 test(emtrends(fish_n15_algae_lm_quad2, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
+#identical results.
 
-
+#plots - with just 3 levels (matches raw data):----
 (mylist2 <- list(
     N.15_at_40m = c(3.043333, 5.233333, 6.003333),
     species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
@@ -251,7 +223,6 @@ emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m,  at = mylist2, CIs = TRUE,
 
 plot_dat2<-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m, at = mylist2, CIs = TRUE, plotit=FALSE)
 plot_dat2
-
 fishn15.seabirds.cond.algae %>%
       mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
    ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
@@ -260,8 +231,19 @@ fishn15.seabirds.cond.algae %>%
  geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
   theme_bw() 
 
+fishn15.seabirds.cond.algae %>%
+    group_by(species, N.15_at_40m)%>%
+    summarize(mean_n15 = mean(n15))%>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = mean_n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+ # position = position_dodge(0.1)
+  # geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  geom_errorbar(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin =LCL, ymax=UCL, color = species), alpha = .5, width = .1)+ #, position = position_dodge(0.1)
+  theme_bw() 
 
 
+#plots - continuous within full data range:----
 (mylist3 <- list(
     N.15_at_40m = seq(3,6,.1),
     species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
@@ -272,81 +254,34 @@ plot_dat3
 
 fishn15.seabirds.cond.algae %>%
       mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
-   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+   ggplot(aes(x = N.15_at_40m, y = m15, color = species, fill = species, group = species))+
   geom_point(alpha = .5)+
    geom_ribbon(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
  geom_line(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
   theme_bw() 
 
 
-
+#another possible formula...still looks all the same:
 fish_n15_algae_lm_poly <- lm(n15 ~ poly(N.15_at_40m, degree = 2)*species, data = fishn15.seabirds.cond.algae)
-summary(fish_n15_algae_lm_poly)
-anova(fish_n15_algae_lm_poly)
-anova(fish_n15_algae_lm_quad2)
-
 test(emtrends(fish_n15_algae_lm_poly, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
 
-em_means<-emmeans(fish_n15_algae_lm, pairwise ~  N.15_at_40m|species)
 
-contrast(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m"), "poly") 
-contrast(em_means[[1]], "poly") 
- 
-test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m"), interaction = c("poly", "species")) 
+#compare linear to polynomial model, LRT:-----
+fish_n15_algae_lm_linear <- lm(n15 ~ N.15_at_40m*species, data = fishn15.seabirds.cond.algae)
+test(emtrends(fish_n15_algae_lm_linear, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+#only weird thing is here all linear estimates are positive, whereas in polynomial formauls some linear coefficients are negative...
 
+anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_poly, fish_n15_algae_lm_quad1, fish_n15_algae_lm_quad2)
+anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_quad2)
+anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_quad1)
+##quadratic/polynomial model is WAY better fit than linear model. AND all quadratic/polynomial models looks the same, so that's good!
 
-emmip(fish_n15_algae_lm_poly, ~ N.15_at_40m*species, plotit = TRUE)
-
-
-##GAMS----
-library(mgcv) #for gams
-library(mgcViz) #for gam visualization 
-
-fish_n15_gam_lm<-gam(n15~N.15_at_40m, data = fishn15.seabirds.cond.algae, method = "REML")
-summary(fish_n15_gam_lm)
-
-fish_n15_gam_1 = gam(n15~s(N.15_at_40m, k = 3, bs='cr'), data = fishn15.seabirds.cond.algae, method = "REML")
-summary(fish_n15_gam_1)
-plot(fish_n15_gam_1)
-
-anova(fish_n15_gam_lm, fish_n15_gam_1, test = "Chisq")
-AIC(fish_n15_gam_lm)
-AIC(fish_n15_gam_1)
-
-fish_n15_gam_2 = gam(n15~species + s(N.15_at_40m, k = 3) + s(N.15_at_40m, by = species, k = 3), data = fishn15.seabirds.cond.algae, method = "REML")
-summary(fish_n15_gam_2)
-plot(fish_n15_gam_2)
-
-
-fish_n15_gamm <- gamm(n15~ s(N.15_at_40m, bs='cr', k = 3), data = fishn15.seabirds.cond.algae)
-gam.check(fish_n15_gamm$gam)
-
-test(emtrends(fish_n15_gam_2, ~ species, var = "N.15_at_40m", adjust = "fdr"))
-
-
-fish_n15_gam_2_viz<-getViz(fish_n15_gam_2)
-
-print(plot(fish_n15_gam_2_viz, allTerms = T, seWithMean=TRUE), pages = 1) # Calls print.plotGam()
-
-
-plot( sm(fish_n15_gam_2_viz, 1, ))+ 
-  l_fitLine(colour = "red") + #l_rug(mapping = aes(x=x, y=y), alpha = 0.8) +
-    l_ciLine(mul = 5, colour = "blue", linetype = 2) + 
-    l_points(shape = 19, size = 1, alpha = 0.1) + theme_classic()
-
-
-plot( sm(fish_n15_gam_2_viz, 2))+ 
-  l_fitLine(colour = "red") + #l_rug(mapping = aes(x=x, y=y), alpha = 0.8) +
-    l_ciLine(mul = 5, colour = "blue", linetype = 2) + 
-    l_points(shape = 19, size = 1, alpha = 0.1) + theme_classic()
 
 ```
 
-##INTERPRETATION OF NON-LINEAR
-Gams seem hard to deal with...maybe just compare linear to polynomial models and see which works better. Then interpret results using emmeans. should be able to apply to lmer, glmer, etc??
 
 
-#OR here because only 3 values anyway, just treat as factor:
+#OR here because only 3 values anyway, just treat as factor:--------
 ```{r}
 
 fish_n15_algae_lm_factor<-lm(n15~ as.factor(N.15_at_40m)*species, 
@@ -368,6 +303,9 @@ EMM_fish_n15 <- emmeans(fish_n15_algae_lm_factor, ~ species * N.15_at_40m)
 pairs(EMM_fish_n15, simple = "N.15_at_40m", type = "response")
 
 emmeans(fish_n15_algae_lm_factor, list(pairwise ~ N.15_at_40m|species), adjust = "fdr")
+
+
+
 
 ```
 
@@ -498,78 +436,36 @@ cor.mat_sb_fishn15_fish_by_sb_algae_only<- cor(x = fishn15.seabirds.wide[c(3,4,5
 #any way to combine algae and fish corr plots?? - NOPE
 
 
-
-##could be non-linear,CLEAN RO SEND CODE
+##simple boxplot of fish n15 veruss managemetn status
 ```{r}
-#two ways to formulate polynomial, works with random effects, too:
-
-fish_n15_algae_lm_quad1<-lm(n15~ N.15_at_40m*species + I(N.15_at_40m^2)*species, 
-                          data = fishn15.seabirds.cond.algae)
-
-fish_n15_algae_lm_quad2<-lm(n15~ N.15_at_40m*species + poly(N.15_at_40m,2)*species, 
-                          data = fishn15.seabirds.cond.algae)
-#some discussion online of poly() function giving different coefficient estimates, because it fits orthogonal contrasts rather than raw. can add raw = TRUE inside of poly() call to make the coefficients be identical. But I think when use emmeans it all works out okay anyway. (e.g., https://stackoverflow.com/questions/69074619/fitting-an-r-linear-model-with-poly-gives-incorrect-coefficients)
-
-
-
-#check significance of linear and quad terms in emmeans
-test(emtrends(fish_n15_algae_lm_quad1, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
-test(emtrends(fish_n15_algae_lm_quad2, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
-#identical results.
-
-#plots - with just 3 levels (matches raw data):----
-(mylist2 <- list(
-    N.15_at_40m = c(3.043333, 5.233333, 6.003333),
-    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
- "Stegastes nigricans")
-))
-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m,  at = mylist2, CIs = TRUE, plotit=TRUE)
-
-plot_dat2<-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m, at = mylist2, CIs = TRUE, plotit=FALSE)
-plot_dat2
-fishn15.seabirds.cond.algae %>%
-      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
-   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
- geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
-  theme_bw() 
+fishn15_box<-
+  fishn15.seabirds.cond.algae%>%
+        mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+  ggplot(aes(x = species, y = n15, fill = motu))+
+  geom_boxplot(alpha = .5, outlier.shape = NA)+ #
+  geom_point(aes(color= motu), position = position_dodge(.75), size = 2.5, alpha = .7)+
+  ylab(expression(Fish~delta^15~N))+
+  xlab("")+
+  scale_fill_manual(values = c('#2F9D3E', '#F2BB05', '#CD1913'), labels = c('reference','recovering','unrestored'), name = "")+
+  scale_colour_manual(values = c('#2F9D3E', '#F2BB05', '#CD1913'), labels = c('reference','recovering','unrestored'), name = "")+
+      scale_x_discrete(labels = c("A. triostegus\n(herbivore)", "S. nigricans\n(herbivore)", "A. septemfasciatus\n(omnivore)", "L. fulvus\n(piscivore)"))+
+   theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.position = c(.9, .85),
+        legend.text = element_text(size = 12))
+fishn15_box
 
 
-#plots - continuous within full data range:----
-(mylist3 <- list(
-    N.15_at_40m = seq(3,6,.1),
-    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
- "Stegastes nigricans")
-))
-plot_dat3<-emmip(fish_n15_algae_lm_quad2, species ~ N.15_at_40m, at = mylist3, CIs = TRUE, plotit=FALSE)
-plot_dat3
-
-fishn15.seabirds.cond.algae %>%
-      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
-   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
-  geom_point(alpha = .5)+
-   geom_ribbon(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
- geom_line(data = plot_dat3, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
-  theme_bw() 
-
-
-#another possible formula...still looks all the same:
-fish_n15_algae_lm_poly <- lm(n15 ~ poly(N.15_at_40m, degree = 2)*species, data = fishn15.seabirds.cond.algae)
-test(emtrends(fish_n15_algae_lm_poly, ~ species, var = "N.15_at_40m", adjust = "fdr", max.degree=2))
-
-
-#compare linear to polynomial model, LRT:-----
-fish_n15_algae_lm_linear <- lm(n15 ~ N.15_at_40m*species, data = fishn15.seabirds.cond.algae)
-test(emtrends(fish_n15_algae_lm_linear, ~ species, var = "N.15_at_40m", adjust = "fdr"))
-#only weird thing is here all linear estimates are positive, whereas in polynomial formauls some linear coefficients are negative...
-
-anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_poly, fish_n15_algae_lm_quad1, fish_n15_algae_lm_quad2)
-anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_quad2)
-anova(fish_n15_algae_lm_linear, fish_n15_algae_lm_quad1)
-##quadratic/polynomial model is WAY better fit than linear model. AND all quadratic/polynomial models looks the same, so that's good!
-
+ggsave("../output/seabird-fishn15/fishn15_box.jpg", plot = fishn15_box, width = 7, height = 5)
 
 ```
+
+
+
+
 
 
