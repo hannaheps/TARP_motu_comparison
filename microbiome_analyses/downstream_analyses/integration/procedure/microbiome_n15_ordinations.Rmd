@@ -89,6 +89,31 @@ str(water.microbes.seabirds$seabird_level)
 
 We now have the right sample data and phyloseq objects
 
+
+#Can we add the richness, evenness & shannon??
+```{r}
+
+#First pull in the rarefied data from the alpha diversity script (water-alphadiv-nov21.R)
+
+physeq.water.r <- readRDS("../../alpha-div/output/physeq-water-nov21-rarefied.RDS")
+physeq.coral.r <- readRDS("../../alpha-div/output/physeq-coral-nov21-rarefied.RDS")
+
+erich.coral <- estimate_richness(physeq.coral.r, measures = c("Observed", "Shannon"))
+erich.coral$evenness <- erich.coral$Shannon/log(erich.coral$Observed)
+
+erich.water <- estimate_richness(physeq.water.r, measures = c("Observed", "Shannon"))
+erich.water$evenness <- erich.water$Shannon/log(erich.water$Observed)
+
+#Can we add these back into the above dataframe?
+water.microbes.seabirds <- cbind(water.microbes.seabirds, erich.water)
+colnames(water.microbes.seabirds)
+
+coral.microbes.seabirds <- cbind(coral.microbes.seabirds, erich.coral)
+colnames(coral.microbes.seabirds)
+
+
+```
+
 #Coral NMDS
 
 
@@ -148,21 +173,21 @@ nmds.scores$distance.along.transect <- coral.microbes.seabirds$distance.along.tr
 coral.microbe.nmds.plot.rotate <-
 ggplot() + 
   geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15), stat="identity", size=5, alpha = .9) +
-  scale_color_gradient(low = "darkblue", high = "yellow") +
+  scale_color_distiller(palette = "YlGnBu") +
   geom_segment(data = en_coord_cont,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
     geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
             size = 3, vjust = "outward", fontface = "bold")+
-  geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
-       shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
-  geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
-            size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
+  #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+       #shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
+  #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
+           # size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
 theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.88, .25)) 
+        legend.position = c(.1, .8)) 
 
 coral.microbe.nmds.plot.rotate
 ggsave(coral.microbe.nmds.plot.rotate, file = "../output/1b_NMDS_CoralMicrobe_div.jpg",
@@ -221,16 +246,16 @@ nmds.scores$distance.along.transect <- water.microbes.seabirds$distance.along.tr
 water.microbe.nmds.plot.rotate <-
 ggplot() + 
   geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15), stat="identity", size=5, alpha = .9) +
-  scale_color_gradient(low = "darkblue", high = "yellow") +
+  scale_color_distiller(palette = "YlGnBu") +
   geom_segment(data = en_coord_cont,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
     geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
             size = 3, vjust = "outward", fontface = "bold")+
-  geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
-       shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
-  geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
-            size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
+  #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+   #    shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
+  #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
+  #          size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
 theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
@@ -242,29 +267,6 @@ ggsave(water.microbe.nmds.plot.rotate, file = "../output/2b_NMDS_WaterMicrobe_di
     width = 7, height = 5)
 
 
-```
-#Can we add the richness, evenness & shannon??
-```{r}
-
-#First pull in the rarefied data from the alpha diversity script (water-alphadiv-nov21.R)
-
-physeq.water.r <- readRDS("../../alpha-div/output/physeq-water-nov21-rarefied.RDS")
-physeq.coral.r <- readRDS("../../alpha-div/output/physeq-coral-nov21-rarefied.RDS")
-
-erich.coral <- estimate_richness(physeq.coral.r, measures = c("Observed", "Shannon"))
-erich.coral$evenness <- erich.coral$Shannon/log(erich.coral$Observed)
-
-erich.water <- estimate_richness(physeq.water.r, measures = c("Observed", "Shannon"))
-erich.water$evenness <- erich.water$Shannon/log(erich.water$Observed)
-
-#Can we add these back into the above dataframe?
-water.microbes.seabirds <- cbind(water.microbes.seabirds, erich.water)
-colnames(water.microbes.seabirds)
-
-coral.microbes.seabirds <- cbind(coral.microbes.seabirds, erich.coral)
-colnames(coral.microbes.seabirds)
-
-##Now go back up & re-run the NMDS!
 ```
 
 
