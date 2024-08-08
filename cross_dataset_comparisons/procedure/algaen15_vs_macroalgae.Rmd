@@ -1,0 +1,699 @@
+---
+title: "algaen15_vs_macroalgae"
+author: "HEE"
+date: "2024-08-02"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(plyr)
+
+library(lme4)
+library(car)
+library(jtools)
+
+library(emmeans)
+library(multcompView)
+library(multcomp)
+
+library(corrplot)
+
+library(vegan)
+```
+
+
+#load data and clean
+```{r}
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+#remove the N15 data as we will need to manually add in 10 and 40m due to the macroalgae data structure later
+seabirds <- seabirds[, -c(2:5)]
+#for some reason we don't have exposure on its own so give this a try:
+seabirds$exposure <- seabirds$site.name
+seabirds <- separate(data = seabirds, col = exposure, into = c("motu", "exposure"))
+
+algae.div <- read.csv("../../algae_diversity_surveys/output/algae_div_summary_all_new.csv", strip.white = T, header = T)
+#make sure distance along transect is a factor
+algae.div$distance.along.transect <- as.factor(algae.div$distance.along.transect)
+```
+
+#merge data
+```{r}
+algae.div.seabirds <- merge(algae.div, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
+
+n15 <- read.csv("../output/seabird-algaen15/seabird_algaen15_noiti_totaldata.csv", header = TRUE, strip.white = TRUE)
+n15$distance.along.transect <- as.factor(n15$Distance_to_shore)
+n15 <- n15[,c(2,17,40)] #remove the column X
+
+algae.div.seabirds <- merge(n15, algae.div.seabirds, by = c("site.name", "distance.along.transect"), all = TRUE, no.dups = TRUE)
+
+#remove the 20 and 30m from shore distances
+algae.div.seabirds <- algae.div.seabirds %>% subset(distance.along.transect != c("20", "30"))
+
+#make richness into a numeric category
+algae.div.seabirds$richness <- as.numeric(algae.div.seabirds$richness)
+
+#write to csv as output
+#write.csv(algae.div.seabirds, "../output/seabird-algaediv/seabird_algaediv_noiti_totaldata_new.csv", row.names= F)
+```
+
+#Add seabird levels
+```{r}
+algae.div.seabirds <-
+  algae.div.seabirds%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+
+```
+
+
+#Let's do some quick plots
+
+```{r}
+algae.div.seabirds%>%
+  ggplot(aes(x = N15, y = richness))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+algae.div.seabirds%>%
+  ggplot(aes(x = N15, y = evenness))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+algae.div.seabirds%>%
+  ggplot(aes(x = N15, y = shannon))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+algae.div.seabirds%>%
+  ggplot(aes(x = N15, y = Turbinaria.ornata))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+```
+
+
+#NMDS
+```{r}
+#make sure the subsetting worked and no 20 or 30m from shore are included. 
+algae.div.seabirds <- algae.div.seabirds %>% subset(distance.along.transect != c("20", "30"))
+nmds.algae <- metaMDS(algae.div.seabirds[, 5:35], distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds.algae
+#2 axes stress = 0.1350903, a little weak but still below 0.2
+
+plot(nmds.algae)
+scores(nmds.algae, display="species")
+
+#look at plot and centroids with ordfit
+
+
+
+#plot(nmds.algae)
+#ord.fit.algae<-envfit(nmds.algae~N15 + exposure, data = algae.div.seabirds, na.rm=TRUE)
+#ord.fit.algae 
+#plot(ord.fit.algae)
+
+#rotate by algae n15 so can more easily interpret----
+nmds.rotate<-MDSrotate(nmds.algae, algae.div.seabirds$N15, na.rm = TRUE)
+nmds.rotate
+plot(nmds.rotate)
+
+#ord.fit<-envfit(nmds.rotate~N15, data = algae.div.seabirds, na.rm=TRUE)
+#ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
+
+en <- algae.div.seabirds[, c(1:3,37:39,60:61)]
+env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
+
+plot(nmds.algae)
+plot(env.fit)
+
+en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+
+
+```
+
+
+#Let's make it pretty & rotate by N15
+
+```{r}
+
+#extract scores (rotated)
+nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
+
+#combine with other relevant data
+nmds.scores$N15 <- algae.div.seabirds$N15
+nmds.scores$site.name <- algae.div.seabirds$site.name
+nmds.scores$distance.along.transect <- algae.div.seabirds$distance.along.transect
+
+
+##get arrows:
+
+en <- algae.div.seabirds[, c(3,37:39,61)]
+env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
+
+plot(nmds.algae)
+plot(env.fit)
+
+en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algae N15", "Shannon \nDiversity", "Species \nRichness", "Evenness"))
+
+en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
+
+
+
+algae.nmds.plot.rotate <-
+ggplot() + 
+  #geom_text(data=nmds.scores,aes(x=NMDS1,y=NMDS2), alpha = .7, size = 3, hjust = .1) + 
+  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15), stat="identity", size=5, alpha = .9) +
+  scale_color_distiller(palette = "YlGnBu") +
+  #geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.2) + # add the convex hulls
+  #  coord_fixed() + ## need aspect ratio of 1!
+  geom_segment(data = en_coord_cont,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm"))) +
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward", fontface = "bold")+
+  #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+       #shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
+  #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
+            #size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
+   #scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    #scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+#labs(colour = "seabird biomass", fill = "seabird biomass", shape = "seabird biomass")+
+theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.9, .75)) 
+
+#ggsave("../output/seabird-algaediv/organised_output/1_NMDS_AlgaeDiv.pdf", plot = last_plot())
+
+algae.nmds.plot.rotate
+ggsave(algae.nmds.plot.rotate, file = "../output/seabird-algaediv/organised_output/1_NMDS_AlgaeDiv.jpg",
+    width = 7, height = 5)
+
+
+```
+
+
+
+#permanova - can only do this by categories 
+```{r}
+#First make sure we have no data that has zeroes
+colSums(algae.div.seabirds.lvl[,5:35])
+
+permanova_algae_sblevel <-adonis2(algae.div.seabirds.lvl[,5:35] ~ seabird_level * distance.along.transect  + exposure,  data = algae.div.seabirds.lvl, method = "bray", permutations = 999)
+permanova_algae_sblevel
+#                                       Df SumOfSqs      R2      F Pr(>F)    
+#seabird_level                           2   3.0890 0.15097 17.598  0.001 ***
+#distance.along.transect                 1   2.8663 0.14009 32.659  0.001 ***
+#xposure                                1   0.9475 0.04631 10.795  0.001 ***
+#seabird_level:distance.along.transect   2   2.5873 0.12645 14.740  0.001 ***
+#Residual                              125  10.9706 0.53618                  
+#Total                                 131  20.4607 1.00000 
+
+permanova_algae_n15<-adonis2(algae.div.seabirds[,5:35] ~ N15 * distance.along.transect  + exposure,  data = algae.div.seabirds, method = "bray", permutations = 999, na.action = na.omit)
+permanova_algae_n15
+#                             Df SumOfSqs      R2       F Pr(>F)    
+#N15                           1   2.7219 0.14696 24.6266  0.001 ***
+#distance.along.transect       1   1.0627 0.05738  9.6149  0.001 ***
+#exposure                      1   0.4410 0.02381  3.9899  0.003 ** 
+#N15:distance.along.transect   1   0.7004 0.03781  6.3366  0.001 ***
+#Residual                    123  13.5947 0.73403                   
+#Total                       127  18.5207 1.00000                             
+
+##Homogeneity of variances (betadispersion) for seabird level (categorical)
+
+#need a vegdist object for this
+bc.algae <- vegdist(algae.div.seabirds.lvl[,5:35], method = "bray")
+disp.algae.sb <- betadisper(bc.algae, algae.div.seabirds.lvl$seabird_level, type = "centroid")
+par(pty = 's')
+boxplot(disp.algae.sb) 
+permutest(disp.algae.sb)
+#Response: Distances
+#           Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)   
+#Groups      2 0.23773 0.118866 6.0929    999  0.004 **
+#Residuals 129 2.51663 0.019509 
+
+#this means some significance of permanova needs to be applied to the differences in dispersion.
+
+```
+
+
+
+##Run LMMs --Richness
+```{r}
+#Check for distribution
+
+hist(algae.div.seabirds$richness)
+shapiro.test((algae.div.seabirds$richness)) # Looks normally distributed but p = 0.0002252
+qqPlot(algae.div.seabirds$richness)
+
+vcd::distplot(algae.div.seabirds$richness, type="poisson") #not bad
+
+#not poisson
+richness.lmer <-lmer(richness~N15*distance.along.transect + exposure + (1|site.name), data = algae.div.seabirds)
+#poisson
+richness.glmer <- glmer(richness ~ N15*distance.along.transect + exposure + (1|site.name), family = "poisson", data = algae.div.seabirds)
+AIC(richness.lmer, richness.glmer) #the standard lmer loooks better 
+
+summary(richness.lmer)
+anova(richness.lmer)
+#Analysis of Variance Table
+#                            npar Sum Sq Mean Sq F value
+#N15                            1 55.864  55.864 20.2951
+#distance.along.transect        1  1.423   1.423  0.5168
+#exposure                       1  0.617   0.617  0.2243
+#N15:distance.along.transect    1 66.776  66.776 24.2590
+
+Anova(richness.lmer)
+#Analysis of Deviance Table (Type II Wald chisquare tests)
+
+#Response: richness
+#                              Chisq Df Pr(>Chisq)    
+#N15                         14.2414  1  0.0001608 ***
+#distance.along.transect      0.5070  1  0.4764258    
+#exposure                     0.0944  1  0.7586074    
+#N15:distance.along.transect 24.2590  1  8.421e-07 ***
+
+
+effect_plot(richness.lmer,pred.values = N15 *distance.along.transect, interval = TRUE, plot.points = TRUE, data = algae.div.seabirds)
+
+
+
+p.lmer.rich <- plot_model(richness.lmer, type = "pred", terms = c("N15", "distance.along.transect"))
+
+
+p.lmer.rich <- p.lmer.rich +
+  ylab("Macroalgal Species Richness") +
+  xlab(expression(italic(delta)^15*N))+
+  scale_fill_manual(values = c("10" = "#8CC7A1", "40" = "#74226C")) +
+  scale_colour_manual(values = c("10" = "#8CC7A1", "40" = "#74226C")) +
+  geom_point(data=algae.div.seabirds, inherit.aes = FALSE, aes(x=N15,
+                                                     y=richness, color = distance.along.transect)) +                
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(0.05, 0.1))
+p.lmer.rich
+
+ggsave("../output/seabird-algaediv/organised_output/2a_model_Richness_vs_N15.jpg", plot = p.lmer.rich, width = 7, height = 5)
+
+
+
+vif(richness.lmer)
+plot(richness.lmer)
+
+emtrends(richness.lmer,  ~ distance.along.transect, var = "N15")
+test(emtrends(richness.lmer, ~ distance.along.transect, var = "N15", adjust = "fdr"))
+
+#distance.along.transect N15.trend    SE  df t.ratio p.value
+# 10                         -0.652 0.166 119  -3.939  0.0003*
+# 40                          0.382 0.264 119   1.446  0.1508
+
+
+plot_summs(richness.lmer)
+range(algae.div.seabirds$N15)
+levels(algae.div.seabirds$distance.along.transect)
+(mylist <- list(
+    N15 = seq(0, 12, by = 2),
+    distance.along.transect = c("10",  "40")
+))
+
+p.lmer.rich.2 <- emmip(richness.lmer, distance.along.transect ~ N15, at = mylist, CIs = TRUE)
+
+ggsave("../output/seabird-algaediv/organised_output/2_linearpred_distance_vs_N15.jpg", plot = p.lmer.rich.2, width = 7, height = 5)
+
+
+
+##Plot the richness according to N15 & distance from shore
+ggplot(algae.div.seabirds, aes(x = N15, y = richness, color = distance.along.transect, 
+                      group = distance.along.transect))+
+  geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_smooth(method = lm, alpha = 0.2, aes(group = distance.along.transect))+
+  ylab("Mean Species Richness \n") +
+  xlab(expression(italic(delta)^15*N))+
+  labs(color='Distance \nFrom Shore (m)') +
+  scale_color_manual(labels = c("10", "40")
+                     ,values = c("orangered", "purple3")) +
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5)) 
+
+
+```
+
+##LMMs - Evenness
+```{r}
+
+#evenness - n15----
+hist(algae.div.seabirds$evenness) #beautiful distribution!
+evenness.sb.lmm<-lmer(evenness~N15*distance.along.transect + exposure + (1|site.name), data = algae.div.seabirds)
+summary(evenness.sb.lmm)
+Anova(evenness.sb.lmm)
+
+#Response: evenness
+#                             Chisq Df Pr(>Chisq)
+#N15                         0.0579  1     0.8099
+#distance.along.transect     0.2680  1     0.6047
+#exposure                    0.1676  1     0.6822
+#N15:distance.along.transect 0.2619  1     0.6088
+
+vif(evenness.sb.lmm)
+anova(evenness.sb.lmm)
+#Analysis of Variance Table
+#                            npar    Sum Sq   Mean Sq F value
+#N15                            1 0.0062732 0.0062732  0.5484
+#distance.along.transect        1 0.0031815 0.0031815  0.2781
+#exposure                       1 0.0018532 0.0018532  0.1620
+#N15:distance.along.transect    1 0.0029954 0.0029954  0.2619
+
+plot_summs(evenness.sb.lmm)
+
+#look at emmeans:
+evenness.sb.lmm %>% 
+  emmeans(~ N15*distance.along.transect,
+          type = "response") 
+
+
+effect_plot(evenness.sb.lmm, pred = N15, interval = TRUE, plot.points = TRUE, data = algae.div.seabirds)
+
+#Even though Poisson distribution seems to fit the data well, perhaps we need a GAM?
+#Aka is this linear or it peaks in intermediate
+
+
+p.lmer.even <- effect_plot(evenness.sb.lmm, pred = N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = algae.div.seabirds)
+
+p.lmer.even <- p.lmer.even +
+  ylab("Macroalgal Community Evenness") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+
+ggsave("../output/seabird-algaediv/organised_output/3_Evenness_vs_N15.jpg", plot = p.lmer.rich, width = 7, height = 5)
+
+
+vif(evenness.sb.lmm)
+plot(evenness.sb.lmm)
+
+emtrends(evenness.sb.lmm,  ~ distance.along.transect, var = "N15")
+test(emtrends(evenness.sb.lmm, ~ distance.along.transect, var = "N15", adjust = "fdr"))
+
+# distance.along.transect N15.trend     SE  df t.ratio p.value
+# 10                       -0.00337 0.0113 112  -0.297  0.8260
+# 40                        0.00376 0.0171 112   0.220  0.8260
+
+plot_summs(evenness.sb.lmm)
+range(algae.div.seabirds$N15)
+levels(algae.div.seabirds$distance.along.transect)
+(mylist <- list(
+    N15 = seq(0, 12, by = 5),
+    distance.along.transect = c("10",  "40")
+))
+
+p.lmer.even.2 <- emmip(evenness.sb.lmm, distance.along.transect ~ N15, at = mylist, CIs = TRUE)
+ggsave("../output/seabird-algaediv/organised_output/3b_linearpred_distance_vs_N15.jpg", plot = p.lmer.even.2, width = 7, height = 5)
+
+
+
+```
+
+
+##LMMs shannon
+```{r}
+#shannon -- seabird level
+hist((algae.div.seabirds.lvl$shannon))
+
+```
+
+```{r}
+#shannon- algae n15-----
+hist(algae.div.seabirds$shannon) #okay
+shannon.n15.lmm<-lmer(shannon~N15*distance.along.transect + exposure + (1|site.name), data = algae.div.seabirds)
+summary(shannon.n15.lmm)
+Anova(shannon.n15.lmm)
+#Response: shannon
+#                              Chisq Df Pr(>Chisq)    
+#N15                          9.4589  1   0.002101 ** 
+#distance.along.transect      2.5142  1   0.112828    
+#exposure                     0.0233  1   0.878597    
+#N15:distance.along.transect 22.9670  1  1.648e-06 ***
+
+vif(shannon.n15.lmm)
+plot(shannon.n15.lmm)
+
+effect_plot(shannon.n15.lmm, pred = N15, interval = TRUE, plot.points = TRUE, data = algae.div.seabirds)
+
+#Even though Poisson distribution seems to fit the data well, perhaps we need a GAM?
+#Aka is this linear or it peaks in intermediate
+
+
+p.lmer.shan <- effect_plot(shannon.n15.lmm, pred = N15, interval = TRUE, plot.points = TRUE, jitter = 0.2, cat.geom= line, data = algae.div.seabirds)
+
+p.lmer.shan <- p.lmer.shan +
+  ylab("Macroalgal Shannon Diversity Index") +
+  xlab(expression(italic(delta)^15*N))+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.85))
+
+
+ggsave("../output/seabird-algaediv/organised_output/4_Shannon_vs_N15.jpg", plot = p.lmer.rich, width = 7, height = 5)
+
+
+vif(shannon.n15.lmm)
+plot(shannon.n15.lmm)
+
+emtrends(shannon.n15.lmm,  ~ distance.along.transect, var = "N15")
+test(emtrends(shannon.n15.lmm, ~ distance.along.transect, var = "N15", adjust = "fdr"))
+
+#  distance.along.transect N15.trend     SE  df t.ratio p.value
+ #10                        -0.0649 0.0201 123  -3.231  0.0032*
+ #40                         0.0574 0.0321 123   1.790  0.0758
+
+plot_summs(shannon.n15.lmm)
+range(algae.div.seabirds$N15)
+levels(algae.div.seabirds$distance.along.transect)
+(mylist <- list(
+    N15 = seq(0, 12, by = 5),
+    distance.along.transect = c("10",  "40")
+))
+
+p.lmer.shan.2 <- emmip(shannon.n15.lmm, distance.along.transect ~ N15, at = mylist, CIs = TRUE)
+ggsave("../output/seabird-algaediv/organised_output/4b_linearpred_distance_vs_N15.jpg", plot = p.lmer.shan.2, width = 7, height = 5)
+
+
+```
+
+##stacked bar plot
+```{r}
+#Make into a long form as a relative cover?
+relcover.long <- algae.div.seabirds %>% gather(key = species.names, value = abundance, colnames(algae.div.seabirds[, 5:35]))
+
+#Can I split the species into species names and genus names?
+#1. make a new duplicate column 
+
+relcover.long$species.name.full <- relcover.long $species.names
+relcover.long  <- separate(data = relcover.long , col = species.name.full, into = c("genus", "species"), sep = "\\.")
+head(relcover.long)
+
+##Can I plot against seabird_level and color by genus?
+
+algae.sum <- ddply(relcover.long , c("seabird_level", "genus"),summarise, 
+                   mean_abund = mean(abundance),
+                   n_abund = length(abundance),
+                   se_abund = sd(abundance)/sqrt(n_abund))
+
+#Remove any genera that have 0 mean
+algae.sum <- algae.sum[algae.sum$mean_abund != 0, ]
+
+algal.genus.plot <- ggplot(algae.sum, aes(x = genus, y = mean_abund)) +
+  geom_point(position = position_dodge(width = 1), alpha = 0.5, aes(color = algae.sum$seabird_level)) +
+  geom_errorbar(position = position_dodge(width = 1), alpha = 0.5, aes(ymin = (mean_abund-se_abund), ymax = (mean_abund + se_abund), color = algae.sum$seabird_level)) +
+  ylab("Mean Percent Cover (%) \n") +
+  xlab("\n Macroalgal Genus") +
+  labs(color = 'Seabird Biomass', fill = 'Seabird Biomass') +
+  #scale_color_manual(labels = c("low", "mid", "high")
+                     #,values = c("blue3", "gold", "red3")) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust=1))
+algal.genus.plot
+
+ggsave(algal.genus.plot, file = "../output/seabird-algaediv/organised_output/5_macroalgae_by_genus_seabirdlevel.jpg", width = 7, height = 5)
+
+
+#What about a stacked barplot
+#Need 24 colors
+library(RColorBrewer)
+spec <- brewer.pal(4, "Spectral") 
+spec <- colorRampPalette(spec)(24)
+
+# Plot it
+macroalgal.stack <- ggplot(relcover.long , aes(fill = genus, y = abundance, x = seabird_level))+
+  geom_bar(position = "fill", stat =  "identity")+
+  #scale_fill_brewer(palette = "Spectral")+
+  scale_fill_manual(values = spec) +
+  xlab("Seabird level")+
+  ylab("Relative Percent Cover")+
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+
+ggsave(macroalgal.stack, file = "../output/seabird-algaediv/organised_output/6_macroalgae_stacked_plot.jpg", width = 7, height = 5)
+  
+```
+
+#How about each species?
+
+```{r}
+
+#Can we expand back out to genus?
+
+#nope
+#manual adding of each genus?
+colnames(algae.div.seabirds)
+
+genus <- algae.div.seabirds[,c(1:3, 59:60)]
+genus$Arainvillea <- algae.div.seabirds$Avrainvillea.lacerata
+genus$Boodlea <- algae.div.seabirds$Boodlea.composita
+genus$Caldora <- algae.div.seabirds$Caldora.penicillata
+genus$Caulerpa <- (algae.div.seabirds$Caulerpa.chemnitzia + algae.div.seabirds$Caulerpa.serrulata)
+
+genus$Chlorodesmis <- algae.div.seabirds$Chlorodesmis.fastigiata
+genus$Cladophora <- algae.div.seabirds$Cladophora.fuliginosa
+genus$Dictyosphaeria <- algae.div.seabirds$Dictyosphaeria.cavernosa
+genus$Dictyota <- (algae.div.seabirds$Dictyota.ceylanica + algae.div.seabirds$Dictyota.friabilis)
+genus$Galaxaura <- algae.div.seabirds$galaxaura.filamentosa
+genus$Gelidiella <- algae.div.seabirds$Gelidiella.acerosa
+genus$Halimeda <- (algae.div.seabirds$Halimeda.discoidea + algae.div.seabirds$Halimeda.distorta +
+                   algae.div.seabirds$Halimeda.heteromorpha + algae.div.seabirds$Halimeda.minima +
+                     algae.div.seabirds$Halimeda.opuntia)
+genus$Hydroclathrus <- algae.div.seabirds$Hydroclathrus.clathratus
+
+genus$Hydrocoleum <- (algae.div.seabirds$Hydrocoleum.coccineum + algae.div.seabirds$Hydrocoleum.spp)
+genus$Hypena <- algae.div.seabirds$Hypnea.spinella
+genus$Jania <- algae.div.seabirds$Jania.articulata
+genus$Lobophora <- algae.div.seabirds$Lobophora.spp
+genus$Lyngbya <- algae.div.seabirds$Lyngbya.sordida
+genus$Neomeris <- algae.div.seabirds$Neomeris.vanbosseae
+genus$Oscillatoria <- algae.div.seabirds$Oscilllatoria.spp
+genus$Pseudanabaena <- algae.div.seabirds$Pseudanabaena.lonchoides
+genus$Pterocladiella <- algae.div.seabirds$Pterocladiella.caerulescens
+genus$Schizothrix <- algae.div.seabirds$Schizothrix.minuta
+genus$Symploca <- algae.div.seabirds$Symploca.hydnoides
+genus$Turbinaria <- algae.div.seabirds$Turbinaria.ornata
+
+colnames(genus)
+
+print(colnames(genus[,c(6:24, 26:29)]))
+columns <- colnames(genus[,c(6:24, 26:29)])
+
+#Loop
+dat <- genus
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ N15*distance.along.transect + exposure + (1|site.name)"))
+  models[[i]] <- lmer(f, data=dat, na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+#For some reason, pseudanabaena is not able to make a VCV matrix 
+
+```
+
+
+
+```{r}
+#Of all genera, the following are significantly correlated to N15
+
+#1.Dictyosphaeria
+
+genus %>%
+  ggplot(aes(x = N15, y = Dictyosphaeria))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+#2. Dictyota
+
+genus %>%
+  ggplot(aes(x = N15, y = Dictyota))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+#3. Gelidiella
+
+genus %>%
+  ggplot(aes(x = N15, y = Gelidiella))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+#Negative relationship
+
+
+#4. Hypnea
+genus %>%
+  ggplot(aes(x = N15, y = Hypena))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+#Negative
+
+
+#5. Lyngbya
+
+genus %>%
+  ggplot(aes(x = N15, y = Lyngbya))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+#6. Neomeris
+
+genus %>%
+  ggplot(aes(x = N15, y = Neomeris))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+#7. Oscillatoria
+genus %>%
+  ggplot(aes(x = N15, y = Oscillatoria))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+#8.Symploca
+genus %>%
+  ggplot(aes(x = N15, y = Symploca))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+
+#Turbinaria (was not significant just wanna see)
+genus %>%
+  ggplot(aes(x = N15, y = Turbinaria))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+#Lobophora(was not significant just wanna see)
+genus %>%
+  ggplot(aes(x = N15, y = Lobophora))+
+  geom_point(aes(color = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+
+
+```

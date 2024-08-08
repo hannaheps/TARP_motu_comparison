@@ -89,6 +89,31 @@ str(water.microbes.seabirds$seabird_level)
 
 We now have the right sample data and phyloseq objects
 
+
+#Can we add the richness, evenness & shannon??
+```{r}
+
+#First pull in the rarefied data from the alpha diversity script (water-alphadiv-nov21.R)
+
+physeq.water.r <- readRDS("../../alpha-div/output/physeq-water-nov21-rarefied.RDS")
+physeq.coral.r <- readRDS("../../alpha-div/output/physeq-coral-nov21-rarefied.RDS")
+
+erich.coral <- estimate_richness(physeq.coral.r, measures = c("Observed", "Shannon"))
+erich.coral$evenness <- erich.coral$Shannon/log(erich.coral$Observed)
+
+erich.water <- estimate_richness(physeq.water.r, measures = c("Observed", "Shannon"))
+erich.water$evenness <- erich.water$Shannon/log(erich.water$Observed)
+
+#Can we add these back into the above dataframe?
+water.microbes.seabirds <- cbind(water.microbes.seabirds, erich.water)
+colnames(water.microbes.seabirds)
+
+coral.microbes.seabirds <- cbind(coral.microbes.seabirds, erich.coral)
+colnames(coral.microbes.seabirds)
+
+
+```
+
 #Coral NMDS
 
 
@@ -123,87 +148,133 @@ ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
 ```
 
 
-```{r}
-
 #Let's make it pretty
-#extract scores (non-rotated)
-nmds.coral.scores <- as.data.frame(scores(nmds.coral)$sites)
+
+```{r}
+colnames(coral.microbes.seabirds)
+en <- coral.microbes.seabirds[, c(23, 52:55)]
+env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
+
+plot(nmds.rotate)
+plot(env.fit)
+
+en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algae N15", "Richness", "Shannon", "Evenness"))
+en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
+
+nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
 
 #combine with other relevant data
-nmds.coral.scores$seabird_level <- coral.microbes.seabirds$seabird_level
-nmds.coral.scores$motu <- coral.microbes.seabirds$motu
-nmds.coral.scores$N15 <- coral.microbes.seabirds$algae.N15
-nmds.coral.scores$site.name <- coral.microbes.seabirds$site.name
-nmds.coral.scores$distance.along.transect <- coral.microbes.seabirds$distance.along.transect
+nmds.scores$N15 <- coral.microbes.seabirds$algae.N15
+nmds.scores$site.name <- coral.microbes.seabirds$site.name
+nmds.scores$distance.along.transect <- coral.microbes.seabirds$distance.along.transect
 
-#NMDS plots - rotated:----
-#get hull data - seabird level:
-aie.ro <- nmds.coral.scores[nmds.coral.scores$motu == "aie", ][chull(nmds.coral.scores[nmds.coral.scores$motu == 
-                                                                                      "aie", c("NMDS1", "NMDS2")]), ]
-
-reiono.ro <- nmds.coral.scores[nmds.coral.scores$motu == "reiono", ][chull(nmds.coral.scores[nmds.coral.scores$motu == 
-                                                                                      "reiono", c("NMDS1", "NMDS2")]), ]
-
-rimatuu.ro <- nmds.coral.scores[nmds.coral.scores$motu == "rimatuu", ][chull(nmds.coral.scores[nmds.coral.scores$motu == 
-                                                                                        "rimatuu", c("NMDS1", "NMDS2")]), ]
-
-hull.data.ro <- rbind(aie.ro, reiono.ro, rimatuu.ro)  #combine
-hull.data.ro
-
-
-##get arrows:
-ord.fit.sb.ro<-envfit(nmds.coral ~ algae.N15, data = coral.microbes.seabirds, na.rm=TRUE)
-
-algae.fit.scores.ro <- as.data.frame(scores(ord.fit.sb.ro, display = "vectors"))
-fit.scores.algae <- cbind(algae.fit.scores.ro, variable = rownames(algae.fit.scores.ro))
-
-ggplot() +
-  geom_point(data = nmds.coral.scores, aes (x = NMDS1, y = NMDS2, color = N15), stat = "identity", size = 3, alpha = 0.9) +
-  geom_segment(data = fit.scores.algae,
+coral.microbe.nmds.plot.rotate <-
+ggplot() + 
+  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15), stat="identity", size=5, alpha = .9) +
+  scale_color_distiller(palette = "YlGnBu") +
+  geom_segment(data = en_coord_cont,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
-  geom_text(data = fit.scores.algae, aes(x = NMDS1, y = NMDS2, label = fit.scores.algae$variable), size = 3, vjust = "outward") +
-  theme_bw() + 
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward", fontface = "bold")+
+  #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+       #shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
+  #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
+           # size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
+theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.89, .85)) 
-  
-  
+        legend.position = c(.1, .8)) 
 
-
+coral.microbe.nmds.plot.rotate
+ggsave(coral.microbe.nmds.plot.rotate, file = "../output/1b_NMDS_CoralMicrobe_div.jpg",
+    width = 7, height = 5)
 
 ```
 
+##Let's do the same with Water Microbes
+```{r}
+nmds.water <- ordinate(physeq.water.r, "NMDS", "bray", trymax = 500, k = 2, autotransform = FALSE)
+nmds.water #2 axes stress = 0.0348, a little weak but still below 0.2
+
+#rotate
+
+plot(nmds.water)
+scores(nmds.water, display="sites")
+
+#look at plot and centroids with ordfit
+
+plot(nmds.water)
+ord.fit.water <-envfit(nmds.water~algae.N15, data = water.microbes.seabirds, na.rm=TRUE)
+ord.fit.water
+plot(ord.fit.water)
+
+#rotate by algae n15 so can more easily interpret----
+nmds.rotate<-MDSrotate(nmds.water, water.microbes.seabirds$algae.N15, na.rm = TRUE)
+nmds.rotate
+plot(nmds.rotate)
+
+ord.fit<-envfit(nmds.rotate~algae.N15, data = water.microbes.seabirds, na.rm=TRUE)
+ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
+
+```
 
 
 ```{r}
-#PCOA
+colnames(water.microbes.seabirds)
+en <- water.microbes.seabirds[, c(20, 49:52)]
+env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
 
-?ordinate()
+plot(nmds.rotate)
+plot(env.fit)
 
-pcoa.coral <- ordinate(physeq.coral.r, "PCoA", "bray", trymax = 500, k = 2, autotransform = FALSE)
-pcoa.coral
+en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algae N15", "Richness", "Shannon", "Evenness"))
+en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
 
-# All components could be found here: 
-pcoa.coral$vectors
-# But we only need the first two to demonstrate what we can do:
-pcoa.coral.df <- data.frame(pcoa1 = pcoa.coral$vectors[,1], 
-                                  pcoa2 = pcoa.coral$vectors[,2])
+nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
 
-pcoa.coral.df <- cbind(pcoa.coral.df, algae.N15 = coral.microbes.seabirds$algae.N15)
+#combine with other relevant data
+nmds.scores$N15 <- water.microbes.seabirds$algae.N15
+nmds.scores$site.name <- water.microbes.seabirds$site.name
+nmds.scores$distance.along.transect <- water.microbes.seabirds$distance.along.transect
 
+water.microbe.nmds.plot.rotate <-
+ggplot() + 
+  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15), stat="identity", size=5, alpha = .9) +
+  scale_color_distiller(palette = "YlGnBu") +
+  geom_segment(data = en_coord_cont,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm"))) +
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward", fontface = "bold")+
+  #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+   #    shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
+  #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
+  #          size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
+theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.88, .8)) 
 
-# Creates a plot
-ggplot(data = pcoa.coral.df, aes(x=pcoa1, y=pcoa2, color = algae.N15)) + 
-  geom_point(size = 3) +
-  labs(x = "PCoA Axis 1",
-       y = "PCoA Axis 2",
-       title = "PCoA of Microbial Communities vs  N15") +
-  theme_bw()
+water.microbe.nmds.plot.rotate
+ggsave(water.microbe.nmds.plot.rotate, file = "../output/2b_NMDS_WaterMicrobe_div.jpg",
+    width = 7, height = 5)
+
 
 ```
 
+
+```{r}
+
+
+
+```
 
 
 

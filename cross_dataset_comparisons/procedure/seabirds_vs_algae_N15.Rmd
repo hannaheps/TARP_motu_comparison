@@ -47,9 +47,9 @@ sum.algae
 #spread data to get values for each distance from shore
 sum.algae <- sum.algae %>% spread(Distance_to_shore, mean.N15)
 
-sum.algae <- sum.algae %>% rename(c("10" = "N.15_at_10m", 
-                                    "20" = "N.15_at_20m", "30" = "N.15_at_30m",
-                                    "40" = "N.15_at_40m"))
+sum.algae <- sum.algae %>% rename(c("N.15_at_10m" = "10", 
+                                    "N.15_at_20m" = "20",  "N.15_at_30m" ="30",
+                                    "N.15_at_40m" = "40"))
 
 
 #Create a site.name that combines motu and exposure in order to merge with seabrid data
@@ -64,7 +64,7 @@ algae.seabirds <- algae.seabirds[,-1] #This is just to remove duplicate columns
 View(algae.seabirds)
 
 #save combined data
-write.csv(algae.seabirds, "../output/n15_seabirds_combined_no_iti.csv")
+#write.csv(algae.seabirds, "../output/n15_seabirds_combined_no_iti.csv")
 
 ```
 
@@ -256,10 +256,195 @@ response_plot_n15_sbonly<-
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank())#,
-        legend.position = "none" )
+       # legend.position = "none" )
 
 response_plot_n15_sbonly
 #ggsave(response_plot_n15_sbonly, file = "../output/seabird-algaen15/n15_seabirdbiomass_only_model.jpg", width = 7, height = 5)
 
-````
+```
+
+##How about plotting by motu - or "reference" "recovering" "unrestored" using the same colours as seabird level
+
+#algal N15 on y, distance from shore on x, grouped box plots by motu
+
+```{r}
+
+n15.all.seabirds$reststat <- n15.all.seabirds$Motu
+
+n15.all.seabirds$reststat[n15.all.seabirds$reststat == "Aie"] <- "reference"
+n15.all.seabirds$reststat[n15.all.seabirds$reststat == "Reiono"] <- "recovering"
+n15.all.seabirds$reststat[n15.all.seabirds$reststat == "Rimatuu"] <- "unrestored"
+
+n15.all.seabirds <- n15.all.seabirds %>% mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored"))
+
+N15.boxplot <- ggplot(data = n15.all.seabirds, aes(x = Distance_to_shore, y = N15, fill = reststat) )+
+  geom_boxplot(alpha = 0.6) +
+  geom_point(alpha = 0.5, position = position_dodge(width = 0.75), aes(group = reststat, color = reststat)) +
+  ylab(expression(italic(delta)^15*N)) +
+  scale_fill_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E")) + # red-yellow-green
+  scale_colour_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E")) +
+  xlab("Distance to Shore")+
+  #labs(color='Distance \nFrom Shore (m)', fill = 'Distance \nFrom Shore (m)') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(.88, .85))
+
+ggsave(N15.boxplot, file = "../output/seabird-algaen15/N15_boxplot.jpg",
+    width = 7, height = 5)
+
+```
+
+#Let's make a line plot
+
+```{r}
+
+n15.line.sum <- plyr::ddply(n15.all.seabirds, c("Distance_to_shore", "reststat"), summarise,
+             mean_n15 = mean(N15), 
+             n_n15 = length(N15), 
+             se_n15 = sd(N15)/sqrt(n_n15))
+
+n15.line.sum <- n15.line.sum %>% mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored"))
+
+N15.lineplot <- ggplot(data = n15.line.sum, aes(x = Distance_to_shore, y = mean_n15, fill = reststat, color = reststat, group = reststat) )+
+  #geom_boxplot(alpha = 0.6) +
+  geom_point(alpha = 0.6,  aes(color = reststat)) +
+  geom_errorbar(aes(ymin = (mean_n15-se_n15), ymax = (mean_n15+se_n15)), alpha = .5, width = 0.1)+
+  geom_line(alpha = .5)+
+  ylab(expression(italic(delta)^15*N)) +
+  #scale_fill_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E")) + # red-yellow-green
+  scale_colour_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E")) +
+  xlab("Distance to Shore")+
+  #labs(color='Distance \nFrom Shore (m)', fill = 'Distance \nFrom Shore (m)') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(.88, .85))
+
+ggsave(N15.lineplot, file = "../output/seabird-algaen15/N15_lineplot.jpg",
+    width = 7, height = 5)
+
+```
+
+
+#N15 restoration status models NOT seabird level
+
+```{r}
+mod.lme.rest <- lme(N15 ~ reststat*Distance_to_shore + Exposure, random = ~1|site.name, n15.all.seabirds, method = "REML")
+
+mod.lme.rest.noexp <- lm(N15 ~ reststat*Distance_to_shore + Exposure + site.name, data =n15.all.seabirds )
+anova(mod.lme.rest.noexp)
+#Trial an optimized version (more complex)
+mod.lme.rest2 <- lme(N15 ~ reststat*Distance_to_shore + Exposure, random = ~ seabird_level | site.name, n15.all.seabirds, 
+                         method = "REML",control = lmeControl(opt = "optim", method = "BFGS"))
+#Check AIC values & model fit
+anova(mod.lme.rest mod.lme.rest2)  #lme.rest is better AIC value
+
+plot_grid(plot_model(mod.lme.rest, type = "diag")) #nice distribution
+plot(mod.lme.rest) #fit looks great
+
+
+#test statistics
+summary(mod.lme.rest)
+Anova(mod.lme.rest)
+#Response: N15
+#                             Chisq Df Pr(>Chisq)    
+#reststat                    1.4510  2   0.484072    
+#Distance_to_shore          60.0030  3   5.87e-13 ***
+#Exposure                    0.0014  1   0.969873    
+#reststat:Distance_to_shore 18.0662  6   0.006069 ** 
+anova(mod.lme.rest)
+	
+        #numDF denDF F-value  p-value
+#(Intercept)	1	53	69.92763	<.0001
+#reststat	2	2	0.76037	0.5681
+#Distance_to_shore	3	53	20.00729	<.0001
+#Exposure	1	2	0.00672	0.9421
+#reststat:Distance_to_shore	6	53	3.01104	0.0132
+
+vif(mod.lme.rest)
+plot_summs(mod.lme.rest)
+
+```
+
+```{r}
+
+emmeans(mod.lme.rest, list(pairwise ~ reststat*Distance_to_shore), type = "response", adjust = "fdr")
+
+
+plot.data.rest <-emmip(mod.lme.rest, ~ reststat*Distance_to_shore,
+          type = "response", CIs = TRUE, plotit=FALSE)
+
+plot.data.rest
+
+
+
+response.plot.rest<-
+  ggplot(data = plot.data.rest, aes(x = Distance_to_shore, y = yvar, color = reststat, fill = reststat, group = reststat) )+
+#  geom_point(pch = 4,  position = position_dodge(.3))+
+  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 2, size = 0.2, position = position_dodge(.1)) + #,  position = position_dodge(.3) 
+ # geom_point(data = fishn15.seabirds.cond.r, 
+           #  aes(y = n15, x = seabird_level), size = 2.5, alpha = .5,  position = position_dodge(.3))+ 
+    geom_line(alpha = .5 ,  position = position_dodge(.1))+
+  #scale_fill_manual(values = my_colors)+
+ # scale_color_manual(values = my_colors) +
+  ylab(expression(italic(delta)^15*N))+
+#scale_y_continuous(labels = scales::label_percent(accuracy = .1, scale = 1),  limits = c(0, 100), expand = expansion(0, 0))+
+  scale_fill_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+    scale_colour_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+#low-mid-high = red-yellow-green
+  xlab("Distance From Shore (m)")+
+  #labs(color='Seabird Level', fill = 'Seabird Level') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank() ,
+        legend.position = c(0.88, 0.88) )
+
+response.plot.rest
+ggsave(response.plot.rest, file = "../output/seabird-algaen15/n15_restorationstat_by_distance_model.jpg", width = 7, height = 5)
+
+
+
+
+```
+
+
+```{r}
+
+n15.all.seabirds$breeding_biomass_kgha_side
+
+mod.lme.breeding <- lme(N15 ~ breeding_biomass_kgha_side*Distance_to_shore + Exposure, random = ~1|site.name, n15.all.seabirds, method = "REML")
+
+plot_grid(plot_model(mod.lme.breeding, type = "diag")) #nice distribution
+plot(mod.lme.breeding) #fit looks great
+
+#test statistics
+summary(mod.lme.breeding)
+Anova(mod.lme.breeding)
+#Response: N15
+#                                               Chisq Df Pr(>Chisq)    
+#breeding_biomass_kgha_side                    5.1355  1    0.02344 *  
+#Distance_to_shore                            67.7978  3  1.264e-14 ***
+#Exposure                                      1.3173  1    0.25108    
+#breeding_biomass_kgha_side:Distance_to_shore 24.2539  3  2.211e-05 ***
+
+anova(mod.lme.breeding)
+#(Intercept)	1	56	168.98156	<.0001
+#breeding_biomass_kgha_side	1	3	3.55608	0.1558
+#Distance_to_shore	3	56	22.67877	<.0001
+#Exposure	1	3	1.32052	0.3338
+#breeding_biomass_kgha_side:Distance_to_shore	3	56	8.08464	0.0001
+
+vif(mod.lme.breeding)
+plot_summs(mod.lme.breeding)
+
+```
+
+
+
 
