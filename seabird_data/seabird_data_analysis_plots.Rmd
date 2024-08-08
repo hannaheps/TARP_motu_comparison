@@ -385,78 +385,63 @@ seabird_rat_log_int_plot
 
 ```
 
-
-
-#maybe show plots of raw values and model estimates - NO INTERACTIONS
+#try alternate data viz option:
 ```{r}
 
-#emmeans plot----
-plot(emmeans(sb_br_bio_space_mod_log_lm, ~ rat.eradication.status,
-          type = "response"))
-
-emmip(sb_br_bio_space_mod_log_lm, ~ rat.eradication.status,
-          type = "response", CIs = TRUE)+
-   geom_point(data = seabird_focal_all_meta_long, 
-             aes(y = breeding_biomass, x = rat.eradication.status, shape = protection, color = spatial_scale, fill = spatial_scale))+
-  theme_bw()
-
-#response plot----
-plot_data<-emmip(sb_br_bio_space_mod_log_lm, ~ rat.eradication.status,
-          type = "response", CIs = TRUE, plotit=FALSE)%>%
-  mutate(rat.eradication.status = fct_relevel(rat.eradication.status, c("None", "eradicated_2018", "eradicated_2022")))
-plot_data
-
-my_colors <- RColorBrewer::brewer.pal(9, "Blues")[c(2, 4, 6, 8)]
-
-seabird_rat_response_plot<-
-  ggplot(data = plot_data, aes(x = rat.eradication.status, y = yvar))+
-  geom_point(pch = 4)+
-  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0) + 
-  geom_point(data = seabird_focal_all_meta_long, 
-             aes(y = breeding_biomass, x = rat.eradication.status, shape = protection,                  
-                 color = spatial_scale, fill = spatial_scale), size = 2.5, alpha = .5)+
-  scale_fill_manual(values = my_colors)+
-  scale_color_manual(values = my_colors) +
-  ylab("Seabird breeding biomass (kg/ha)")+
+seabird_rat_log_int_plot_box<-
+  seabird_focal_all_meta_long2%>%
+  mutate(rat.eradication.status = fct_relevel(rat.eradication.status, c('None', 'eradicated_2018', 'eradicated_2022')))%>%
+  ggplot(aes(x = rat.eradication.status, y = log(breeding_biomass+1)))+
+  geom_boxplot(aes(group = rat.eradication.status), alpha = .5, outlier.shape = NA, fill = c('#2F9D3E', '#F2BB05', '#CD1913'))+
+  geom_point(aes(shape = spatial_scale, fill = protection, colour = protection, group = protection), position = position_dodge(0.2), size = 2.5, alpha = .7)+
+  scale_fill_manual(values = c('white','black'), labels = c('windward', 'leeward'))+
+  scale_color_manual(values = c('black','black'), labels = c('windward', 'leeward')) +
+  scale_shape_manual(values = c(22, 24, 23, 21))+
+    ylab(bquote(Seabird~breeding~biomass~(log~kg~ha^-1)))+
+  #ylab("Seabird breeding biomass (log kg/ha)")+
   xlab("")+
-    scale_x_discrete(labels = c('no rats','rats eradicated 2018','rats'))+
+    scale_x_discrete(labels = c('reference','recovering','unrestored'))+
    theme_bw()+
+  labs(shape = "spatial scale", fill = 'exposure', colour = 'exposure')+
+  guides(fill = guide_legend(override.aes = list(shape=22)))+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.9,.7) )
+        legend.position = c(.8,.8),
+        axis.text = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        legend.box = "horizontal",
+        legend.box.background = element_rect(colour = "black"))
+seabird_rat_log_int_plot_box
 
-seabird_rat_response_plot
-
-
-#log plot----
-plot_data_log<-emmip(sb_br_bio_space_mod_log_lm, ~ rat.eradication.status,
-           CIs = TRUE, plotit=FALSE)%>%
-  mutate(rat.eradication.status = fct_relevel(rat.eradication.status, c("None", "eradicated_2018", "eradicated_2022")))
-plot_data_log
-
-
-
-seabird_rat_log_plot<-
-  ggplot(data = plot_data_log, aes(x = rat.eradication.status, y = yvar))+
-  geom_point(pch = 4)+
-  geom_pointrange(aes(ymin = LCL, ymax = UCL), alpha = .3, linewidth = 5, size = 0) + 
-  geom_point(data = seabird_focal_all_meta_long, 
-             aes(y = log(breeding_biomass+1), x = rat.eradication.status, shape = protection, 
-                 color = spatial_scale, fill = spatial_scale), size = 2.5, alpha = .5)+
-  scale_fill_manual(values = my_colors)+
-  scale_color_manual(values = my_colors) +
-  ylab("Seabird breeding biomass (log kg/ha)")+
+#not-log-----
+seabird_rat_int_plot_box<-
+  seabird_focal_all_meta_long2%>%
+  mutate(rat.eradication.status = fct_relevel(rat.eradication.status, c('None', 'eradicated_2018', 'eradicated_2022')))%>%
+  ggplot(aes(x = rat.eradication.status, y = breeding_biomass))+
+  geom_boxplot(aes(group = rat.eradication.status), alpha = .5, outlier.shape = NA, fill = c('#2F9D3E', '#F2BB05', '#CD1913'))+
+  geom_point(aes(shape = spatial_scale, fill = protection, colour = protection, group = protection), position = position_dodge(0.2), size = 2.5, alpha = .7)+
+  scale_fill_manual(values = c('white','black'), labels = c('windward', 'leeward'))+
+  scale_color_manual(values = c('black','black'), labels = c('windward', 'leeward')) +
+  scale_shape_manual(values = c(22, 24, 23, 21))+
+    ylab(bquote(Seabird~breeding~biomass~(kg~ha^-1)))+
   xlab("")+
-    scale_x_discrete(labels = c('no rats','rats eradicated 2018','rats'))+
+    scale_x_discrete(labels = c('reference','recovering','unrestored'))+
    theme_bw()+
+  labs(shape = "spatial scale", fill = 'exposure', colour = 'exposure')+
+  guides(fill = guide_legend(override.aes = list(shape=22)))+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.9,.7) )
-seabird_rat_log_plot
-  
+        legend.position = c(.8,.8),
+        axis.text = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        legend.box = "horizontal",
+        legend.box.background = element_rect(colour = "black"))
+seabird_rat_int_plot_box
+
 ```
+
 
 ##save/print plots - OLD
 ```{r}
@@ -537,6 +522,70 @@ seabird_stack_plots
  #      units = "in",
 #      dpi = 500)
 
+
+##relabel by restoration status----
+sb_dens_stack_plot<-
+sb_dat_focal_nests_motu_sp%>%
+  ggplot(aes(fill = SpeciesName, y = Density_ha, x = Motu))+
+  geom_bar(position = "stack", stat =  "identity")+
+  ylab("Seabird breeding density/ha")+
+  xlab("")+
+  scale_fill_viridis_d( name = "Species",
+                                            breaks=c("Aminutus",  "Astolidus", "Galba",  "Ssula"),
+                       labels=c("Anous minutus (black noddy)", "Anous stolidus (brown noddy)", "Gygis alba (white tern)", "Sula sula (red-footed booby)")
+                    )+ 
+  #  scale_fill_brewer(palette = "Set2")+
+ scale_x_discrete(labels = c('reference','recovering','unrestored'))+
+  theme_bw()+
+ theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+       legend.position = c(.75,.8),
+      axis.text=element_text(size=12),
+      axis.title=element_text(size=12)
+       )
+sb_dens_stack_plot
+
+
+
+sb_bio_stack_plot<-
+sb_dat_focal_nests_motu_sp%>%
+  ggplot(aes(fill = SpeciesName, y = biomass_kg_ha, x = Motu))+
+  geom_bar(position = "stack", stat =  "identity")+
+  ylab("Seabird breeding biomass kg/ha")+
+  xlab("")+
+ # scale_fill_manual(values = c("#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3"), #rcolorbrewer - set2, colorblind friendly
+ #                   name = "Species", breaks=c("Aminutus",  "Astolidus", "Galba",  "Ssula"),
+ #                      labels=c("Anous minutus (black noddy)", "Anous stolidus (brown noddy)", "Gygis alba (white tern)", "Sula sula (red-footed booby)")
+  #                  )+ 
+    scale_fill_viridis_d(
+                    name = "Species",
+                                            breaks=c("Aminutus",  "Astolidus", "Galba",  "Ssula"),
+                       labels=c("Anous minutus (black noddy)", "Anous stolidus (brown noddy)", "Gygis alba (white tern)", "Sula sula (red-footed booby)")
+                    )+ 
+   scale_x_discrete(labels = c('reference','recovering','unrestored'))+
+  theme_bw()+
+ theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+      # legend.position = c(.75,.8)
+        legend.position = "none",
+      axis.text=element_text(size=12),
+      axis.title=element_text(size=12)
+        )
+
+sb_bio_stack_plot
+
+
+seabird_stack_plots<-plot_grid(sb_bio_stack_plot, sb_dens_stack_plot, labels = "auto")
+seabird_stack_plots
+
+ggsave(filename = "outputs/seabird_stack_plots_newlabels_colors.jpg", 
+      plot = seabird_stack_plots,
+      width = 10,
+     height = 5,
+      units = "in",
+      dpi = 500)
 
 
 ```
