@@ -908,11 +908,184 @@ ggsave("../output/seabird-microbes/organised_output/14b_truedat_water_synecho.jp
 ```
 
 
+#Top taxa by restoration status (motu)
+```{r}
+
+beta_trans_coral_microbes$reststat <- beta_trans_coral_microbes$motu
+
+beta_trans_coral_microbes$reststat[beta_trans_coral_microbes$reststat == "aie"] <- "reference"
+beta_trans_coral_microbes$reststat[beta_trans_coral_microbes$reststat == "reiono"] <- "recovering"
+beta_trans_coral_microbes$reststat[beta_trans_coral_microbes$reststat == "rimatuu"] <- "unrestored"
+
+
+print(colnames(beta_trans_coral_microbes))
+columns <- c( "RelAbund_Cellvibrionales_Aestuariicella" , "RelAbund_Alteromonadales_Agaribacter",
+              "RelAbund_Cytophagales_Candidatus_Amoebophilus", "RelAbund_Endozoicomonas","RelAbund_Alteromonadales_Glaciecola",
+              "RelAbund_Oceanospirillales_Neptuniibacter","RelAbund_Cellvibrionales_Porticoccus",
+              "RelAbund_Woesearchaeales_SCGC_AAA286E23","RelAbund_Litoricola","RelAbund_Uncultured_Alteromonadaceaeae")
+#Loop
+dat <- beta_trans_coral_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ reststat*Distance_to_shore + Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+```
+
+
+```{r}
+mod.endo <- glmmTMB(RelAbund_Endozoicomonas ~ reststat*Distance_to_shore + Exposure + (1|site.name), data=beta_trans_coral_microbes, family = beta_family(), na.action = na.omit)
+Anova(mod.endo)
+emmeans(mod.endo,list(pairwise ~ reststat + Exposure), type = "response", adjust = "fdr" )
+#`pairwise differences of reststat`
+# 1                       odds.ratio    SE df null t.ratio p.value
+# recovering / reference       2.263 0.850 51    1   2.174  0.0515
+# recovering / unrestored      0.616 0.215 51    1  -1.390  0.1705
+# reference / unrestored       0.272 0.104 51    1  -3.396  0.0040
+
+#pairwise differences of reststat, Exposure`
+# 1                                           odds.ratio     SE df null t.ratio p.value
+# recovering Exposed / reference Exposed           2.263 0.8498 51    1   2.174  0.0820
+# recovering Exposed / unrestored Exposed          0.616 0.2148 51    1  -1.390  0.1968
+# recovering Exposed / recovering Protected        0.623 0.1870 51    1  -1.577  0.1648
+# recovering Exposed / reference Protected         1.409 0.6816 51    1   0.708  0.5165
+# recovering Exposed / unrestored Protected        0.383 0.1728 51    1  -2.127  0.0820
+# reference Exposed / unrestored Exposed           0.272 0.1043 51    1  -3.396  0.0067*
+# reference Exposed / recovering Protected         0.275 0.1315 51    1  -2.699  0.0352*
+# reference Exposed / reference Protected          0.623 0.1870 51    1  -1.577  0.1648
+# reference Exposed / unrestored Protected         0.169 0.0805 51    1  -3.738  0.0067*
+# unrestored Exposed / recovering Protected        1.011 0.4749 51    1   0.023  0.9815
+# unrestored Exposed / reference Protected         2.288 1.1407 51    1   1.659  0.1648
+# unrestored Exposed / unrestored Protected        0.623 0.1870 51    1  -1.577  0.1648
+# recovering Protected / reference Protected       2.263 0.8498 51    1   2.174  0.0820
+# recovering Protected / unrestored Protected      0.616 0.2148 51    1  -1.390  0.1968
+# reference Protected / unrestored Protected       0.272 0.1043 51    1  -3.396  0.0067*
+
+#1C9E77 - color for exposed
+#D76127 - color for protected
+
+beta_trans_coral_microbes <- beta_trans_coral_microbes %>% mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored"))
+
+endoplot <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Endozoicomonas, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab("Endozoicomonas") +
+  xlab("")+
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "none")
+ggsave("../output/seabird-microbes/organised_output/15_truedat_endo_reststat.jpg", plot = endoplot, width = 7, height = 5)
+
+```
+
+```{r}
+mod.nept <- glmmTMB(RelAbund_Oceanospirillales_Neptuniibacter ~ reststat*Distance_to_shore + Exposure + (1|site.name), data=beta_trans_coral_microbes, family = beta_family(), na.action = na.omit)
+Anova(mod.nept)
+emmeans(mod.nept,list(pairwise ~ reststat + Exposure), type = "response", adjust = "fdr" )
+
+beta_trans_coral_microbes <- beta_trans_coral_microbes %>% mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored"))
+
+nept.plot <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Oceanospirillales_Neptuniibacter, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab("Neptuniibacter") +
+  xlab("")+
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(.75,.75))
+ggsave("../output/seabird-microbes/organised_output/16_truedat_nept_reststat.jpg", plot = nept.plot, width = 7, height = 5)
+
+
+
+```
+
+```{r}
+lit.plot <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Litoricola, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab("Litoricola") +
+  xlab("") +
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position ="none")
+ggsave("../output/seabird-microbes/organised_output/17_truedat_litoricola_reststat.jpg", plot = lit.plot, width = 7, height = 5)
 
 
 
 
+```
 
+
+```{r}
+
+altero.plot <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Uncultured_Alteromonadaceaeae, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab("Uncultured \nAlteromonadaceae") +
+  xlab("")+
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "none")
+ggsave("../output/seabird-microbes/organised_output/18_truedat_alteromonadaceae_reststat.jpg", plot = altero.plot, width = 7, height = 5)
+
+```
+
+```{r}
+endoplot
+lit.plot
+altero.plot
+nept.plot
+
+taxa.plot <- cowplot::plot_grid(endoplot, lit.plot, altero.plot, nept.plot, labels = "AUTO", align = 'v')
+ggsave("../output/seabird-microbes/organised_output/19_coral_taxa.jpg", plot = taxa.plot, width = 7, height = 5)
+
+```
+
+
+
+
+```{r}
+
+beta_trans_water_microbes$reststat <- beta_trans_water_microbes$motu
+
+beta_trans_water_microbes$reststat[beta_trans_water_microbes$reststat == "aie"] <- "reference"
+beta_trans_water_microbes$reststat[beta_trans_water_microbes$reststat == "reiono"] <- "recovering"
+beta_trans_water_microbes$reststat[beta_trans_water_microbes$reststat == "rimatuu"] <- "unrestored"
+
+print(colnames(beta_trans_water_microbes))
+columns <- c( "RelAbund_Synechococcus" , "RelAbund_Litoricola", "RelAbund_Prochlorococcus", "RelAbund_SAR86_Clade",
+              "RelAbund_Uncultured_Alteromonadaceaeae", "RelAbund_SAR116_Clade", 
+              "RelAbund_SAR11_CladeIa", "RelAbund_SAR11_CladeIb","RelAbund_Rhodospirillales_AEGEAN_169_marine_group")
+#Loop
+dat <- beta_trans_water_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ reststat*Distance_to_shore + Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+```
 
 
 
