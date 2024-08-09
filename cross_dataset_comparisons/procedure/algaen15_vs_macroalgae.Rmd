@@ -217,6 +217,9 @@ permanova_algae_sblevel
 #Residual                              125  10.9706 0.53618                  
 #Total                                 131  20.4607 1.00000 
 
+
+#Adonis 2 with continuous variable seems to treat it as a simple linear regression where each point is associated with its centroid
+#Functioning as a distance based linear model. 
 permanova_algae_n15<-adonis2(algae.div.seabirds[,5:35] ~ N15 * distance.along.transect  + exposure,  data = algae.div.seabirds, method = "bray", permutations = 999, na.action = na.omit)
 permanova_algae_n15
 #                             Df SumOfSqs      R2       F Pr(>F)    
@@ -697,3 +700,36 @@ genus %>%
 
 
 ```
+```{r}
+genus %>%
+  ggplot(aes(x = motu, y = Turbinaria))+
+  geom_boxplot(aes(fill = distance.along.transect))+
+  geom_smooth(method = "lm")
+
+sum.turb <- plyr::ddply(genus, c("motu"),summarise,
+                        mean = mean(Turbinaria), 
+                   n = length(Turbinaria),
+                   se = sd(Turbinaria)/sqrt(n))
+
+
+dat <- genus
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ motu*distance.along.transect + exposure + (1|site.name)"))
+  models[[i]] <- lmer(f, data=dat, na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+```
+
+
+```{r}
+cor(fish.dens.seabirds.trans_sp,
+      nmds_fish_dens_autoT.rotate$points,
+      use = "complete.obs",
+      method = "pearson")
+```
+
+
+
