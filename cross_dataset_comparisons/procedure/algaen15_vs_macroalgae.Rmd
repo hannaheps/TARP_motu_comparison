@@ -124,14 +124,14 @@ plot(nmds.rotate)
 #ord.fit<-envfit(nmds.rotate~N15, data = algae.div.seabirds, na.rm=TRUE)
 #ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
 
-en <- algae.div.seabirds[, c(1:3,37:39,60:61)]
-env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
+#en <- algae.div.seabirds[, c(1:3,37:39,60:61)]
+#env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
 
-plot(nmds.algae)
-plot(env.fit)
+#plot(nmds.algae)
+#plot(env.fit)
 
-en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
-en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+#en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+#en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
 
 
 ```
@@ -152,17 +152,17 @@ nmds.scores$distance.along.transect <- algae.div.seabirds$distance.along.transec
 
 ##get arrows:
 
-en <- algae.div.seabirds[, c(3,37:39,61)]
-env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
+#en <- algae.div.seabirds[, c(3,37:39,61)]
+env.fit <- envfit(nmds.rotate ~ algae.div.seabirds$N15, permutations = 999, na.rm = TRUE)
 
 plot(nmds.algae)
 plot(env.fit)
 
 en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
-en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algae N15", "Shannon \nDiversity", "Species \nRichness", "Evenness"))
+en_coord_cont = en_coord_cont %>% mutate(var.name = "Algal N15")
 
-en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
-en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
+#en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+#en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
 
 
 
@@ -176,8 +176,8 @@ ggplot() +
   geom_segment(data = en_coord_cont,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
-            size = 3, vjust = "outward", fontface = "bold")+
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.1, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward")+
   #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
        #shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
   #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
@@ -189,7 +189,7 @@ theme_bw() +
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.9, .75)) 
+        legend.position = c(.95, .8)) 
 
 #ggsave("../output/seabird-algaediv/organised_output/1_NMDS_AlgaeDiv.pdf", plot = last_plot())
 
@@ -199,6 +199,7 @@ ggsave(algae.nmds.plot.rotate, file = "../output/seabird-algaediv/organised_outp
 
 
 ```
+
 
 
 
@@ -285,18 +286,21 @@ Anova(richness.lmer)
 #N15:distance.along.transect 24.2590  1  8.421e-07 ***
 
 
-effect_plot(richness.lmer,pred.values = N15 *distance.along.transect, interval = TRUE, plot.points = TRUE, data = algae.div.seabirds)
+#effect_plot(richness.lmer,pred.values = N15 *distance.along.transect, interval = TRUE, plot.points = TRUE, data = algae.div.seabirds)
 
 
 
-p.lmer.rich <- plot_model(richness.lmer, type = "pred", terms = c("N15", "distance.along.transect"))
+p.lmer.rich <- sjPlot::plot_model(richness.lmer, type = "pred", terms = c("N15", "distance.along.transect"))
 
 
 p.lmer.rich <- p.lmer.rich +
   ylab("Macroalgal Species Richness") +
   xlab(expression(italic(delta)^15*N))+
-  scale_fill_manual(values = c("10" = "#8CC7A1", "40" = "#74226C")) +
-  scale_colour_manual(values = c("10" = "#8CC7A1", "40" = "#74226C")) +
+  #scale_fill_manual(values = c("10" = "#8CC7A1", "40" = "#74226C")) +
+  #scale_colour_manual(values = c("10" = "#8CC7A1", "40" = "#74226C")) +
+  scale_color_viridis_d() +
+  scale_fill_viridis_d() +
+  ggtitle(label = NULL) +
   geom_point(data=algae.div.seabirds, inherit.aes = FALSE, aes(x=N15,
                                                      y=richness, color = distance.along.transect)) +                
   theme_bw() +
@@ -309,8 +313,9 @@ p.lmer.rich
 
 ggsave("../output/seabird-algaediv/organised_output/2a_model_Richness_vs_N15.jpg", plot = p.lmer.rich, width = 7, height = 5)
 
+```
 
-
+```{r}
 vif(richness.lmer)
 plot(richness.lmer)
 
@@ -332,7 +337,7 @@ levels(algae.div.seabirds$distance.along.transect)
 
 p.lmer.rich.2 <- emmip(richness.lmer, distance.along.transect ~ N15, at = mylist, CIs = TRUE)
 
-ggsave("../output/seabird-algaediv/organised_output/2_linearpred_distance_vs_N15.jpg", plot = p.lmer.rich.2, width = 7, height = 5)
+#ggsave("../output/seabird-algaediv/organised_output/2_linearpred_distance_vs_N15.jpg", plot = p.lmer.rich.2, width = 7, height = 5)
 
 
 
@@ -503,6 +508,15 @@ ggsave("../output/seabird-algaediv/organised_output/4b_linearpred_distance_vs_N1
 
 ##stacked bar plot
 ```{r}
+#add a restoration status column 
+algae.div.seabirds$reststat <- algae.div.seabirds$motu
+algae.div.seabirds$reststat[algae.div.seabirds$reststat == "Aie"] <- "reference"
+algae.div.seabirds$reststat[algae.div.seabirds$reststat == "Reiono"] <- "recovering"
+algae.div.seabirds$reststat[algae.div.seabirds$reststat == "Rimatuu"] <- "unrestored"
+
+algae.div.seabirds <- algae.div.seabirds %>% mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored"))
+
+
 #Make into a long form as a relative cover?
 relcover.long <- algae.div.seabirds %>% gather(key = species.names, value = abundance, colnames(algae.div.seabirds[, 5:35]))
 
@@ -513,9 +527,12 @@ relcover.long$species.name.full <- relcover.long $species.names
 relcover.long  <- separate(data = relcover.long , col = species.name.full, into = c("genus", "species"), sep = "\\.")
 head(relcover.long)
 
+#galaxaura needs to be capitalized
+relcover.long$genus[relcover.long$genus == "galaxaura"] <- "Galaxaura"
+
 ##Can I plot against seabird_level and color by genus?
 
-algae.sum <- ddply(relcover.long , c("seabird_level", "genus"),summarise, 
+algae.sum <- ddply(relcover.long , c("reststat", "genus"),summarise, 
                    mean_abund = mean(abundance),
                    n_abund = length(abundance),
                    se_abund = sd(abundance)/sqrt(n_abund))
@@ -524,18 +541,21 @@ algae.sum <- ddply(relcover.long , c("seabird_level", "genus"),summarise,
 algae.sum <- algae.sum[algae.sum$mean_abund != 0, ]
 
 algal.genus.plot <- ggplot(algae.sum, aes(x = genus, y = mean_abund)) +
-  geom_point(position = position_dodge(width = 1), alpha = 0.5, aes(color = algae.sum$seabird_level)) +
-  geom_errorbar(position = position_dodge(width = 1), alpha = 0.5, aes(ymin = (mean_abund-se_abund), ymax = (mean_abund + se_abund), color = algae.sum$seabird_level)) +
+  geom_point(position = position_dodge(width = 1), alpha = 0.5, aes(color = algae.sum$reststat)) +
+  geom_errorbar(position = position_dodge(width = 1), alpha = 0.5, aes(ymin = (mean_abund-se_abund), ymax = (mean_abund + se_abund), color = algae.sum$reststat)) +
+  scale_fill_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+  scale_colour_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+
   ylab("Mean Percent Cover (%) \n") +
   xlab("\n Macroalgal Genus") +
-  labs(color = 'Seabird Biomass', fill = 'Seabird Biomass') +
+  labs(color = 'Restoration Status', fill = 'Restoration Status') +
   #scale_color_manual(labels = c("low", "mid", "high")
                      #,values = c("blue3", "gold", "red3")) +
   theme_classic() +
+  theme(legend.position = c(0.15, 0.75)) +
   theme(axis.text.x = element_text(angle = 45, hjust=1))
 algal.genus.plot
 
-ggsave(algal.genus.plot, file = "../output/seabird-algaediv/organised_output/5_macroalgae_by_genus_seabirdlevel.jpg", width = 7, height = 5)
+ggsave(algal.genus.plot, file = "../output/seabird-algaediv/organised_output/5b_macroalgae_by_genus_reststatus.jpg", width = 7, height = 5)
 
 
 #What about a stacked barplot
@@ -545,19 +565,20 @@ spec <- brewer.pal(4, "Spectral")
 spec <- colorRampPalette(spec)(24)
 
 # Plot it
-macroalgal.stack <- ggplot(relcover.long , aes(fill = genus, y = abundance, x = seabird_level))+
+macroalgal.stack <- ggplot(relcover.long , aes(fill = genus, y = abundance, x = reststat))+
   geom_bar(position = "fill", stat =  "identity")+
   #scale_fill_brewer(palette = "Spectral")+
   scale_fill_manual(values = spec) +
-  xlab("Seabird level")+
-  ylab("Relative Percent Cover")+
+  xlab("") +
+  ylab("Relative Macroaglal Percent Cover")+
+  labs(fill = 'Genus') +
     theme_bw()+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1)
         )
-
+macroalgal.stack
 ggsave(macroalgal.stack, file = "../output/seabird-algaediv/organised_output/6_macroalgae_stacked_plot.jpg", width = 7, height = 5)
   
 ```
@@ -723,13 +744,30 @@ for (i in columns) {
 
 ```
 
-
+#Can we correlate with the axes?
 ```{r}
-cor(fish.dens.seabirds.trans_sp,
-      nmds_fish_dens_autoT.rotate$points,
+cor.genus <- cor(genus[, c(6:29)],
+      nmds.scores[, c(1:2)],
       use = "complete.obs",
-      method = "pearson")
-```
+      method = "spearman")
 
+View(cor.genus)
+write.csv(cor.genus, "../output/seabird-algaediv/organised_output/nmds_axis_correlation_by_genus_spearman.csv")
+
+corrplot(cor.genus)
+
+#what about combinng into a single matrix
+nmds.gen <- merge(genus, nmds.scores)
+
+
+cor(nmds.gen[,c(6:31)], use = "complete.obs", method  = "spearman") 
+
+pdf(file = "../output/seabird-algaediv/organised_output/7_corrplot_NMDSaxes_genus_spearman.pdf")
+corrplot(cor.genus, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "r", cl.ratio = .5)
+dev.off()
+
+
+```
 
 
