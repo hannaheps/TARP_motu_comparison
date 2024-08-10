@@ -152,14 +152,14 @@ ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
 
 ```{r}
 colnames(coral.microbes.seabirds)
-en <- coral.microbes.seabirds[, c(23, 52:55)]
-env.fit <- envfit(nmds.rotate, en, permutations = 999, na.rm = TRUE)
+#en <- coral.microbes.seabirds[,23]
+env.fit <- envfit(nmds.rotate ~ coral.microbes.seabirds$algae.N15, permutations = 999, na.rm = TRUE)
 
 plot(nmds.rotate)
 plot(env.fit)
 
 en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
-en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algae N15", "Richness", "Shannon", "Evenness"))
+en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algae N15"))
 en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
 en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
 
@@ -177,8 +177,8 @@ ggplot() +
   geom_segment(data = en_coord_cont,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
-            size = 3, vjust = "outward", fontface = "bold")+
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.15, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward")+
   #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
        #shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
   #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
@@ -187,7 +187,7 @@ theme_bw() +
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.1, .8)) 
+        legend.position = c(.95, .8)) 
 
 coral.microbe.nmds.plot.rotate
 ggsave(coral.microbe.nmds.plot.rotate, file = "../output/1b_NMDS_CoralMicrobe_div.jpg",
