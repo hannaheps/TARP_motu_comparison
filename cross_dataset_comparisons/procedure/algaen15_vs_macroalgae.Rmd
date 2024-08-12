@@ -457,7 +457,13 @@ Anova(shannon.n15.lmm)
 #distance.along.transect      2.5142  1   0.112828    
 #exposure                     0.0233  1   0.878597    
 #N15:distance.along.transect 22.9670  1  1.648e-06 ***
-
+anova(shannon.n15.lmm)
+#Analysis of Variance Table
+#                            npar  Sum Sq Mean Sq F value
+#N15                            1 1.35590 1.35590 33.5869
+#distance.along.transect        1 0.10121 0.10121  2.5071
+#exposure                       1 0.00267 0.00267  0.0661
+#N15:distance.along.transect    1 0.92718 0.92718 22.9670
 vif(shannon.n15.lmm)
 plot(shannon.n15.lmm)
 
