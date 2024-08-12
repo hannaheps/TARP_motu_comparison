@@ -270,13 +270,42 @@ ggsave(water.microbe.nmds.plot.rotate, file = "../output/2b_NMDS_WaterMicrobe_di
 ```
 
 
+#Distance based linear models (adonis2)
 ```{r}
 
+#Make a bray curtis dissimlarity matrix first
+bc.coral <- phyloseq::distance(physeq.coral.r, method = "bray")
 
+
+distlm_coralmicro_n15<-vegan::adonis2(bc.coral ~ algae.N15 * distance.along.transect  + Exposure,  data = coral.microbes.seabirds, method = "bray", permutations = 999, na.action = na.omit)
+distlm_coralmicro_n15
+
+#                                  Df SumOfSqs      R2      F Pr(>F)
+#algae.N15                          1   0.2098 0.01173 0.7142  0.596
+#distance.along.transect            3   0.6739 0.03768 0.7649  0.697
+#Exposure                           1   0.3549 0.01984 1.2084  0.248
+#algae.N15:distance.along.transect  3   1.0799 0.06039 1.2258  0.256
+#Residual                          53  15.5649 0.87036              
+#Total                             61  17.8834 1.00000 
 
 ```
 
 
+```{r}
+bc.water <- phyloseq::distance(physeq.water.r, method = "bray")
 
+
+distlm_watermicro_n15<-vegan::adonis2(bc.water ~ algae.N15 * distance.along.transect  + Exposure,  data = water.microbes.seabirds, method = "bray", permutations = 999, na.action = na.omit)
+distlm_watermicro_n15
+
+#                                  Df SumOfSqs      R2      F Pr(>F)  
+#algae.N15                          1   0.6714 0.05822 3.6768  0.040 *
+#distance.along.transect            3   0.2161 0.01873 0.3944  0.904  
+#Exposure                           1   0.2263 0.01963 1.2395  0.261  
+#algae.N15:distance.along.transect  3   0.1930 0.01673 0.3522  0.949  
+#Residual                          56  10.2263 0.88669                
+#Total                             64  11.5331 1.00000  
+
+```
 
 
