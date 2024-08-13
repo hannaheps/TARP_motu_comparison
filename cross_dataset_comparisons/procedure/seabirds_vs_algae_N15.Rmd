@@ -114,6 +114,7 @@ dev.off()
 ```{r}
 cor.mat_sb__algae<- cor(x = algae.seabirds[c(3:18)], y =algae.seabirds[c(20:23)], method = "spearman", use = "pairwise.complete.obs")
 
+
 corrplot(cor.mat_sb__algae, type = "full",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "r", cl.ratio = .5)
 
@@ -334,7 +335,7 @@ ggsave(N15.lineplot, file = "../output/seabird-algaen15/N15_lineplot.jpg",
 #N15 restoration status models NOT seabird level
 
 ```{r}
-mod.lme.rest <- lme(N15 ~ reststat*Distance_to_shore + Exposure, random = ~1|site.name, n15.all.seabirds, method = "REML")
+mod.lme.rest <- lme(N15 ~ reststat*Distance_to_shore + reststat*Exposure, random = ~1|site.name, n15.all.seabirds, method = "REML")
 
 mod.lme.rest.noexp <- lm(N15 ~ reststat*Distance_to_shore + Exposure + site.name, data =n15.all.seabirds )
 anova(mod.lme.rest.noexp)
@@ -342,7 +343,7 @@ anova(mod.lme.rest.noexp)
 mod.lme.rest2 <- lme(N15 ~ reststat*Distance_to_shore + Exposure, random = ~ seabird_level | site.name, n15.all.seabirds, 
                          method = "REML",control = lmeControl(opt = "optim", method = "BFGS"))
 #Check AIC values & model fit
-anova(mod.lme.rest mod.lme.rest2)  #lme.rest is better AIC value
+anova(mod.lme.rest, mod.lme.rest2)  #lme.rest is better AIC value
 
 plot_grid(plot_model(mod.lme.rest, type = "diag")) #nice distribution
 plot(mod.lme.rest) #fit looks great
@@ -368,6 +369,11 @@ anova(mod.lme.rest)
 
 vif(mod.lme.rest)
 plot_summs(mod.lme.rest)
+
+#compare to regular lm:
+mod.lm.rest <- lm(N15 ~ reststat*Distance_to_shore+Exposure, n15.all.seabirds)
+summary(mod.lm.rest)
+Anova(mod.lm.rest) #both rest_status and distance to shore significant, no interaction..
 
 ```
 
@@ -414,6 +420,7 @@ ggsave(response.plot.rest, file = "../output/seabird-algaen15/n15_restorationsta
 ```
 
 
+#models by breeding biomass per side
 ```{r}
 
 n15.all.seabirds$breeding_biomass_kgha_side
@@ -443,8 +450,625 @@ anova(mod.lme.breeding)
 vif(mod.lme.breeding)
 plot_summs(mod.lme.breeding)
 
+
 ```
 
 
+##plots by breeding biomass (CB)
+```{r}
 
+#look at emmeans:
+emtrends(mod.lme.breeding,  ~ Distance_to_shore, var = "breeding_biomass_kgha_side")
+#looks like all trending towards positive but overlaps 0. weaker effects at higher distances
+
+test(emtrends(mod.lme.breeding, ~ Distance_to_shore, var = "breeding_biomass_kgha_side", adjust = "fdr"))
+#no p-value actually significant....
+test(emtrends(mod.lme.breeding, ~ Distance_to_shore, var = "breeding_biomass_kgha_side", adjust = "fdr"))
+
+
+#extract emmeans----
+emmeans(mod.lme.breeding, list( ~ Distance_to_shore*breeding_biomass_kgha_side), type = "response", adjust = "fdr")
+
+emmip(mod.lme.breeding, Distance_to_shore ~ breeding_biomass_kgha_side, CIs = TRUE,
+      at = list(breeding_biomass_kgha_side = seq(5.39, 378, by = 10)))
+
+
+emmip(mod.lme.breeding, breeding_biomass_kgha_side ~ Distance_to_shore, CIs = TRUE,
+      at = list(Distance_to_shore = seq(10, 40, by = 10)))
+      
+
+#plot raw data + lines: 
+range(n15.all.seabirds$breeding_biomass_kgha_side)
+
+(mylist2 <- list(
+      breeding_biomass_kgha_side = seq(5.39, 379, by = 1)
+))
+
+plot_dat2<-emmip(mod.lme.breeding, Distance_to_shore ~ breeding_biomass_kgha_side, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2
+
+n15.all.seabirds %>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_jitter(alpha = .5, width = 10)+
+   geom_ribbon(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() 
+
+
+n15_seabird_plot<-
+n15.all.seabirds %>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .1, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore), lwd = 1.1)+
+  xlab("seabird breeding biomass (log kg/ha)")+
+  ylab(expression(algal~delta^15~N))+
+  scale_fill_viridis_d()+
+  scale_color_viridis_d()+
+  labs(color = "distance to shore (m)", fill = "distance to shore (m)")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+n15_seabird_plot
+
+ggsave("../output/seabird-algaen15/algae_n15_vs_seabird_biomass_distance_estplot_lines_points.jpg", plot = n15_seabird_plot, width = 7, height = 5)
+
+
+n15_seabird_plot_mean<-
+n15.all.seabirds %>%
+  dplyr::group_by(Distance_to_shore, breeding_biomass_kgha_side)%>%
+  dplyr::summarize(mean_n15 = mean(N15, na.rm = TRUE),
+            sd_n15 = sd(N15, na.rm = TRUE),
+            se_n15 = sd_n15/length(N15))%>%
+  ungroup()%>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = mean_n15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+
+   geom_ribbon(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+    geom_point(alpha = .5)+
+  geom_errorbar(aes(ymax = mean_n15+se_n15, ymin = mean_n15 -se_n15))+
+  xlab("seabird breeding biomass (log kg/ha)")+
+  ylab(expression(algal~delta^15~N))+
+  scale_fill_viridis_d()+
+  scale_color_viridis_d()+
+  labs(color = "distance to shore (m)", fill = "distance to shore (m)")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+n15_seabird_plot_mean
+
+```
+
+#does log(biomass) model fit better?
+```{r}
+n15.all.seabirds$breeding_biomass_kgha_side
+
+mod.lme.breeding.log <- lmer(N15 ~ log(breeding_biomass_kgha_side)*Distance_to_shore + Exposure + (1|site.name), n15.all.seabirds)
+
+plot_grid(plot_model(mod.lme.breeding.log, type = "diag")) #nice distribution
+plot(mod.lme.breeding.log) #fit looks great
+
+#test statistics
+summary(mod.lme.breeding.log)
+Anova(mod.lme.breeding.log)
+#Response: N15
+#                                               Chisq Df Pr(>Chisq)    
+#log(breeding_biomass_kgha_side)                    4.6630  1    0.03082 *  
+#Distance_to_shore                                 67.1834  3  1.711e-14 ***
+#Exposure                                           0.1158  1    0.73362    
+#log(breeding_biomass_kgha_side):Distance_to_shore 23.5741  3  3.065e-05 ***
+
+anova(mod.lme.breeding.log)
+#(Intercept)	1	56	156.61234	<.0001
+#log(breeding_biomass_kgha_side)	1	3	4.53128	0.1232
+#Distance_to_shore	3	56	22.42959	<.0001
+#Exposure	1	3	0.15193	0.7227
+#log(breeding_biomass_kgha_side):Distance_to_shore	3	56	7.85804	0.0002
+
+vif(mod.lme.breeding.log)
+plot_summs(mod.lme.breeding.log)
+
+
+
+#look at emmeans:
+emtrends(mod.lme.breeding.log,  ~ Distance_to_shore, var = "log(breeding_biomass_kgha_side)", adjust = "fdr")
+#looks like all trending towards positive but overlaps 0. weaker effects at higher distances
+
+test(emtrends(mod.lme.breeding.log, ~ Distance_to_shore, var = "log(breeding_biomass_kgha_side)",  adjust = "fdr", type = "response"))
+#no p-value actually significant....
+
+test(emtrends(mod.lme.breeding.log,  ~ Distance_to_shore, var = "log(breeding_biomass_kgha_side)"))
+#not significant because of fdr correction....
+
+
+emtrends(mod.lme.breeding.log,  pairwise~ Distance_to_shore, var = "log(breeding_biomass_kgha_side)", adjust = "fdr")
+#but, effect of seabirds is different at 10 m from shore compared to all other distances, and different 20 versus 40 m.
+
+
+anova(mod.lme.breeding, mod.lme.breeding.log)  #log is way better AIC value* but different fixed effects, so not meaningful comparison.
+
+emmeans(mod.lme.breeding.log, "Distance_to_shore")
+emmeans(mod.lme.breeding.log, "breeding_biomass_kgha_side", by = "Distance_to_shore")
+emmeans(mod.lme.breeding.log, "Distance_to_shore", by = "breeding_biomass_kgha_side")
+joint_tests(mod.lme.breeding.log, by = "Distance_to_shore", adjust = "fdr" )
+
+
+
+```
+
+
+##plots by breeding biomass - log (CB)
+```{r}
+
+#extract emmeans----
+emmeans(mod.lme.breeding.log, list( ~ breeding_biomass_kgha_side*Distance_to_shore), type = "response", adjust = "fdr")
+
+emmip(mod.lme.breeding.log, Distance_to_shore ~ breeding_biomass_kgha_side, CIs = TRUE,
+      at = list(breeding_biomass_kgha_side = seq(5.39, 378, by = 10)), type = "response")
+
+#plot raw data + lines: 
+range(n15.all.seabirds$breeding_biomass_kgha_side)
+
+(mylist2 <- list(
+      breeding_biomass_kgha_side = seq(5.39, 379, by = 1)
+))
+
+plot_dat2.log<-emmip(mod.lme.breeding.log, Distance_to_shore ~ breeding_biomass_kgha_side, at = mylist2, CIs = TRUE, plotit=FALSE, type = "response")
+plot_dat2.log
+
+n15.all.seabirds %>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_jitter(alpha = .5, width = 4)+
+   geom_ribbon(data = plot_dat2.log, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() 
+
+
+
+plot_dat2.log<-emmip(mod.lme.breeding.log, Distance_to_shore ~ breeding_biomass_kgha_side, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2.log
+
+n15.all.seabirds %>%
+   ggplot(aes(x = log(breeding_biomass_kgha_side), y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() 
+
+n15_seabird_log_plot<-
+n15.all.seabirds %>%
+   ggplot(aes(x = log(breeding_biomass_kgha_side), y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .1, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, color = Distance_to_shore, group = Distance_to_shore), lwd = 1.2)+
+  xlab("seabird breeding biomass (log kg/ha)")+
+  ylab(expression(algal~delta^15~N))+
+  scale_fill_viridis_d()+
+  scale_color_viridis_d()+
+  labs(color = "distance to shore (m)", fill = "distance to shore (m)")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+n15_seabird_log_plot
+
+#ggsave("../output/seabird-algaen15/algae_n15_vs_log_seabird_biomass_distance_estplot_lines_points.jpg", plot = n15_seabird_log_plot, width = 7, height = 5)
+
+```
+
+#try distance to shore as continuous:
+```{r}
+
+n15.all.seabirds.cont<-
+  n15.all.seabirds%>%
+  mutate(Distance_to_shore_c = as.integer(Distance_to_shore)*10)
+
+mod.lme.breeding.cont <- lme(N15 ~ breeding_biomass_kgha_side*Distance_to_shore_c + Exposure, random = ~1|site.name, n15.all.seabirds.cont, method = "REML")
+
+plot_grid(plot_model(mod.lme.breeding.cont, type = "diag")) #nice distribution
+plot(mod.lme.breeding.cont) #fit looks great
+
+#test statistics
+summary(mod.lme.breeding.cont)
+Anova(mod.lme.breeding.cont)
+#Response: N15
+#                                               Chisq Df Pr(>Chisq)    
+#breeding_biomass_kgha_side                    5.1355  1    0.02344 *  
+#Distance_to_shore                            67.7978  3  1.264e-14 ***
+#Exposure                                      1.3173  1    0.25108    
+#breeding_biomass_kgha_side:Distance_to_shore 24.2539  3  2.211e-05 ***
+
+anova(mod.lme.breeding.cont)
+#(Intercept)	1	56	168.98156	<.0001
+#breeding_biomass_kgha_side	1	3	3.55608	0.1558
+#Distance_to_shore	3	56	22.67877	<.0001
+#Exposure	1	3	1.32052	0.3338
+#breeding_biomass_kgha_side:Distance_to_shore	3	56	8.08464	0.0001
+
+vif(mod.lme.breeding.cont)
+plot_summs(mod.lme.breeding.cont)
+
+
+emmip(mod.lme.breeding.cont)
+
+emmip(mod.lme.breeding.cont, Distance_to_shore_c ~ breeding_biomass_kgha_side, CIs = TRUE,  at = list(breeding_biomass_kgha_side = seq(5.39, 378, by = 10), Distance_to_shore_c = c(10, 20, 30, 40)), type = "response")
+
+emtrends(mod.lme.breeding.cont, "Distance_to_shore_c", var = "breeding_biomass_kgha_side")
+emmeans(mod.lme.breeding.cont, pairwise ~ breeding_biomass_kgha_side | Distance_to_shore_c)
+
+test(emtrends(mod.lme.breeding.cont, ~ Distance_to_shore_c, var = "breeding_biomass_kgha_side", adjust = "fdr", type = "response", at = list(Distance_to_shore_c = c(10, 20, 30, 40))))
+
+emtrends(mod.lme.breeding.cont, ~ Distance_to_shore_c, var = "breeding_biomass_kgha_side", adjust = "fdr", type = "response", at = list(Distance_to_shore_c = c(10, 20, 30, 40)))
+
+#with restoration status:----
+mod.lme.rest.cont <- lme(N15 ~ reststat*Distance_to_shore_c + Exposure, random = ~1|site.name, n15.all.seabirds.cont, method = "REML")
+Anova(mod.lme.rest.cont)
+
+
+emmeans(mod.lme.rest.cont, "reststat")
+emmeans(mod.lme.rest.cont, "reststat", by = "Distance_to_shore_c")
+emmeans(mod.lme.rest.cont, "Distance_to_shore_c", by = "reststat")
+joint_tests(mod.lme.rest.cont, by = "reststat", adjust = "fdr" )
+
+test(emtrends(mod.lme.rest.cont, ~ reststat, var = "Distance_to_shore_c", adjust = "fdr", type = "response"))
+test(emmeans(mod.lme.rest.cont, pairwise~"reststat", adjust = "fdr", type = "response"))
+
+
+```
+
+#try with log(n15):
+```{r}
+n15.all.seabirds$breeding_biomass_kgha_side
+
+mod.lme.breeding.log.n15 <- lme(log(N15) ~breeding_biomass_kgha_side*Distance_to_shore + Exposure, random = ~1|site.name, n15.all.seabirds, method = "REML")
+
+plot_grid(plot_model(mod.lme.breeding.log.n15, type = "diag")) #nice distribution
+plot(mod.lme.breeding.log.n15) #fit looks great
+
+#test statistics
+summary(mod.lme.breeding.log.n15)
+Anova(mod.lme.breeding.log.n15)
+#Response: N15
+#                                               Chisq Df Pr(>Chisq)    
+#log(breeding_biomass_kgha_side)                    4.6630  1    0.03082 *  
+#Distance_to_shore                                 67.1834  3  1.711e-14 ***
+#Exposure                                           0.1158  1    0.73362    
+#log(breeding_biomass_kgha_side):Distance_to_shore 23.5741  3  3.065e-05 ***
+
+anova(mod.lme.breeding.log.n15)
+#(Intercept)	1	56	156.61234	<.0001
+#log(breeding_biomass_kgha_side)	1	3	4.53128	0.1232
+#Distance_to_shore	3	56	22.42959	<.0001
+#Exposure	1	3	0.15193	0.7227
+#log(breeding_biomass_kgha_side):Distance_to_shore	3	56	7.85804	0.0002
+
+vif(mod.lme.breeding.log.n15)
+plot_summs(mod.lme.breeding.log.n15)
+
+
+
+#look at emmeans:
+emtrends(mod.lme.breeding.log.n15,  ~ Distance_to_shore, var = "breeding_biomass_kgha_side", type = "response")
+#looks like all trending towards positive but overlaps 0. weaker effects at higher distances
+
+test(emtrends(mod.lme.breeding.log.n15, ~ Distance_to_shore, var = "breeding_biomass_kgha_side", adjust = "fdr", type = "response"))
+#no p-value actually significant....
+
+test(emtrends(mod.lme.breeding.log.n15, ~ breeding_biomass_kgha_side, var = "Distance_to_shore", adjust = "fdr", type = "response"))
+
+
+emmeans(mod.lme.breeding.log.n15, "Distance_to_shore")
+emmeans(mod.lme.breeding.log.n15, "breeding_biomass_kgha_side", by = "Distance_to_shore")
+emmeans(mod.lme.breeding.log.n15, "Distance_to_shore", by = "breeding_biomass_kgha_side")
+
+emmeans(mod.lme.breeding.log.n15, list(pairwise ~ Distance_to_shore*breeding_biomass_kgha_side), type = "response", adjust = "fdr")
+
+
+
+
+plot_dat2.log<-emmip(mod.lme.breeding.log.n15, Distance_to_shore ~ breeding_biomass_kgha_side, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2.log
+
+n15.all.seabirds %>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = log(N15), color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+#   geom_ribbon(data = plot_dat2.log, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() 
+
+```
+
+
+#rest status:
+```{r}
+emmeans(mod.lme.rest, list(pairwise ~ reststat|Distance_to_shore), type = "response", adjust = "fdr")
+emmeans(mod.lme.rest, list(pairwise ~ Distance_to_shore|reststat), type = "response", adjust = "fdr")
+emmeans(mod.lme.rest, list( ~ reststat|Distance_to_shore), type = "response", adjust = "fdr")
+
+emmeans(mod.lme.rest, list( pairwise ~ reststat), type = "response", adjust = "fdr")
+
+```
+
+#try log-log
+```{r}
+mod.lme.breeding.log.log <- lme(log(N15) ~log(breeding_biomass_kgha_side)*Distance_to_shore + Exposure, random = ~1|site.name, n15.all.seabirds, method = "REML")
+
+plot_grid(plot_model(mod.lme.breeding.log.log, type = "diag")) #nice distribution
+plot(mod.lme.breeding.log.log) #fit looks great
+
+#test statistics
+summary(mod.lme.breeding.log.log)
+Anova(mod.lme.breeding.log.log)
+#Response: N15
+#                                               Chisq Df Pr(>Chisq)    
+#log(breeding_biomass_kgha_side)                    4.6630  1    0.03082 *  
+#Distance_to_shore                                 67.1834  3  1.711e-14 ***
+#Exposure                                           0.1158  1    0.73362    
+#log(breeding_biomass_kgha_side):Distance_to_shore 23.5741  3  3.065e-05 ***
+
+anova(mod.lme.breeding.log.log)
+#(Intercept)	1	56	156.61234	<.0001
+#log(breeding_biomass_kgha_side)	1	3	4.53128	0.1232
+#Distance_to_shore	3	56	22.42959	<.0001
+#Exposure	1	3	0.15193	0.7227
+#log(breeding_biomass_kgha_side):Distance_to_shore	3	56	7.85804	0.0002
+
+vif(mod.lme.breeding.log.log)
+plot_summs(mod.lme.breeding.log.log)
+
+
+
+#look at emmeans:
+emtrends(mod.lme.breeding.log.log,  ~ Distance_to_shore, var = "breeding_biomass_kgha_side", type = "response")
+#looks like all trending towards positive but overlaps 0. weaker effects at higher distances
+
+test(emtrends(mod.lme.breeding.log.log, ~ Distance_to_shore, var = "breeding_biomass_kgha_side", adjust = "fdr", type = "response"))
+#no p-value actually significant....
+
+test(emtrends(mod.lme.breeding.log.n15, ~ breeding_biomass_kgha_side, var = "Distance_to_shore", adjust = "fdr", type = "response"))
+
+
+emmeans(mod.lme.breeding.log.log, "Distance_to_shore")
+emmeans(mod.lme.breeding.log.log, "breeding_biomass_kgha_side", by = "Distance_to_shore")
+emmeans(mod.lme.breeding.log.log, "Distance_to_shore", by = "breeding_biomass_kgha_side")
+
+emmeans(mod.lme.breeding.log.log, list(pairwise ~ Distance_to_shore*breeding_biomass_kgha_side), type = "response", adjust = "fdr")
+
+emmeans(mod.lme.breeding.log.log, specs = revpairwise~Distance_to_shore,
+        at=list(Distance_to_shore=c(10,20)) ) 
+
+
+
+plot_dat2.log<-emmip(mod.lme.breeding.log.log, Distance_to_shore ~ breeding_biomass_kgha_side, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2.log
+
+n15.all.seabirds %>%
+   ggplot(aes(x = log(breeding_biomass_kgha_side), y = log(N15), color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+ #  geom_ribbon(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() 
+```
+
+```{r}
+n15.all.seabirds$breeding_biomass_kgha_side
+
+mod.lme.breeding.log <- lmer(N15 ~ log(breeding_biomass_kgha_side)*Distance_to_shore + log(breeding_biomass_kgha_side)*Exposure + (1|site.name), n15.all.seabirds)
+
+plot_grid(plot_model(mod.lme.breeding.log, type = "diag")) #nice distribution
+plot(mod.lme.breeding.log) #fit looks great
+
+#test statistics
+summary(mod.lme.breeding.log)
+Anova(mod.lme.breeding.log)
+#Response: N15
+#                                               Chisq Df Pr(>Chisq)    
+#log(breeding_biomass_kgha_side)                    4.6630  1    0.03082 *  
+#Distance_to_shore                                 67.1834  3  1.711e-14 ***
+#Exposure                                           0.1158  1    0.73362    
+#log(breeding_biomass_kgha_side):Distance_to_shore 23.5741  3  3.065e-05 ***
+
+anova(mod.lme.breeding.log)
+#(Intercept)	1	56	156.61234	<.0001
+#log(breeding_biomass_kgha_side)	1	3	4.53128	0.1232
+#Distance_to_shore	3	56	22.42959	<.0001
+#Exposure	1	3	0.15193	0.7227
+#log(breeding_biomass_kgha_side):Distance_to_shore	3	56	7.85804	0.0002
+
+vif(mod.lme.breeding.log)
+plot_summs(mod.lme.breeding.log)
+
+
+
+#look at emmeans:
+emtrends(mod.lme.breeding.log,  ~ Distance_to_shore|Exposure, var = "log(breeding_biomass_kgha_side)", adjust = "fdr")
+#looks like all trending towards positive but overlaps 0. weaker effects at higher distances
+
+test(emtrends(mod.lme.breeding.log, ~ Distance_to_shore|Exposure, var = "log(breeding_biomass_kgha_side)",  adjust = "fdr", type = "response"))
+#all protected side p-values significant
+
+emtrends(mod.lme.breeding.log,  pairwise~ Distance_to_shore|Exposure, var = "log(breeding_biomass_kgha_side)", adjust = "fdr")
+#but, effect of seabirds is different at 10 m from shore compared to all other distances, and different 20 versus 40 m.
+
+```
+
+
+##plots by breeding biomass - log (CB)
+```{r}
+
+#extract emmeans----
+emmip(mod.lme.breeding.log, Distance_to_shore ~ breeding_biomass_kgha_side|Exposure, CIs = TRUE,
+      at = list(breeding_biomass_kgha_side = seq(5.39, 378, by = 10)), type = "response")
+
+#plot raw data + lines: 
+range(n15.all.seabirds$breeding_biomass_kgha_side)
+
+(mylist2 <- list(
+      breeding_biomass_kgha_side = seq(5.39, 379, by = 1)
+))
+
+plot_dat2.log<-emmip(mod.lme.breeding.log, Distance_to_shore ~ breeding_biomass_kgha_side|Exposure, at = mylist2, CIs = TRUE, plotit=FALSE, type = "response")
+plot_dat2.log
+
+n15.all.seabirds %>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_jitter(alpha = .5, width = 4)+
+   geom_ribbon(data = plot_dat2.log, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() +
+  facet_wrap(~Exposure)
+
+
+
+plot_dat2.log<-emmip(mod.lme.breeding.log, Distance_to_shore ~ breeding_biomass_kgha_side|Exposure, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2.log
+
+n15.all.seabirds %>%
+   ggplot(aes(x = log(breeding_biomass_kgha_side), y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() +
+  facet_wrap(~Exposure)
+
+n15_seabird_log_plot<-
+n15.all.seabirds %>%
+   ggplot(aes(x = log(breeding_biomass_kgha_side), y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .1, lwd=0)+
+ geom_line(data = plot_dat2.log, aes(x = log(breeding_biomass_kgha_side), y = yvar, color = Distance_to_shore, group = Distance_to_shore), lwd = 1.2)+
+  xlab("seabird breeding biomass (log kg/ha)")+
+  ylab(expression(algal~delta^15~N))+
+  scale_fill_viridis_d()+
+  scale_color_viridis_d()+
+  labs(color = "distance to shore (m)", fill = "distance to shore (m)")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+n15_seabird_log_plot
+
+
+```
+
+
+##plots by breeding biomass (CB)
+```{r}
+
+#look at emmeans:
+emtrends(mod.lme.breeding,  ~ Distance_to_shore|Exposure, var = "breeding_biomass_kgha_side")
+#looks like all trending towards positive but overlaps 0. weaker effects at higher distances
+
+test(emtrends(mod.lme.breeding, ~ Distance_to_shore|Exposure, var = "breeding_biomass_kgha_side", adjust = "fdr"))
+#no p-value actually significant....
+test(emtrends(mod.lme.breeding, ~ Distance_to_shore, var = "breeding_biomass_kgha_side", adjust = "fdr"))
+
+
+#extract emmeans----
+emmeans(mod.lme.breeding, list( ~ Distance_to_shore*breeding_biomass_kgha_side), type = "response", adjust = "fdr")
+
+emmip(mod.lme.breeding, Distance_to_shore ~ breeding_biomass_kgha_side, CIs = TRUE,
+      at = list(breeding_biomass_kgha_side = seq(5.39, 378, by = 10)))
+
+
+emmip(mod.lme.breeding, breeding_biomass_kgha_side ~ Distance_to_shore, CIs = TRUE,
+      at = list(Distance_to_shore = seq(10, 40, by = 10)))
+      
+
+#plot raw data + lines: 
+range(n15.all.seabirds$breeding_biomass_kgha_side)
+
+(mylist2 <- list(
+      breeding_biomass_kgha_side = seq(5.39, 379, by = 1)
+))
+
+plot_dat2<-emmip(mod.lme.breeding, Distance_to_shore ~ breeding_biomass_kgha_side, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2
+
+n15.all.seabirds %>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_jitter(alpha = .5, width = 10)+
+   geom_ribbon(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+  theme_bw() 
+
+
+n15_seabird_plot<-
+n15.all.seabirds %>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = N15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .1, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore), lwd = 1.1)+
+  xlab("seabird breeding biomass (log kg/ha)")+
+  ylab(expression(algal~delta^15~N))+
+  scale_fill_viridis_d()+
+  scale_color_viridis_d()+
+  labs(color = "distance to shore (m)", fill = "distance to shore (m)")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+n15_seabird_plot
+
+ggsave("../output/seabird-algaen15/algae_n15_vs_seabird_biomass_distance_estplot_lines_points.jpg", plot = n15_seabird_plot, width = 7, height = 5)
+
+
+n15_seabird_plot_mean<-
+n15.all.seabirds %>%
+  dplyr::group_by(Distance_to_shore, breeding_biomass_kgha_side)%>%
+  dplyr::summarize(mean_n15 = mean(N15, na.rm = TRUE),
+            sd_n15 = sd(N15, na.rm = TRUE),
+            se_n15 = sd_n15/length(N15))%>%
+  ungroup()%>%
+   ggplot(aes(x = breeding_biomass_kgha_side, y = mean_n15, color = Distance_to_shore, fill = Distance_to_shore, group = Distance_to_shore))+
+
+   geom_ribbon(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, ymin = LCL, ymax=UCL, fill = Distance_to_shore), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = breeding_biomass_kgha_side, y = yvar, color = Distance_to_shore, group = Distance_to_shore))+
+    geom_point(alpha = .5)+
+  geom_errorbar(aes(ymax = mean_n15+se_n15, ymin = mean_n15 -se_n15))+
+  xlab("seabird breeding biomass (log kg/ha)")+
+  ylab(expression(algal~delta^15~N))+
+  scale_fill_viridis_d()+
+  scale_color_viridis_d()+
+  labs(color = "distance to shore (m)", fill = "distance to shore (m)")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+n15_seabird_plot_mean
+
+```
+```
 
