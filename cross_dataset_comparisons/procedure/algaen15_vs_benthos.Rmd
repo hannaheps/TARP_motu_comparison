@@ -56,7 +56,7 @@ benthic_vid_dat<-
 benthic_vid_dat
 
 benthic.vid.seabirds<-left_join(benthic_vid_dat,
-                            select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                            dplyr::select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
                                    by = "site.name")%>%
   mutate(site.name = as.factor(site.name))
 benthic.vid.seabirds
@@ -81,7 +81,7 @@ algae_n15
 
 
 benthic.vid.seabirds.levels.algae<-left_join(benthic.vid.seabirds.levels, 
-                                            select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
+                                            dplyr::select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
                                             by = "site.name")
 
 benthic.vid.seabirds.levels.algae
@@ -104,6 +104,19 @@ benthic.vid.seabirds.levels.algae%>%
   geom_smooth(method = "lm")
 
 benthic.vid.seabirds.levels.algae%>%
+  ggplot(aes(x = N.15_at_30m, y = hard_coral_percent_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~wind.exposure)
+
+
+benthic.vid.seabirds.levels.algae%>%
+  ggplot(aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~wind.exposure)
+
+benthic.vid.seabirds.levels.algae%>%
   ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
   geom_point()+
   geom_smooth(method = "lm")
@@ -118,13 +131,13 @@ benthic.vid.seabirds.levels.algae%>%
 
 ##stacked bar plot
 benthic.vid.seabirds.levels.algae%>%
-  select(-c(total_percent_cover))%>%
+  dplyr::select(-c(total_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
                                           values_to = "percent_cover")%>%
   mutate(group = str_remove(group, '_percent_cover'))%>%
   group_by(group, site.name)%>%
-  summarize(mean_percent_cover = mean(percent_cover))%>%
+  dplyr::summarize(mean_percent_cover = mean(percent_cover))%>%
   ggplot(aes(fill = group, y = mean_percent_cover, x = site.name))+
   geom_bar(position = "stack", stat =  "identity")
 
@@ -133,7 +146,7 @@ benthic.vid.seabirds.levels.algae%>%
 #limit stacked bar to major groups, and do by seabird level rather than site: -----
 benthic_vid_stack_barplot_seabird_level<-
 benthic.vid.seabirds.levels.algae%>%
-  select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
+  dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
             other_fish_inverts_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
@@ -165,7 +178,7 @@ benthic.vid.seabirds.levels.algae%>%
   
   
 benthic.vid.seabirds.levels.algae%>%
- # select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
+ # dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
   #          other_fish_inverts_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
@@ -179,7 +192,7 @@ benthic.vid.seabirds.levels.algae%>%
 #limit stacked bar to major groups, and do by MOTU STATUS rather than site: ----
 benthic_vid_stack_barplot_motu<-
 benthic.vid.seabirds.levels.algae%>%
-  select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
+  dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
             other_fish_inverts_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
@@ -216,7 +229,7 @@ benthic.vid.seabirds.levels.algae%>%
 tet_video_raw_meta_broad_sp_all<-
   benthic.vid.seabirds.levels.algae%>%
   ungroup()%>%
-  select(hard_coral_percent_cover:macroalgae_percent_cover)
+  dplyr::select(hard_coral_percent_cover:macroalgae_percent_cover)
 tet_video_raw_meta_broad_sp_all
 
 #create data - remove rare groups-----
@@ -239,8 +252,8 @@ tet_video_raw_meta_broad_sp_all %>%
 tet_video_raw_meta_broad_sp<-
   benthic.vid.seabirds.levels.algae%>%
   ungroup()%>%
-  select(hard_coral_percent_cover:macroalgae_percent_cover)%>%
-  select(-c(cca_percent_cover, dead_coral_percent_cover, 
+  dplyr::select(hard_coral_percent_cover:macroalgae_percent_cover)%>%
+  dplyr::select(-c(cca_percent_cover, dead_coral_percent_cover, 
             other_fish_inverts_percent_cover))
 tet_video_raw_meta_broad_sp
 
@@ -297,7 +310,7 @@ nmds_video_site_scores
 
 #combine with other metadata:
 benthic.vid.seabirds.levels.algae.w.nmds.norotate<-
- left_join(select(benthic.vid.seabirds.levels.algae, -c("Distance_to_centroid", "NMDS1", "NMDS2")), #remove old nmds from before combined with seabird and algae data
+ left_join(dplyr::select(benthic.vid.seabirds.levels.algae, -c("Distance_to_centroid", "NMDS1", "NMDS2")), #remove old nmds from before combined with seabird and algae data
            nmds_video_site_scores, 
              by = c("site.name", "transect"))
 benthic.vid.seabirds.levels.algae.w.nmds.norotate
@@ -495,7 +508,7 @@ benthic_situ_dat<-
 
 
 benthic.situ.seabirds<-left_join(benthic_situ_dat,
-                            select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                            dplyr::select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
                                    by = "site.name")%>%
   mutate(site.name = as.factor(site.name))
 benthic.situ.seabirds
@@ -519,7 +532,7 @@ benthic.situ.seabirds.levels<-
 #now add algae n15:
 algae_n15
 benthic.situ.seabirds.levels.algae<-left_join(benthic.situ.seabirds.levels, 
-                                            select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
+                                            dplyr::select(algae_n15, c("site.name", "N.15_at_10m",  "N.15_at_20m", "N.15_at_30m", "N.15_at_40m")),
                                             by = "site.name")
 
 benthic.situ.seabirds.levels.algae
@@ -568,7 +581,7 @@ benthic.situ.seabirds.levels.algae%>%
 #limit stacked bar to most interesting groups, and do by seabird level rather than site: 
 benthic_situ_stack_barplot_seabird_level<-
 benthic.situ.seabirds.levels.algae%>%
-  select(-c(cyano_percent_cover, other_invert_percent_cover))%>%
+  dplyr::select(-c(cyano_percent_cover, other_invert_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
                                           values_to = "percent_cover")%>%
@@ -598,19 +611,19 @@ benthic_situ_stack_barplot_seabird_level
 
 
 benthic.situ.seabirds.levels.algae%>%
- # select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
+ # dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
   #          other_fish_inverts_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
                                           values_to = "percent_cover")%>%
   mutate(group = str_remove(group, '_percent_cover'))%>%
   group_by(group, seabird_level)%>%
-  summarize(mean_percent_cover = mean(percent_cover))
+  dplyr::summarize(mean_percent_cover = mean(percent_cover))
 
 #limit stacked bar to major groups, and do by MOTU STATUS rather than site: 
 benthic_situ_stack_barplot_motu<-
 benthic.situ.seabirds.levels.algae%>%
-  select(-c(cyano_percent_cover, other_invert_percent_cover))%>%
+  dplyr::select(-c(cyano_percent_cover, other_invert_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
                                           values_to = "percent_cover")%>%
@@ -647,15 +660,15 @@ benthic.situ.seabirds.levels.algae%>%
 tet_situ_raw_meta_broad_sp_all<-
   benthic.situ.seabirds.levels.algae%>%
   ungroup()%>%
-  select(coral_percent_cover:cyano_percent_cover)
+  dplyr::select(coral_percent_cover:cyano_percent_cover)
 tet_situ_raw_meta_broad_sp_all
 
 #create data - remove rare groups-----
 tet_situ_raw_meta_broad_sp<-
   benthic.situ.seabirds.levels.algae%>%
   ungroup()%>%
-  select(coral_percent_cover:cyano_percent_cover)%>%
-  select(-c(cyano_percent_cover, other_invert_percent_cover))
+  dplyr::select(coral_percent_cover:cyano_percent_cover)%>%
+  dplyr::select(-c(cyano_percent_cover, other_invert_percent_cover))
 tet_situ_raw_meta_broad_sp
 
 #run nmds----
@@ -705,12 +718,12 @@ situ_site.sc
 nmds_situ_site_scores<-
   bind_cols(benthic.situ.seabirds.levels.algae$site.name, benthic.situ.seabirds.levels.algae$transect,
                     as_tibble(situ_site.sc))%>%
-  rename('site.name' = '...1', 'transect' = '...2')
+  dplyr::rename('site.name' = '...1', 'transect' = '...2')
 nmds_situ_site_scores
 
 #combine with other metadata:
 benthic.situ.seabirds.levels.algae.w.nmds.norotate<-
- left_join(select(benthic.situ.seabirds.levels.algae, -c("Distance_to_centroid", "NMDS1", "NMDS2")), #remove old nmds from before combined with seabird and algae data
+ left_join(dplyr::select(benthic.situ.seabirds.levels.algae, -c("Distance_to_centroid", "NMDS1", "NMDS2")), #remove old nmds from before combined with seabird and algae data
            nmds_situ_site_scores, 
              by = c("site.name", "transect"))
 benthic.situ.seabirds.levels.algae.w.nmds.norotate
@@ -732,7 +745,7 @@ situ_site.sc.rotate
 nmds_situ_site_scores_rotate<-
   bind_cols(benthic.situ.seabirds.levels.algae$site.name, benthic.situ.seabirds.levels.algae$transect,
                     as_tibble(situ_site.sc.rotate))%>%
-  rename('site.name' = '...1', 'transect' = '...2')
+  dplyr::rename('site.name' = '...1', 'transect' = '...2')
 nmds_situ_site_scores_rotate
 
 
@@ -741,66 +754,11 @@ benthic.situ.seabirds.levels.algae.w.nmds<-
  left_join(benthic.situ.seabirds.levels.algae.w.nmds.norotate,
            nmds_situ_site_scores_rotate, 
              by = c("site.name", "transect")) %>%
-             rename("NMDS1" = "NMDS1.x",
+             dplyr::rename("NMDS1" = "NMDS1.x",
                     "NMDS2" = "NMDS2.x",
                     "NMDS1.rotate" = "NMDS1.y",
                     "NMDS2.rotate" = "NMDS2.y")
 benthic.situ.seabirds.levels.algae.w.nmds
-
-#NMDS plots - non-rotated:----
-#get hull data - seabird level:
-sb.low <- benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == "low", ][chull(benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == 
-    "low", c("NMDS1", "NMDS2")]), ]
-
-sb.mid <- benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == "mid", ][chull(benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == 
-    "mid", c("NMDS1", "NMDS2")]), ]
-
-sb.high <- benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == "high", ][chull(benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == 
-    "high", c("NMDS1", "NMDS2")]), ]
-
-hull.data.situ <- rbind(sb.low, sb.mid, sb.high)  #combine
-hull.data.situ
-
-
-##get arrows:
-ord.fit.situ<-envfit(nmds_situ ~ N.15_at_30m + wind.exposure, data = benthic.situ.seabirds.levels.algae.w.nmds, na.rm=TRUE)
-ord.fit.situ #looks like seabird level is marginal
-
-sb.scrs.situ <- as.data.frame(scores(ord.fit.situ, display = "vectors"))
-sb.scrs.situ <- cbind(sb.scrs.situ, variable = rownames(sb.scrs.situ))
-sb.scrs.situ<-
-  sb.scrs.situ%>%
-  mutate(variable2 = c("algae n15"))
-
-
-benthic_situ_nmds_plot<-
-ggplot() + 
-  geom_text(data=situ_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .7, size = 3, hjust = .1) +  # add the species labels - 
-  geom_point(data=benthic.situ.seabirds.levels.algae.w.nmds,aes(x=NMDS1,y=NMDS2,colour=seabird_level, fill = seabird_level, pch = seabird_level), stat="identity", size=5, alpha = .9) +
-  geom_polygon(data=hull.data.situ,aes(x=NMDS1,y=NMDS2,fill=seabird_level,group=seabird_level),alpha=0.30) + # add the convex hulls
-  #  coord_fixed() + ## need aspect ratio of 1!
-  geom_segment(data = sb.scrs.situ,
-               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
-               arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = sb.scrs.situ, aes(x = NMDS1, y = NMDS2, label = sb.scrs.situ$variable2),
-            size = 3, vjust = "outward")+
-   scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-labs(colour = "seabird biomass", fill = "seabird biomass", shape = "seabird biomass")+
-theme_bw() + 
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.88, .2)) 
-
-benthic_situ_nmds_plot
-
-
-#save plot
-#ggsave(benthic_situ_nmds_plot, file = "../output/seabird-benthic/benthic_situ_nmds_plot.jpg",
-#       width = 7, height = 5)
-
-##
 
 
 #NMDS plots - rotated:----
@@ -1414,6 +1372,45 @@ plot_data_beta_all_plot_flipped
 
 #correlation analysis and plots for in situ versus video
 ```{r}
+
+benthic.vid.seabirds.levels.algae
+benthic.situ.seabirds.levels.algae
+
+
+vid_for_cor<-
+  benthic.vid.seabirds.levels.algae%>%
+  dplyr::select(site.name, transect, hard_coral_percent_cover, macroalgae_percent_cover,
+                sand_percent_cover,pavement_percent_cover,  rubble_percent_cover)%>%
+  dplyr::rename_with(~str_replace(.,'_percent_cover', '_video'))
+vid_for_cor
+
+situ_for_cor<-
+  benthic.situ.seabirds.levels.algae%>%
+  dplyr::select(site.name, transect, coral_percent_cover, macroalgae_percent_cover, 
+                sand_percent_cover, pavement_percent_cover, rubble_percent_cover)%>%
+   dplyr::rename_with(~str_replace(.,'_percent_cover', '_insitu'))
+
+vid_sit_for_corr<-
+  full_join(vid_for_cor, situ_for_cor, by = c("site.name", "transect") )
+vid_sit_for_corr
+
+
+
+cor.mat_benthic<- cor(x = vid_sit_for_corr[c(3:7)], y =vid_sit_for_corr[c(8:12)], method = "spearman", use = "pairwise.complete.obs")
+cor.mat_benthic
+
+#cor.mat_benthic<- cor(vid_sit_for_corr[c(3:12)],  method = "spearman", use = "pairwise.complete.obs")
+
+
+corrplot(cor.mat_benthic, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "r", cl.ratio = .5)
+
+#save plot:
+pdf(file = "../output/seabird-benthic/corrplot_insitu_vs_vid.pdf")
+corrplot(cor.mat_benthic, type = "full",
+         addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, cl.pos = "r", cl.ratio = .5)
+dev.off()
+
 
 ```
 
