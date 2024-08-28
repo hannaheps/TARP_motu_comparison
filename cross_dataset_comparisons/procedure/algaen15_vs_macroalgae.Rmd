@@ -76,7 +76,8 @@ algae.div.seabirds <-
 algae.div.seabirds%>%
   ggplot(aes(x = N15, y = richness))+
   geom_point()+
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm") + 
+  facet_wrap(~ exposure)
 
 algae.div.seabirds%>%
   ggplot(aes(x = N15, y = evenness))+
@@ -261,7 +262,7 @@ qqPlot(algae.div.seabirds$richness)
 vcd::distplot(algae.div.seabirds$richness, type="poisson") #not bad
 
 #not poisson
-richness.lmer <-lmer(richness~N15*distance.along.transect + exposure + (1|site.name), data = algae.div.seabirds)
+richness.lmer <-lmer(richness~N15*distance.along.transect*exposure + (1|site.name), data = algae.div.seabirds)
 #poisson
 richness.glmer <- glmer(richness ~ N15*distance.along.transect + exposure + (1|site.name), family = "poisson", data = algae.div.seabirds)
 AIC(richness.lmer, richness.glmer) #the standard lmer loooks better 
@@ -290,7 +291,7 @@ Anova(richness.lmer)
 
 
 
-p.lmer.rich <- sjPlot::plot_model(richness.lmer, type = "pred", terms = c("N15", "distance.along.transect"))
+p.lmer.rich <- sjPlot::plot_model(richness.lmer, type = "pred", terms = c("N15", "distance.along.transect", "exposure"))
 
 
 p.lmer.rich <- p.lmer.rich +
