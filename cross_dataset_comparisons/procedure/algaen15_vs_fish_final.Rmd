@@ -534,6 +534,87 @@ ggsave(fish_dens_nmds_plot_rotate.autoF.newcolors, file = "../output/seabird-fis
 
 ###--------------------LOOK AT FISH DIVERSITY METRICS (and overall density, biomass, etc.) VS. SEABIRD LEVELS AND ALGAE N15-----------
 
+##check interaction models-----
+```{r}
+#run lmms----
+#total biomass----
+
+fish_bio_full_mod_algae_log_int <-lmer(log(sum_fish_biomass)~N.15_at_30m * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+summary(fish_bio_full_mod_algae_log_int)
+plot(fish_bio_full_mod_algae_log_int)
+qqnorm(resid(fish_bio_full_mod_algae_log_int))
+qqline(resid(fish_bio_full_mod_algae_log_int))
+#looks better - use this
+#still some high correlations of fixed effects?
+
+Anova(fish_bio_full_mod_algae_log_int) #structure significant, and exposure *n15 significant....
+car::vif(fish_bio_full_mod_algae_log_int) 
+
+summary(fish_bio_full_mod_algae_log_int)
+plot_summs(fish_bio_full_mod_algae_log_int)
+
+emtrends(fish_bio_full_mod_algae_log_int, ~wind.exposure, var = "N.15_at_30m")
+
+test(emtrends(fish_bio_full_mod_algae_log_int, ~wind.exposure, var = "N.15_at_30m", lmer.df = "asymptotic"), correction = "fdr")
+#significant negative effect of n15 on windward sides when use asymptotic, but not without this....
+
+fish_comb_dat_levels_algae%>%
+  ggplot(aes(x = N.15_at_30m, y = log(sum_fish_biomass)))+
+  geom_point()+
+  stat_smooth(method = "lm")+
+  facet_wrap(~wind.exposure)
+
+fish_comb_dat_levels_algae%>%
+  ggplot(aes(x = structural_complexity_0to5, y = log(sum_fish_biomass)))+
+  geom_point()+
+  stat_smooth(method = "lm")+
+  facet_wrap(~wind.exposure)
+
+
+#species richness----
+
+#with interactions:
+fish_rich_full_mod_algae_int <-lmer(SR~N.15_at_30m  * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
+summary(fish_rich_full_mod_algae_int)
+Anova(fish_rich_full_mod_algae_int)
+vif(fish_rich_full_mod_algae_int) #super high
+
+#nothing sig
+
+
+#species evenness----
+fish_even_full_mod_algae <-lmer(evenness~N.15_at_30m  * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #singular
+summary(fish_even_full_mod_algae)
+plot(fish_even_full_mod_algae)
+qqnorm(resid(fish_even_full_mod_algae))
+qqline(resid(fish_even_full_mod_algae))
+#looks okay
+
+Anova(fish_even_full_mod_algae) #nothing significant anyway....
+plot_summs(fish_even_full_mod_algae)
+
+
+
+
+#shannon----
+fish_shannon_full_mod_algae <-lmer(shannon~N.15_at_30m  * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
+summary(fish_shannon_full_mod_algae)
+plot(fish_shannon_full_mod_algae)
+qqnorm(resid(fish_shannon_full_mod_algae))
+
+
+Anova(fish_shannon_full_mod_algae) #nothing significant****
+plot_summs(fish_shannon_full_mod_algae)
+
+fish_shannon_full_mod_algae <-lmer(shannon~N.15_at_30m * wind.exposure + N.15_at_30m *structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
+summary(fish_shannon_full_mod_algae)
+Anova(fish_shannon_full_mod_algae) #nothing significant****
+
+
+```
+
+
+
 ```{r}
 
 #run lmms----

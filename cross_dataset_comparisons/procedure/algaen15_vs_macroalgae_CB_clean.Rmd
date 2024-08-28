@@ -144,6 +144,8 @@ algae.div.seabirds%>%
   geom_smooth(method = "lm")+
   facet_wrap(~exposure)
 
+
+
 ```
 
 
@@ -240,6 +242,46 @@ algae.nmds.plot.rotate
 
 #ggsave(algae.nmds.plot.rotate, file = "../output/seabird-algaediv/organised_output/1_NMDS_AlgaeDiv.jpg",
 #    width = 7, height = 5)
+
+
+##check correlations between species and axes-----
+cor(algae.div.seabirds[, 6:36],
+      nmds.rotate$points,
+      use = "complete.obs",
+      method = "pearson")
+
+#                                    MDS1        MDS2
+#Avrainvillea.lacerata       -0.146838949  0.29103910
+#Boodlea.composita            0.043324352 -0.03122276
+#Caldora.penicillata         -0.026462205 -0.12959526
+#Caulerpa.chemnitzia          0.110102383  0.08147264
+#Caulerpa.serrulata          -0.228643528 -0.26468168
+#Chlorodesmis.fastigiata     -0.038968256 -0.21032749
+#Cladophora.fuliginosa       -0.017460110  0.11017834
+#Dictyosphaeria.cavernosa     0.061880514 -0.18834623
+#Dictyota.ceylanica          -0.016280308 -0.14549115
+#Dictyota.friabilis          -0.063320461 -0.16414778
+#galaxaura.filamentosa       -0.213930297 -0.08717123
+#Gelidiella.acerosa          -0.007151835  0.02915738
+#Halimeda.discoidea          -0.150826415 -0.26479472
+#Halimeda.distorta           -0.561111440  0.03846027
+#Halimeda.heteromorpha       -0.380285676 -0.06534590
+#Halimeda.minima             -0.160290482 -0.08441068
+#Halimeda.opuntia             0.250594435  0.10231856
+#Hydroclathrus.clathratus    -0.063320461 -0.16414778
+#Hydrocoleum.coccineum       -0.386995218  0.45353345
+#Hydrocoleum.spp             -0.141312579 -0.20433290
+#Hypnea.spinella             -0.150714519  0.04874464
+#Jania.articulata            -0.294736370 -0.05668252
+#Lobophora.spp               -0.370107296 -0.01088870
+#Lyngbya.sordida              0.044800923 -0.20791789
+#Neomeris.vanbosseae         -0.281447455 -0.15393176
+#Oscilllatoria.spp           -0.256997768 -0.15553467
+#Pseudanabaena.lonchoides    -0.123276303  0.34259360
+#Pterocladiella.caerulescens  0.096739678 -0.09816364
+#Schizothrix.minuta          -0.465487496  0.07608294
+#Symploca.hydnoides          -0.049052907 -0.02040283
+#Turbinaria.ornata           -0.149510019 -0.85120601
 
 
 ```
@@ -446,6 +488,169 @@ permanova_algae_n15_log40
 
 ```
 
+###NMDS BY GENUS INSTEAD------
+```{r}
+##need to convert data to genus-----
+#first make long, then combine genera, then make wide again:
+algae.div.seabirds.long<-
+  algae.div.seabirds%>%
+  dplyr::select(!c(non.algae.cover:N.15_at_40m))%>%
+  pivot_longer(cols = c(Avrainvillea.lacerata:Turbinaria.ornata), names_to = "Genus.species", values_to = "Percent.cover")
+algae.div.seabirds.long
+
+#now split genus and species, and combine:
+algae.div.seabirds.long.genus<-
+  algae.div.seabirds.long%>%
+  separate_wider_delim(Genus.species, delim = ".", names = c("Genus", "Species"))
+algae.div.seabirds.long.genus
+
+algae.div.seabirds.long.genus.sum<-
+  algae.div.seabirds.long.genus%>%
+  dplyr::group_by(across(site.name:Genus))%>%
+  dplyr::summarize(Percent.cover = sum(Percent.cover))
+
+#now make wide again:
+algae.div.seabirds.genus<-
+  algae.div.seabirds.long.genus.sum%>%
+  ungroup%>%
+  pivot_wider(names_from = "Genus", values_from = "Percent.cover")
+
+algae.div.seabirds.genus
+colSums(algae.div.seabirds.genus[,c(8:31)])
+#check no 0s- yup all good. 
+
+#check against hannah's plots----
+algae.div.seabirds.long.genus.sum%>%
+  dplyr::group_by(motu,Genus )%>%
+  dplyr::summarize(mean_abund = mean(Percent.cover))%>%
+ ggplot(aes(x = Genus, y = mean_abund)) +
+  geom_point(position = position_dodge(width = 1), alpha = 0.5, aes(color = motu)) +
+  ylab("Mean Percent Cover (%) \n") +
+  xlab("\n Macroalgal Genus") +
+  #scale_color_manual(labels = c("low", "mid", "high")
+                     #,values = c("blue3", "gold", "red3")) +
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.75)) +
+  theme(axis.text.x = element_text(angle = 45, hjust=1))
+#looks similar
+
+
+###proceed with NMDS-----
+nmds.algae.genus <- metaMDS(algae.div.seabirds.genus[, 8:31], distance = "bray", trymax=200, k=2, autotransform = FALSE)
+nmds.algae.genus
+#2 axes stress = 0.1344552, 
+
+plot(nmds.algae.genus)
+scores(nmds.algae.genus, display="species")
+
+
+#rotate by algae n15 so can more easily interpret----
+nmds.rotate.genus<-MDSrotate(nmds.algae.genus, algae.div.seabirds.genus$mean_n15_30m, na.rm = TRUE)
+nmds.rotate.genus
+plot(nmds.rotate.genus)
+
+ord.fit<-envfit(nmds.rotate.genus~ mean_n15_30m, data = algae.div.seabirds.genus, na.rm=TRUE)
+ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
+plot(nmds.rotate.genus)
+plot(ord.fit)
+
+envfit(nmds.rotate.genus~ mean_n15_30m+exposure+distance.along.transect, data = algae.div.seabirds.genus, na.rm=TRUE)
+#exposure marginally sig, distance along transect and algae n15 are.
+envfit(nmds.rotate.genus~ mean_n15_30m*exposure, data = algae.div.seabirds.genus, na.rm=TRUE)
+#can't really do interactions....
+
+
+##check correlations between species and axes-----
+cor(algae.div.seabirds.genus[, 8:31],
+      nmds.rotate.genus$points,
+      use = "complete.obs",
+      method = "pearson")
+#                      MDS1         MDS2
+#Avrainvillea   -0.14271982  0.290097787
+#Boodlea         0.04441267 -0.037753757
+#Caldora        -0.03094276 -0.134448877
+#Caulerpa       -0.22463058 -0.245308538
+#Chlorodesmis   -0.05526205 -0.210279735
+#Cladophora     -0.01512313  0.107274112
+#Dictyosphaeria  0.05964159 -0.188418310
+#Dictyota       -0.04380516 -0.195563902
+#Gelidiella     -0.00548153  0.022315242
+#Halimeda       -0.57193190  0.026318889
+#Hydroclathrus  -0.07123545 -0.154593027
+#Hydrocoleum    -0.41698050  0.397148025
+#Hypnea         -0.14917085  0.045649778
+#Jania          -0.30164794 -0.043825032
+#Lobophora      -0.37915369 -0.004910472
+#Lyngbya         0.04148896 -0.207829631
+#Neomeris       -0.29239311 -0.141891618
+#Oscilllatoria  -0.26891060 -0.146219646
+#Pseudanabaena  -0.11181934  0.344243908
+#Pterocladiella  0.09556477 -0.097180339
+#Schizothrix    -0.46883369  0.091834009
+#Symploca       -0.04965142 -0.023959981
+#Turbinaria     -0.17369750 -0.846156752
+#galaxaura      -0.22299911 -0.075726740
+
+
+#basically everything is negatively correlated wtih NMDS 1 ---> so algae don't like seabird nutrients*
+
+###plot it------
+#extract scores (rotated)
+nmds.scores <- as.data.frame(scores(nmds.rotate.genus)$sites)
+
+#combine with other relevant data
+nmds.scores$N15 <- algae.div.seabirds.genus$mean_n15_30m
+nmds.scores$site.name <- algae.div.seabirds.genus$site.name
+nmds.scores$distance.along.transect <- algae.div.seabirds.genus$distance.along.transect
+nmds.scores$exposure <- algae.div.seabirds.genus$exposure
+
+
+##get arrows:
+
+#en <- algae.div.seabirds[, c(3,37:39,61)]
+env.fit <- envfit(nmds.rotate.genus ~ mean_n15_30m, data = algae.div.seabirds.genus, permutations = 999, na.rm = TRUE)
+
+plot(nmds.rotate.genus)
+plot(env.fit)
+
+en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cont = en_coord_cont %>% mutate(var.name = "Algal N15")
+
+#en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+#en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
+
+#get species scores:
+algae_spp.sc.rotate.genus <- as.data.frame(scores(nmds.rotate.genus, "species")) %>% #Using the scores function from vegan to extract the species scores and convert
+  rownames_to_column(var="Species") 
+
+
+algae.nmds.plot.rotate.genus <-
+ggplot() + 
+  #geom_text(data=nmds.scores,aes(x=NMDS1,y=NMDS2), alpha = .7, size = 3, hjust = .1) + 
+  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15), stat="identity", size=5, alpha = .9) + # shape = exposure
+  scale_color_distiller(palette = "YlGnBu") +
+  #geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=site.name,group=site.name),alpha=0.2) + # add the convex hulls
+  #  coord_fixed() + ## need aspect ratio of 1!
+  geom_segment(data = en_coord_cont,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm"))) +
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.1, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward")+
+   #  geom_text(data=algae_spp.sc.rotate.genus,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels - 
+theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.95, .25)) 
+
+algae.nmds.plot.rotate.genus
+
+#honestly similar to species-level nmds, so not sure this adds much.....
+
+
+```
+
+
 
 ##Run LMMs --Richness
 ```{r}
@@ -578,6 +783,8 @@ summary(richness.glmer.add)
 #exposureProtected -0.23961    0.23792  -1.007 0.313888   
 
 test(emtrends(richness.glmer.add, var = "mean_n15_30m", adjust = "fdr"))
+exp(-.2) #0.8187308 so 0.8 factor decrease in richness for each one unit increase in algal n15
+exp(.2) #22% decrease
 
 
 #those match..now compare to interaction model:
@@ -674,7 +881,11 @@ test(emtrends(evenness.lmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr", l
 # Protected            -0.0342 0.0125 Inf  -2.725  0.0064
 
 #BUT when use asymptotic DF, super significant on both sides....
+exp(-0.1093) #0.8964614
+exp(-0.0342) #0.9663782
 
+exp(0.1093) #1.115497
+exp(0.0342) #1.034792
 
 test(emtrends(evenness.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr"))
 # contrast            estimate   SE  df z.ratio p.value
@@ -1056,6 +1267,41 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = Turbinaria.ornata, color = 
 
 ```
 
+#run with only positive corr with n15 to see  - halimeda opt.
+```{r}
+#algal cover - n15----
+hal.lmer<-lmer(Halimeda.opuntia~mean_n15_30m*exposure + (1|site.name), data = algae.div.seabirds)
+summary(hal.lmer)
+plot(hal.lmer)
+qqnorm(resid(hal.lmer))
+hist(resid(hal.lmer))
+#looks okay
+
+#probably could do glmer with beta (because proportion data)
+
+Anova(hal.lmer)
+#Response: turb
+#                        Chisq Df Pr(>Chisq)    
+#mean_n15_30m          3.1128  1    0.07768 .
+#exposure              0.7195  1    0.39632  
+#mean_n15_30m:exposure 0.2143  1    0.64340 
+
+#marginal effect of n15
+
+hal.lmer.add<-lmer(Halimeda.opuntia~mean_n15_30m+exposure + (1|site.name), data = algae.div.seabirds)
+Anova(hal.lmer.add)
+#still marginal.
+
+
+##emmeans---------
+test(emtrends(hal.lmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr"))
+# Exposed             0.000142 0.00391 31.2   0.036  0.9713
+# Protected           0.001807 0.00112  4.2   1.620  0.3543
+
+#not much happening realistically.....not worth it
+
+
+```
 
 
 #run model with reststatus (richness) - just to see.
@@ -1160,6 +1406,151 @@ algae.rich.response.plot.rest
 ```
 
 
+##stacked bar plot and mean/se plot - by exposure and restoration status
+```{r}
+#What about a stacked barplot, relative cover----
+#Need 24 colors
+library(RColorBrewer)
+spec <- brewer.pal(4, "Spectral") 
+spec <- colorRampPalette(spec)(24)
+
+# Plot it
+algae_stack_bar_plot<-
+algae.div.seabirds.long.genus%>%
+  dplyr::group_by(motu, exposure, Genus)%>%
+  dplyr::summarise(mean_cover = mean(Percent.cover))%>%
+   mutate(reststat = case_when(motu == "Aie" ~ "reference",
+                             motu == "Reiono" ~ "recovering",
+                             motu == "Rimatuu" ~ "unrestored"))%>%
+   mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored")) %>%
+  mutate(Exposure = fct_recode(exposure, leeward = "Protected", windward = "Exposed"))%>%
+ mutate(Exposure = fct_relevel(Exposure, "leeward", "windward"))%>%
+ggplot(aes(fill = Genus, y = mean_cover, x = reststat))+
+  geom_bar(position = "fill", stat =  "identity")+ #, colour = "white"
+  #scale_fill_brewer(palette = "Spectral")+
+  scale_fill_manual(values = spec) +
+  xlab("") +
+  ylab("Relative percent cover")+
+  labs(fill = 'Genus') +
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+           strip.text = element_text(hjust = 0, size = 12))+
+  facet_wrap(~Exposure, strip.position = "top",  
+             labeller = labeller (Exposure = c("leeward" = "c. Leeward", "windward" = "d. Windward")))
+
+algae_stack_bar_plot
+
+#ggsave(algae_stack_bar_plot, file = "../output/seabird-algaediv/organised_output/5b_macroalgae_by_genus_reststatus_and_exposure_stack_bar.jpg", width = 7, height = 5)
+
+
+
+algae.div.seabirds.long.genus%>%
+  dplyr::group_by(motu, Genus)%>%
+  dplyr::summarise(mean_cover = mean(Percent.cover))%>%
+ggplot(aes(fill = Genus, y = mean_cover, x = motu))+
+  geom_bar(position = "fill", stat =  "identity")+ #
+  #scale_fill_brewer(palette = "Spectral")+
+  scale_fill_manual(values = spec) +
+  xlab("") +
+  ylab("Relative Macroaglal Percent Cover")+
+  labs(fill = 'Genus') +
+    theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+
+
+
+#mean and se - absolute cover----
+algae.div.seabirds.long.genus%>%
+  dplyr::group_by(motu, exposure, Genus)%>%
+  dplyr::summarise(mean_abund = mean(Percent.cover),
+                   sd_cover = sd(Percent.cover),
+                   n_cover = length(Percent.cover),
+                   se_abund = sd_cover/sqrt(n_cover))%>%
+ggplot(aes(x = Genus, y = mean_abund, color = motu, fill = motu)) +
+  geom_point(position = position_dodge(width = 1), alpha = 0.5) +
+  geom_errorbar(position = position_dodge(width = 1), alpha = 0.5, aes(ymin = (mean_abund-se_abund), ymax = (mean_abund + se_abund))) +
+  #scale_fill_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+#  scale_colour_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+
+  ylab("Mean Percent Cover (%) \n") +
+  xlab("\n Macroalgal Genus") +
+  labs(color = 'Restoration Status', fill = 'Restoration Status') +
+  #scale_color_manual(labels = c("low", "mid", "high")
+                     #,values = c("blue3", "gold", "red3")) +
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.75)) +
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+
+  facet_wrap(~exposure)
+
+#limit to most abundant genera:-----
+colSums(algae.div.seabirds.genus[,c(8:31)])
+#Turbinaria, Lobophora, Chlorodesmis, Halimeda, Hydrocoleum, 
+#Caulerpa, Oscilllatoria, Neomeris, Lyngbya, Schizothrix
+
+algae.div.seabirds.long.genus%>%
+  dplyr::group_by(Genus)%>%
+  dplyr::summarise(mean_abund = mean(Percent.cover))%>%
+  arrange(desc(mean_abund))
+#Turbinaria	4.2600000000			
+#Lobophora	1.1533333333			
+#Chlorodesmis	0.5530833333			
+#Hydrocoleum	0.1337500000			
+#Oscilllatoria	0.0895833333			
+#Halimeda	0.0720666667			
+#Caulerpa	0.0471875000			
+#Neomeris	0.0335000000			
+#Lyngbya	0.0283333333			
+#Schizothrix	0.0155000000	
+
+algae_genus_plot_top10<-
+algae.div.seabirds.long.genus%>%
+  filter(Genus == "Turbinaria"|Genus == "Lobophora"|Genus == "Chlorodesmis"|Genus == "Halimeda"|Genus == "Hydrocoleum"|
+           Genus == "Caulerpa"|Genus == "Oscilllatoria"|Genus == "Neomeris"|Genus == "Lyngbya"|Genus == "Schizothrix")%>%
+  mutate(reststat = case_when(motu == "Aie" ~ "reference",
+                             motu == "Reiono" ~ "recovering",
+                             motu == "Rimatuu" ~ "unrestored"))%>%
+   mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored")) %>%
+  dplyr::group_by(reststat, exposure, Genus)%>%
+  dplyr::summarise(mean_abund = mean(Percent.cover),
+                   sd_cover = sd(Percent.cover),
+                   n_cover = length(Percent.cover),
+                   se_abund = sd_cover/sqrt(n_cover))%>%
+  mutate(Exposure = fct_recode(exposure, leeward = "Protected", windward = "Exposed"))%>%
+ mutate(Exposure = fct_relevel(Exposure, "leeward", "windward"))%>%
+ggplot(aes(x = reorder(Genus,-mean_abund), y = mean_abund, color = reststat, fill = reststat)) +
+  geom_point(position = position_dodge(width = 1), alpha = 0.5) +
+  geom_errorbar(position = position_dodge(width = 1), alpha = 0.5, aes(ymin = (mean_abund-se_abund), ymax = (mean_abund + se_abund))) +
+  scale_fill_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
+  scale_colour_manual(values = c( "unrestored" = "#CD1913", "recovering" = "#F2BB05", "reference" ="#2F9D3E"))+
+  ylab("Mean percent cover") +
+  xlab("") +
+  labs(color = 'Restoration status', fill = 'Restoration status') +
+  #scale_color_manual(labels = c("low", "mid", "high")
+                     #,values = c("blue3", "gold", "red3")) +
+   theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(0.85, 0.75), 
+        axis.text.x = element_text(angle = 45, hjust=1),
+        strip.text = element_text(hjust = 0, size = 12))+
+  facet_wrap(~Exposure, strip.position = "top",  
+             labeller = labeller (Exposure = c("leeward" = "a. Leeward", "windward" = "b. Windward")))
+
+algae_genus_plot_top10
+
+#ggsave(algae_genus_plot_top10, file = "../output/seabird-algaediv/organised_output/5b_macroalgae_by_genus_reststatus_and_exposure_top10.jpg", width = 7, height = 5)
+
+```
+
+
 
 ###STOPPED HERE - BELOW IS NOT UPDATED------------------
 
@@ -1212,7 +1603,7 @@ algal.genus.plot <- ggplot(algae.sum, aes(x = genus, y = mean_abund)) +
   theme(axis.text.x = element_text(angle = 45, hjust=1))
 algal.genus.plot
 
-ggsave(algal.genus.plot, file = "../output/seabird-algaediv/organised_output/5b_macroalgae_by_genus_reststatus.jpg", width = 7, height = 5)
+#ggsave(algal.genus.plot, file = "../output/seabird-algaediv/organised_output/5b_macroalgae_by_genus_reststatus.jpg", width = 7, height = 5)
 
 
 #What about a stacked barplot
