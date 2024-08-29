@@ -1,0 +1,1175 @@
+---
+title: "n15_vs_microbes"
+author: "HEE"
+date: "2024-06-04"
+output: html_document
+---
+
+#Load the libraries
+```{r}
+library(tidyverse)
+library(plyr)
+library(jtools)
+library(multcompView)
+library(multcomp)
+library(MASS) #for glmms
+library(glmmTMB) #for glmms with a beta distribution
+library(nlme) #for linear mixed effects models
+library(lme4) #for linear mixed effects models
+library(emmeans) #for multiple comparisons
+library(car) #for qqplots
+library(vcd) #for distplots of non-gaussian distributions
+library(sjPlot)
+library(mgcv) #for running beta distributions
+ 
+```
+
+#Load the data
+```{r}
+#Bring in Microbes and seabird data
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+microbes <- read.csv("../../microbiome_analyses/downstream_analyses/integration/output/nov2021_microbiome_metrics.csv")
+
+#recode the site.name category so we can combine with seabird data
+
+microbes$site.name[microbes$site.name == "A1"] <- "Aie_Protected"
+microbes$site.name[microbes$site.name == "A2"] <- "Aie_Exposed"
+microbes$site.name[microbes$site.name == "Re1"] <- "Reiono_Protected"
+microbes$site.name[microbes$site.name == "Re2"] <- "Reiono_Exposed"
+microbes$site.name[microbes$site.name == "Rm1"] <- "Rimatuu_Protected"
+microbes$site.name[microbes$site.name == "Rm2"] <- "Rimatuu_Exposed"
+
+microbes$site.name <- as.factor(microbes$site.name)
+levels(microbes$site.name)
+
+
+#Combine with seabird data:
+microbes.seabirds <- merge(microbes, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
+head(microbes.seabirds)
+
+#Add a seabird level category
+microbes.seabirds <-
+  microbes.seabirds%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+
+str(microbes.seabirds$distance.along.transect)
+microbes.seabirds$Distance_to_shore <- as.factor(microbes.seabirds$distance.along.transect)
+
+str(microbes.seabirds$seabird_level)
+
+```
+
+#Split into water and coral
+```{r}
+coral.microbes.seabirds <- microbes.seabirds %>% filter(sample.type == "coral")
+water.microbes.seabirds <- microbes.seabirds %>% filter(sample.type ==  "water")
+
+```
+
+*Coral First*
+
+Our predictor variable is algal N15 to reflect nutrient loading in the system
+#1. Alpha metrics: Observed
+```{r}
+hist(coral.microbes.seabirds$Observed) #not normal
+qqPlot(coral.microbes.seabirds$Observed) #terrible fit
+
+#Check poisson and nbinomial because these are count data
+distplot(coral.microbes.seabirds$Observed, type="poisson") #looks pretty good!
+
+#Predictor variable is algae N15
+#Fixed Effects with an interaction = exposure (distance from shore is incorporated in the n15 values, especially when paired here)
+#Random effect = site name 
+
+cor.rich.glm <- glmer(Observed~algae.N15*Exposure + (1|site.name), family = "poisson", data = coral.microbes.seabirds)
+plot(cor.rich.glm)
+
+hist(resid(cor.rich.glm))
+qqnorm(resid(cor.rich.glm)) #not perfect but so much better
+
+summary(cor.rich.glm) #yes significant!
+Anova(cor.rich.glm)
+#Response: Observed
+#                     Chisq Df Pr(>Chisq)    
+#algae.N15          73.4964  1    < 2e-16 ***
+#Exposure            1.4389  1    0.23031    
+#algae.N15:Exposure  3.5884  1    0.05819 .  
+
+##okay, actually looks like no (or marginal) interactions, just mean n15 significant***
+
+test(emtrends(cor.rich.glm, ~ Exposure, var = "algae.N15", adjust = "fdr"))
+
+ #Exposure  algae.N15.trend     SE  df z.ratio p.value
+ #Exposed             0.103 0.0243 Inf   4.244  <.0001
+ #Protected           0.164 0.0213 Inf   7.695  <.0001
+
+#looks like exposure is significant??
+
+test(emtrends(cor.rich.glm, pairwise~ Exposure, var = "algae.N15", adjust = "fdr"))
+ #contrast            estimate     SE  df z.ratio p.value
+ #Exposed - Protected  -0.0612 0.0323 Inf  -1.894  0.0582
+
+#but the contrast is no significant effect of exposure. 
+
+```
+
+#Plot
+```{r}
+range(coral.microbes.seabirds$algae.N15, na.rm = T)
+
+rich_plot_dat <- emmip(cor.rich.glm,  ~ algae.N15|Exposure, at = list(algae.N15 = seq(2.73, 10.66, 0.1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+range(coral.microbes.seabirds[coral.microbes.seabirds$Exposure == "Protected",]$algae.N15, na.rm = T) #2.73, 10.66
+range(coral.microbes.seabirds[coral.microbes.seabirds$Exposure == "Exposed",]$algae.N15, na.rm = T) #4.64, 8.45
+
+rich_plot_dat.protected<-
+  rich_plot_dat%>%
+  filter(Exposure == "Protected")%>%
+  filter(algae.N15>=2.73&algae.N15<=10.66)
+
+rich_plot_dat.exposed<-
+  rich_plot_dat%>%
+  filter(Exposure == "Exposed")%>%
+  filter(algae.N15>=4.64&algae.N15<=8.45)
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+##Plot the richness according to N15 & exposure
+ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposure, 
+                      fill = Exposure, group = Exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = Exposure))+
+  geom_line(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+    geom_line(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+  ylab("Microbial Observed ASV richness \n") +
+  xlab(expression(italic(delta)^15*N))+
+  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+
+rich_plot_dat_no_exp <- emmip(cor.rich.glm,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+##Plot the richness according to N15 & exposure (combined effect line)--=--
+ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
+  geom_line(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Microbial Observed ASV richness \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+
+ggsave("../output/seabird-microbes/clean_output/1_coral_micro-richness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+
+```
+
+
+
+#Shannon
+```{r}
+hist(log(coral.microbes.seabirds$Shannon))
+qqPlot(log(coral.microbes.seabirds$Shannon))  #log seems better, but not perfect
+
+shannon.lmer<-lmerTest::lmer(log(Shannon) ~ algae.N15*Exposure + (1|site.name), data=coral.microbes.seabirds)
+plot(resid(shannon.lmer))
+summary(shannon.lmer)
+#Fixed effects:
+#                            Estimate Std. Error       df t value Pr(>|t|)
+#(Intercept)                 -0.30608    0.63850 53.60609  -0.479    0.634
+#algae.N15                    0.14783    0.09828 58.00000   1.504    0.138
+#ExposureProtected            0.55479    0.74742 36.80599   0.742    0.463
+#algae.N15:ExposureProtected -0.11019    0.11504 48.88265  -0.958    0.343
+
+anova(shannon.lmer)
+Anova(shannon.lmer)
+
+#Response: log(Shannon)
+#                    Chisq Df Pr(>Chisq)
+#algae.N15          1.7414  1     0.1870
+#Exposure           0.2836  1     0.5944
+#algae.N15:Exposure 0.9175  1     0.3381
+
+test(emtrends(shannon.lmer, ~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+
+ #Exposure  algae.N15.trend     SE  df z.ratio p.value
+ #Exposed            0.1478 0.0983 Inf   1.504  0.2651
+ #Protected          0.0376 0.0598 Inf   0.630  0.5290
+
+#No significant interaction or effect of exposure on shannon div
+
+test(emtrends(shannon.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+
+#contrasts
+# contrasts
+ #contrast            estimate    SE  df z.ratio p.value
+ #Exposed - Protected     0.11 0.115 Inf   0.958  0.3381
+
+#Same non-significant results when NOT using an asymptotic 
+```
+
+#Plot
+```{r}
+range(coral.microbes.seabirds$algae.N15, na.rm = T)
+
+sh_plot_dat <- emmip(shannon.lmer,  ~ algae.N15|Exposure, at = list(algae.N15 = seq(2.73, 10.66, 0.1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+range(coral.microbes.seabirds[coral.microbes.seabirds$Exposure == "Protected",]$algae.N15, na.rm = T) #2.73, 10.66
+range(coral.microbes.seabirds[coral.microbes.seabirds$Exposure == "Exposed",]$algae.N15, na.rm = T) #4.64, 8.45
+
+sh_plot_dat.protected<-
+  sh_plot_dat%>%
+  filter(Exposure == "Protected")%>%
+  filter(algae.N15>=2.73&algae.N15<=10.66)
+
+sh_plot_dat.exposed<-
+  sh_plot_dat%>%
+  filter(Exposure == "Exposed")%>%
+  filter(algae.N15>=4.64&algae.N15<=8.45)
+
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+
+ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = log(Shannon), color = Exposure, 
+                      fill = Exposure, group = Exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = Exposure))+
+  geom_line(data = sh_plot_dat.protected, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sh_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+    geom_line(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+  ylab("Microbial Shannon Diveristy \n") +
+  xlab(expression(italic(delta)^15*N))+
+  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+##without exposure 
+sh_plot_dat_no_exp <- emmip(shannon.lmer,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+##Plot the richness according to N15 & exposure (combined effect line)--=--
+ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Shannon))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
+  geom_line(data = sh_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sh_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("log(Microbial Shannon Diversity) \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+
+ggsave("../output/seabird-microbes/clean_output/2_coral_micro-shannon_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+```
+
+#Evenness
+
+```{r}
+hist((coral.microbes.seabirds$Evenness)) #not bad
+qqPlot((coral.microbes.seabirds$Evenness))
+#gaussian
+
+cor.even.lmer<-lmerTest::lmer(Evenness ~ algae.N15* Exposure + (1|site.name), data=coral.microbes.seabirds)
+plot(resid(cor.even.lmer)) #very nice residuals
+
+summary(cor.even.lmer)
+Anova(cor.even.lmer)
+#Analysis of Deviance Table (Type II Wald chisquare tests)
+
+#Response: Evenness
+#                    Chisq Df Pr(>Chisq)   
+#algae.N15          1.4192  1   0.233529   
+#Exposure           0.0315  1   0.859161   
+#algae.N15:Exposure 6.8847  1   0.008694 **
+
+#yes evennes has an interaction effect (perhaps unsurprising)
+
+
+anova(cor.even.lmer)
+#Type III Analysis of Variance Table with Satterthwaite's method
+##                    Sum Sq Mean Sq NumDF DenDF F value   Pr(>F)   
+#algae.N15          0.20637 0.20637     1    58  7.1627 0.009661 **
+#Exposure           0.19628 0.19628     1    58  6.8124 0.011500 * 
+#algae.N15:Exposure 0.19836 0.19836     1    58  6.8847 0.011092 * 
+
+test(emtrends(cor.even.lmer, ~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+
+ #Exposure  algae.N15.trend     SE  df z.ratio p.value
+ #Exposed          0.096572 0.0335 Inf   2.881  0.0079*
+ #Protected        0.000956 0.0143 Inf   0.067  0.9467
+
+test(emtrends(cor.even.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+#contrasts
+#  contrast            estimate     SE  df z.ratio p.value
+ #Exposed - Protected   0.0956 0.0364 Inf   2.624  0.0087
+
+#Significant contrast! And stays significant if using non-asymptotic df 
+
+```
+
+#Plot
+```{r}
+
+ev_plot_dat <- emmip(cor.even.lmer,  ~ algae.N15|Exposure, at = list(algae.N15 = seq(2.73, 10.66, 0.1)), CIs = TRUE, plotit=FALSE, type = "response")
+ev_plot_dat.protected<-
+  ev_plot_dat%>%
+  filter(Exposure == "Protected")%>%
+  filter(algae.N15>=2.73&algae.N15<=10.66)
+
+ev_plot_dat.exposed<-
+  ev_plot_dat%>%
+  filter(Exposure == "Exposed")%>%
+  filter(algae.N15>=4.64&algae.N15<=8.45)
+
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+
+ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Evenness, color = Exposure, 
+                      fill = Exposure, group = Exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = Exposure))+
+  geom_line(data = ev_plot_dat.protected, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = ev_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+    geom_line(data = ev_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = ev_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+  ylab("Coral Microbial Evennness \n") +
+  xlab(expression(italic(delta)^15*N))+
+  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+#WEIRD
+
+ggsave("../output/seabird-microbes/clean_output/3_coral_micro-evenness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+
+```
+
+
+#Faith's Phylogenetic Diversity
+
+```{r}
+hist(log(coral.microbes.seabirds$FaithPD))
+plot(log(FaithPD) ~ algae.N15, coral.microbes.seabirds)
+qqPlot(log(coral.microbes.seabirds$FaithPD)) #not bad, not great
+
+cor.fpd.lmer<-lmerTest::lmer(FaithPD~ algae.N15*Exposure + (1|site.name), data=coral.microbes.seabirds)
+plot(resid(cor.fpd.lmer)) #resids look good
+
+summary(cor.fpd.lmer)
+#Fixed effects:
+#                            Estimate Std. Error      df t value Pr(>|t|)
+#(Intercept)                   5.2001    11.4092 52.8892   0.456    0.650
+#algae.N15                     0.9380     1.7683 57.7601   0.530    0.598
+#ExposureProtected            -5.1655    13.1897 35.3462  -0.392    0.698
+#algae.N15:ExposureProtected   0.2961     2.0459 45.3883   0.145    0.886
+Anova(cor.fpd.lmer)
+#Response: FaithPD
+#                    Chisq Df Pr(>Chisq)
+#algae.N15          1.6990  1     0.1924
+#Exposure           0.7677  1     0.3809
+#algae.N15:Exposure 0.0209  1     0.8849
+anova(cor.fpd.lmer)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                   Sum Sq Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15          77.805  77.805     1 45.388  1.1271 0.2940
+#Exposure           10.587  10.587     1 35.346  0.1534 0.6977
+#algae.N15:Exposure  1.446   1.446     1 45.388  0.0209 0.8856
+
+test(emtrends(cor.even.lmer, ~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+#Exposure  algae.N15.trend     SE  df z.ratio p.value
+# Exposed          0.096572 0.0335 Inf   2.881  0.0079
+# Protected        0.000956 0.0143 Inf   0.067  0.9467
+test(emtrends(cor.even.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+#contrasts
+# contrast            estimate     SE  df z.ratio p.value
+# Exposed - Protected   0.0956 0.0364 Inf   2.624  0.0087
+
+#Apparently a significant exposure, but there is no overall interaction effect??
+
+#try not asymptotic
+test(emtrends(cor.even.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr"))
+#Still sig here. How to interpret?
+
+```
+
+#Remove the NMDS axes since we include the NMDS plots
+
+*Water Alpha Diversity*
+
+#Observed
+```{r}
+hist(water.microbes.seabirds$Observed) #not normal
+qqPlot(water.microbes.seabirds$Observed) #not bad
+
+#Check poisson 
+distplot(water.microbes.seabirds$Observed, type="poisson") #looks literally perfect!
+#using a Poisson distribution
+
+wat.rich.glm <- glmer(Observed~algae.N15*Exposure + (1|site.name), family = "poisson", data = water.microbes.seabirds)
+plot(wat.rich.glm)
+
+hist(resid(wat.rich.glm))
+qqnorm(resid(wat.rich.glm)) #not bad
+
+summary(wat.rich.glm) 
+#Fixed effects:
+#                             Estimate Std. Error z value Pr(>|z|)    
+#(Intercept)                  5.980877   0.302296  19.785  < 2e-16 ***
+#algae.N15                    0.057467   0.008926   6.438 1.21e-10 ***
+#ExposureProtected            0.125538   0.425414   0.295    0.768    
+#algae.N15:ExposureProtected -0.044306   0.010825  -4.093 4.26e-05 ***
+Anova(wat.rich.glm)
+#Response: Observed
+#                     Chisq Df Pr(>Chisq)    
+#algae.N15          29.3138  1  6.156e-08 ***
+#Exposure            0.1299  1     0.7185    
+#algae.N15:Exposure 16.7527  1  4.258e-05 ***
+anova(wat.rich.glm)
+#Analysis of Variance Table
+#                   npar  Sum Sq Mean Sq F value
+#algae.N15             1 29.3276 29.3276 29.3276
+#Exposure              1  0.1299  0.1299  0.1299
+#algae.N15:Exposure    1 16.7518 16.7518 16.7518
+
+test(emtrends(wat.rich.glm, ~ Exposure, var = "algae.N15", adjust = "fdr"))
+
+#Exposure  algae.N15.trend      SE  df z.ratio p.value
+# Exposed            0.0575 0.00893 Inf   6.438  <.0001
+# Protected          0.0132 0.00612 Inf   2.149  0.0317
+
+
+test(emtrends(wat.rich.glm, pairwise~ Exposure, var = "algae.N15", adjust = "fdr"))
+#contrasts
+# contrast            estimate     SE  df z.ratio p.value
+# Exposed - Protected   0.0443 0.0108 Inf   4.093  <.0001
+
+```
+
+#Plot
+
+```{r}
+range(water.microbes.seabirds$algae.N15, na.rm = T) #these should all be the same as above
+
+rich_plot_dat <- emmip(wat.rich.glm,  ~ algae.N15|Exposure, at = list(algae.N15 = seq(2.73, 10.66, 0.1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+range(water.microbes.seabirds[water.microbes.seabirds$Exposure == "Protected",]$algae.N15, na.rm = T) #2.73, 10.66
+range(water.microbes.seabirds[water.microbes.seabirds$Exposure == "Exposed",]$algae.N15, na.rm = T) #4.64, 8.45
+
+rich_plot_dat.protected<-
+  rich_plot_dat%>%
+  filter(Exposure == "Protected")%>%
+  filter(algae.N15>=2.73&algae.N15<=10.66)
+
+rich_plot_dat.exposed<-
+  rich_plot_dat%>%
+  filter(Exposure == "Exposed")%>%
+  filter(algae.N15>=4.64&algae.N15<=8.45)
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+##Plot the richness according to N15 & exposure
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposure, 
+                      fill = Exposure, group = Exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = Exposure))+
+  geom_line(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+    geom_line(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+  ylab("Microbial Observed ASV richness \n") +
+  xlab(expression(italic(delta)^15*N))+
+  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+
+rich_plot_dat_no_exp <- emmip(wat.rich.glm,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+##Plot the richness according to N15 & exposure (combined effect line)--=--
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Observed))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
+  geom_line(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Microbial Observed ASV richness \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+
+ggsave("../output/seabird-microbes/clean_output/4_water_micro-richness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+
+```
+
+
+
+#Shannon
+```{r}
+hist(water.microbes.seabirds$Shannon) #not great, looks bimodal??
+
+plot(Shannon ~ algae.N15, water.microbes.seabirds)
+qqPlot((water.microbes.seabirds$Shannon)) #oooooof
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon)) +
+  geom_point(aes(color = site.name)) ##This is definitely driven by location differences, confounded with rat history
+
+
+wat.sh.lmer <-lmerTest::lmer(Shannon ~ algae.N15* Exposure + (1|site.name), data=water.microbes.seabirds)
+hist(resid(wat.sh.lmer)) #the residual plot actually isnt that crazy
+plot(resid(wat.sh.lmer))
+qqnorm(resid(wat.sh.lmer)) # a little wonky
+
+
+summary(wat.sh.lmer)
+#Fixed effects:
+#                             Estimate Std. Error        df t value Pr(>|t|)    
+#(Intercept)                  4.400460   0.844579 17.134526   5.210  6.9e-05 ***
+#algae.N15                    0.006689   0.098828 57.677352   0.068    0.946    
+#ExposureProtected            0.223576   1.094878 12.477228   0.204    0.841    
+#algae.N15:ExposureProtected -0.041042   0.118840 58.916341  -0.345    0.731   
+Anova(wat.sh.lmer)
+#Response: Shannon
+#                    Chisq Df Pr(>Chisq)
+#algae.N15          0.1562  1     0.6927
+#Exposure           0.0015  1     0.9687
+#algae.N15:Exposure 0.1193  1     0.7298
+
+anova(wat.sh.lmer)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                      Sum Sq   Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15          0.0108917 0.0108917     1 58.916  0.0542 0.8167
+#Exposure           0.0083816 0.0083816     1 12.477  0.0417 0.8415
+#algae.N15:Exposure 0.0239740 0.0239740     1 58.916  0.1193 0.7311
+
+#No significant differences. 
+
+```
+
+#Plot
+```{r}
+#Can we plot coloured instead by site though?
+
+sh_plot_dat <- emmip(wat.sh.lmer,  ~ algae.N15|Exposure, at = list(algae.N15 = seq(2.73, 10.66, 0.1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+sh_plot_dat.protected<-
+  sh_plot_dat%>%
+  filter(Exposure == "Protected")%>%
+  filter(algae.N15>=2.73&algae.N15<=10.66)
+
+sh_plot_dat.exposed<-
+  sh_plot_dat%>%
+  filter(Exposure == "Exposed")%>%
+  filter(algae.N15>=4.64&algae.N15<=8.45)
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+##Plot the shannon according to N15 & exposure
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon, color = Exposure, 
+                      fill = Exposure, group = Exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = Exposure))+
+  geom_line(data = sh_plot_dat.protected, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sh_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+    geom_line(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+  ylab("Water Microbial Shannon Diversity \n") +
+  xlab(expression(italic(delta)^15*N))+
+  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+#This is driven by motu really, so let's colour by motu 
+
+sh_plot_dat_no_exp <- emmip(wat.sh.lmer,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+my_colors_6 <- RColorBrewer::brewer.pal(6, "Dark2")[c(1:6)]
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
+  geom_line(data = sh_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sh_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Water MicrobialShannon Diversity \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors_6, labels = c('Aie',  'Reiono', 'Rimatuu')) +
+  scale_color_manual(values = my_colors_6, labels = c('Aie',  'Reiono', 'Rimatuu')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.3)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+
+ggsave( "../output/seabird-microbes/clean_output/5_wat_micro-shannon_motu.jpg",plot = last_plot(), width = 7, height = 5)
+
+
+```
+
+
+#Evenness
+```{r}
+hist((water.microbes.seabirds$Evenness)) #a bit simialr to shannon div (makes sense)
+
+plot(Evenness ~ algae.N15, water.microbes.seabirds)
+qqPlot(water.microbes.seabirds$Evenness) #a bit similar to shannon (makes sense)
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Evenness)) +
+  geom_point(aes(color = site.name)) ##This is definitely driven by location differences, confounded with rat history
+
+#Can we get away with what we did for shannon?
+wat.even.lmer <-lmerTest::lmer(Evenness~ algae.N15*Exposure + (1|site.name), data=water.microbes.seabirds)
+plot(resid(wat.even.lmer))
+qqnorm(resid(wat.even.lmer)) #not great 
+
+
+summary(wat.even.lmer)
+#Fixed effects:
+#                             Estimate Std. Error        df t value Pr(>|t|)    
+#(Intercept)                  0.736876   0.094526 24.861698   7.795  3.9e-08 ***
+#algae.N15                   -0.005792   0.012045 58.003959  -0.481    0.632    
+#ExposureProtected            0.011996   0.120146 17.342331   0.100    0.922    
+#algae.N15:ExposureProtected -0.001366   0.014437 59.640046  -0.095    0.925    
+
+Anova(wat.even.lmer)
+#RResponse: Evenness
+##                    Chisq Df Pr(>Chisq)
+#algae.N15          1.0315  1     0.3098
+#Exposure           0.0019  1     0.9651
+#algae.N15:Exposure 0.0090  1     0.9246
+
+anova(wat.even.lmer)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                       Sum Sq    Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15          0.00240963 0.00240963     1 59.640  0.8047 0.3733
+#Exposure           0.00002985 0.00002985     1 17.342  0.0100 0.9216
+#algae.N15:Exposure 0.00002683 0.00002683     1 59.640  0.0090 0.9249
+
+
+#Just a quick trial by motu - if it's not significantly different by distance from shore or exposure, how about just motu?
+motu.mod <- lm(Evenness ~ algae.N15*motu, data = water.microbes.seabirds)
+
+anova(motu.mod)
+#Response: Evenness
+#               Df  Sum Sq  Mean Sq F value    Pr(>F)    
+#algae.N15       1 0.01741 0.017414  5.8060   0.01911 *  
+#motu            2 0.37092 0.185458 61.8327 3.321e-15 ***
+#algae.N15:motu  2 0.00660 0.003302  1.1008   0.33935    
+#Residuals      59 0.17696 0.002999   
+
+#yes this is significantly different by motu
+
+#Not going to plot 
+
+```
+
+
+#Faith's Phylogenetic Diversity
+```{r}
+hist(water.microbes.seabirds$FaithPD) #not bad
+
+plot(FaithPD ~ algae.N15, water.microbes.seabirds) #pretty good
+qqPlot(water.microbes.seabirds$FaithPD) #not the worst
+
+
+wat.fpd.lmer <-lmerTest::lmer(FaithPD ~ algae.N15*Exposure + (1|site.name), data=water.microbes.seabirds)
+plot(resid(wat.fpd.lmer))
+qqnorm(resid(wat.fpd.lmer)) #actually looks pretty good
+
+summary(wat.fpd.lmer)
+#Fixed effects:
+#                            Estimate Std. Error     df t value Pr(>|t|)  
+#(Intercept)                   48.704     23.931 16.201   2.035   0.0585 .
+#algae.N15                      3.393      2.760 57.634   1.229   0.2239  
+#ExposureProtected             14.872     31.113 11.892   0.478   0.6413  
+#algae.N15:ExposureProtected   -2.651      3.320 58.817  -0.799   0.4277  
+
+Anova(wat.fpd.lmer)
+#Response: FaithPD
+ #                   Chisq Df Pr(>Chisq)
+#algae.N15          1.0353  1     0.3089
+#Exposure           0.0048  1     0.9445
+#algae.N15:Exposure 0.6379  1     0.4245
+
+anova(wat.fpd.lmer)
+#Type III Analysis of Variance Table with Satterthwaite's method
+#                    Sum Sq Mean Sq NumDF  DenDF F value Pr(>F)
+#algae.N15          243.008 243.008     1 58.817  1.5511 0.2179
+#Exposure            35.796  35.796     1 11.892  0.2285 0.6413
+#algae.N15:Exposure  99.932  99.932     1 58.817  0.6379 0.4277
+
+test(emtrends(wat.fpd.lmer, ~ Exposure, var = "algae.N15", adjust = "fdr"))
+
+# Exposure  algae.N15.trend   SE   df t.ratio p.value
+# Exposed             3.393 2.77 57.6   1.226  0.4503
+# Protected           0.742 1.89 60.6   0.393  0.6958
+
+
+test(emtrends(wat.fpd.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr"))
+#$contrasts
+# contrast            estimate   SE   df t.ratio p.value
+# Exposed - Protected     2.65 3.35 58.8   0.792  0.4318
+
+#nothing significant - not going to plot
+```
+
+
+
+*Top Taxa*
+
+#Corals 
+
+```{r}
+hist(coral.microbes.seabirds$RelAbund_Endozoicomonas)
+qqPlot(coral.microbes.seabirds$RelAbund_Endozoicomonas)#terrible
+#Hmmm can't use log-link because it is skewed the opposite way. 
+#What about proportional data?
+
+##Since Endoz are skewed toward 1, what about using a beta distribution?
+?glmmTMB()
+
+#Cool let's loop! 
+head(coral.microbes.seabirds)
+###If they are all betas, can we transform & then loop it 
+beta_trans_coral_microbes <- dplyr::mutate(coral.microbes.seabirds, RelAbund_Cellvibrionales_Aestuariicella = (RelAbund_Cellvibrionales_Aestuariicella*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Alteromonadales_Agaribacter = (RelAbund_Alteromonadales_Agaribacter*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Cytophagales_Candidatus_Amoebophilus = (RelAbund_Cytophagales_Candidatus_Amoebophilus*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Endozoicomonas = (RelAbund_Endozoicomonas*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Alteromonadales_Glaciecola = (RelAbund_Alteromonadales_Glaciecola*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Oceanospirillales_Neptuniibacter = (RelAbund_Oceanospirillales_Neptuniibacter*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Cellvibrionales_Porticoccus = (RelAbund_Cellvibrionales_Porticoccus*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Woesearchaeales_SCGC_AAA286E23 = (RelAbund_Woesearchaeales_SCGC_AAA286E23*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Litoricola = (RelAbund_Litoricola*(n()-1) + 0.5)/n())
+beta_trans_coral_microbes <- dplyr::mutate(beta_trans_coral_microbes, RelAbund_Uncultured_Alteromonadaceaeae = (RelAbund_Uncultured_Alteromonadaceaeae*(n()-1) + 0.5)/n())
+
+print(colnames(beta_trans_coral_microbes))
+columns <- c( "RelAbund_Cellvibrionales_Aestuariicella" , "RelAbund_Alteromonadales_Agaribacter",
+              "RelAbund_Cytophagales_Candidatus_Amoebophilus", "RelAbund_Endozoicomonas","RelAbund_Alteromonadales_Glaciecola",
+              "RelAbund_Oceanospirillales_Neptuniibacter","RelAbund_Cellvibrionales_Porticoccus",
+              "RelAbund_Woesearchaeales_SCGC_AAA286E23","RelAbund_Litoricola","RelAbund_Uncultured_Alteromonadaceaeae")
+#Loop
+dat <- beta_trans_coral_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ algae.N15*Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+
+#Interesting, none of the top taxa have any significant differences..
+```
+
+#Water
+#Top taxa include: Synnechococcus, Litoricola, Prochlorococcus, Uncultured Alteromonadaceae & SAR86
+
+```{r}
+hist(water.microbes.seabirds$RelAbund_Synechococcus)
+qqPlot(water.microbes.seabirds$RelAbund_Synechococcus) #yuck
+
+
+#use a beta distribution - can't use poisson (not count data), negative binomial looked terrible
+
+###If they are all betas, can we transform & then loop it 
+beta_trans_water_microbes <- dplyr::mutate(water.microbes.seabirds, RelAbund_Synechococcus = (RelAbund_Synechococcus*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Litoricola = (RelAbund_Litoricola*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Prochlorococcus = (RelAbund_Prochlorococcus*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR86_Clade = (RelAbund_SAR86_Clade*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Uncultured_Alteromonadaceaeae = (RelAbund_Uncultured_Alteromonadaceaeae*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR116_Clade = (RelAbund_SAR116_Clade*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR11_CladeIa = (RelAbund_SAR11_CladeIa*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_SAR11_CladeIb = (RelAbund_SAR11_CladeIb*(n()-1) + 0.5)/n())
+beta_trans_water_microbes <- dplyr::mutate(beta_trans_water_microbes, RelAbund_Rhodospirillales_AEGEAN_169_marine_group = (RelAbund_Rhodospirillales_AEGEAN_169_marine_group*(n()-1) + 0.5)/n())
+
+print(colnames(beta_trans_water_microbes))
+columns <- c( "RelAbund_Synechococcus" , "RelAbund_Litoricola", "RelAbund_Prochlorococcus", "RelAbund_SAR86_Clade",
+              "RelAbund_Uncultured_Alteromonadaceaeae", "RelAbund_SAR116_Clade", 
+              "RelAbund_SAR11_CladeIa", "RelAbund_SAR11_CladeIb","RelAbund_Rhodospirillales_AEGEAN_169_marine_group")
+#Loop
+dat <- beta_trans_water_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ algae.N15*Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+#Cool - there are some taxa that ahve a significant relationship with algae N15 (no interactions), including: 
+# Synechococcus: ChiSq = 24.4740, p = 7.532e -07
+# SAR 86: Chisq = 4.20, p = 0.04042
+# SAR116: ChiSq = 5.45, p = 0.01947
+#
+```
+
+#Plot significant ones
+#Synechococcus
+```{r}
+
+wat.syn.beta <- glmmTMB(RelAbund_Synechococcus ~ algae.N15*Exposure+ (1|site.name), data=water.microbes.seabirds, family = beta_family(), na.action = na.omit)
+
+plot(resid(wat.syn.beta))
+
+Anova(wat.syn.beta)
+#Response: RelAbund_Synechococcus
+#                     Chisq Df Pr(>Chisq)    
+#algae.N15          24.1061  1  9.117e-07 ***
+#Exposure            0.9128  1     0.3394    
+#algae.N15:Exposure  0.1004  1     0.7514    
+
+
+test(emtrends(wat.syn.beta, ~ Exposure, var = "algae.N15", adjust = "fdr"))
+# Exposure  algae.N15.trend     SE df t.ratio p.value
+# Exposed            -0.106 0.0726 59  -1.461  0.1494
+# Protected          -0.131 0.0278 59  -4.702  <.0001
+
+test(emtrends(wat.syn.beta, pairwise~Exposure, var = "algae.N15", adjust = "fdr"))
+#contrast            estimate     SE df t.ratio p.value
+# Exposed - Protected   0.0246 0.0777 59   0.317  0.7525
+
+#No significant interaction with exposure 
+
+#Plot
+
+syn_plot_dat_no_exp <- emmip(wat.syn.beta,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
+  geom_line(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Microbial Observed ASV richness \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+#You can see that it's by location here too
+
+my_colors_3 <- RColorBrewer::brewer.pal(3, "Dark2")[c(1:3)]
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
+  geom_line(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Relative Abundance of Synechococcus (Water Microbiome) \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu'))+
+  scale_color_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.9, 0.7)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave("../output/seabird-microbes/clean_output/6_water_micro-synechococcus_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+
+```
+
+
+#Can we remove protected side of Aie?
+```{r}
+water.microbes.seabirds.noaiepro <- filter(water.microbes.seabirds, site.name != "Aie_Protected")
+
+syn_trans_noaie <- dplyr::mutate(water.microbes.seabirds.noaiepro, RelAbund_Synechococcus = (RelAbund_Synechococcus*(n()-1) + 0.5)/n())
+syn.beta.noaie <- glmmTMB(RelAbund_Synechococcus ~ algae.N15*Exposure + (1|site.name), family = beta_family(), data = syn_trans_noaie, na.action = na.omit)
+
+Anova(syn.beta.noaie)
+#Response: RelAbund_Synechococcus
+#                    Chisq Df Pr(>Chisq)
+#algae.N15          0.0800  1     0.7773
+#Exposure           0.0745  1     0.7849
+#algae.N15:Exposure 2.3486  1     0.1254
+
+#Yep, no longer significant when removing aie protected
+```
+
+#SAR86
+
+```{r}
+wat.sar86.beta <- glmmTMB(RelAbund_SAR86_Clade ~ algae.N15*Exposure+ (1|site.name), data=water.microbes.seabirds, family = beta_family(), na.action = na.omit)
+
+plot(resid(wat.sar86.beta))
+
+Anova(wat.sar86.beta)
+#Response: RelAbund_SAR86_Clade
+#                    Chisq Df Pr(>Chisq)  
+#algae.N15          3.9319  1    0.04738 *
+#Exposure           0.1355  1    0.71278  
+#algae.N15:Exposure 2.3965  1    0.12160  
+
+test(emtrends(wat.sar86.beta, ~ Exposure, var = "algae.N15", adjust = "fdr"))
+# Exposure  algae.N15.trend     SE df t.ratio p.value
+# Exposed           -0.1261 0.0515 59  -2.449  0.0346
+# Protected         -0.0241 0.0413 59  -0.583  0.5623
+test(emtrends(wat.sar86.beta, pairwise~Exposure, var = "algae.N15", adjust = "fdr"))
+#$contrasts
+# contrast            estimate     SE df t.ratio p.value
+# Exposed - Protected   -0.102 0.0659 59  -1.548  0.1270
+
+
+#No significant interaction with exposure 
+
+#Plot
+
+sar86_plot_dat_no_exp <- emmip(wat.sar86.beta,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR86_Clade))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
+  geom_line(data = sar86_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sar86_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Relative Abundance of SAR86 (Water Microbiome) \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave("../output/seabird-microbes/clean_output/7_water_micro-sar86_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+
+#looks better than synechococcus! 
+
+#Quick look via motu
+
+my_colors_3 <- RColorBrewer::brewer.pal(3, "Dark2")[c(1:3)]
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR86_Clade))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
+  geom_line(data = sar86_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sar86_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Relative Abundance of SAR86 (Water Microbiome) \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu'))+
+  scale_color_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.9, 0.7)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave("../output/seabird-microbes/clean_output/7b_water_micro-sar86_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+#Aie is all alone but the trend seems to hold - check without aie?
+
+water.microbes.seabirds.noaie <- filter(water.microbes.seabirds, motu != "Aie")
+
+sar86_trans_noaie <- dplyr::mutate(water.microbes.seabirds.noaie, RelAbund_SAR86_Clade = (RelAbund_SAR86_Clade*(n()-1) + 0.5)/n())
+sar86.beta.noaie <- glmmTMB(RelAbund_SAR86_Clade ~ algae.N15*Exposure + (1|site.name), family = beta_family(), data = sar86_trans_noaie, na.action = na.omit)
+
+Anova(sar86.beta.noaie)
+#Response: RelAbund_SAR86_Clade
+#                   Chisq Df Pr(>Chisq)  
+#algae.N15          4.200  1    0.04042 *
+#Exposure           0.157  1    0.69194  
+#algae.N15:Exposure 2.664  1    0.10264  
+
+#Yes! Still holds 
+
+
+```
+
+
+#SAR116
+
+```{r}
+#RelAbund_SAR116_Clade
+
+wat.sar116.beta <- glmmTMB(RelAbund_SAR116_Clade ~ algae.N15*Exposure+ (1|site.name), data=water.microbes.seabirds, family = beta_family(), na.action = na.omit)
+
+plot(resid(wat.sar116.beta)) #resids look great!
+
+Anova(wat.sar116.beta)
+#Response: RelAbund_SAR116_Clade
+#                    Chisq Df Pr(>Chisq)  
+#algae.N15          5.4757  1    0.01928 *
+#Exposure           0.4973  1    0.48069  
+#algae.N15:Exposure 0.5444  1    0.46060 
+
+test(emtrends(wat.sar116.beta, ~ Exposure, var = "algae.N15", adjust = "fdr"))
+#  Exposure  algae.N15.trend     SE df t.ratio p.value
+# Exposed           -0.0794 0.0437 59  -1.818  0.1172
+# Protected         -0.0414 0.0260 59  -1.590  0.1172
+test(emtrends(wat.sar116.beta, pairwise~Exposure, var = "algae.N15", adjust = "fdr"))
+#$contrasts
+# contrast            estimate     SE df t.ratio p.value
+# Exposed - Protected   -0.038 0.0515 59  -0.738  0.4635
+
+
+#No significant interaction with exposure 
+
+#Plot
+
+sar116_plot_dat_no_exp <- emmip(wat.sar116.beta,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
+
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR116_Clade))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
+  geom_line(data = sar116_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sar116_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Relative Abundance of SAR116 (Water Microbiome) \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.75)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+ggsave("../output/seabird-microbes/clean_output/8_water_micro-sar116_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+
+#looks better than synechococcus! 
+
+#Quick look via motu
+
+my_colors_3 <- RColorBrewer::brewer.pal(3, "Dark2")[c(1:3)]
+ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR116_Clade))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
+  geom_line(data = sar116_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
+   geom_ribbon(data = sar116_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Relative Abundance of SAR116 (Water Microbiome) \n") +
+  xlab(expression(italic(delta)^15*N))+
+   scale_fill_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu'))+
+  scale_color_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.9, 0.7)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+#minimal visual location effect
+
+
+```
+
+
+##Woohoo! Done with the main stuff
+
+# How about top taxa by restoration status (motu) just bc 
+
+#Coral
+```{r}
+
+beta_trans_coral_microbes$reststat <- beta_trans_coral_microbes$motu
+
+beta_trans_coral_microbes$reststat[beta_trans_coral_microbes$reststat == "aie"] <- "reference"
+beta_trans_coral_microbes$reststat[beta_trans_coral_microbes$reststat == "reiono"] <- "recovering"
+beta_trans_coral_microbes$reststat[beta_trans_coral_microbes$reststat == "rimatuu"] <- "unrestored"
+
+
+print(colnames(beta_trans_coral_microbes))
+columns <- c( "RelAbund_Cellvibrionales_Aestuariicella" , "RelAbund_Alteromonadales_Agaribacter",
+              "RelAbund_Cytophagales_Candidatus_Amoebophilus", "RelAbund_Endozoicomonas","RelAbund_Alteromonadales_Glaciecola",
+              "RelAbund_Oceanospirillales_Neptuniibacter","RelAbund_Cellvibrionales_Porticoccus",
+              "RelAbund_Woesearchaeales_SCGC_AAA286E23","RelAbund_Litoricola","RelAbund_Uncultured_Alteromonadaceaeae")
+#Loop
+dat <- beta_trans_coral_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ reststat*Distance_to_shore + reststat*Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+
+#Way more significant by motu
+
+#Agaribacter (sig by reststat, exposure and int btw reststat and exp)
+#Ca Amoebophilus (sig by distance to shore, and int btw reststat and distance to shore)
+#Endozoicomonas (sig by reststat and int btw restat and exposure)
+#Alteromonadales_Glaciecola (sig by reststat, exposure and int with exposure)
+#Neptuniibacter (sig by reststat, exposure and int with exposure)
+#Litoricola  (sig only by reststat)
+#Alteromonadaceae (sig by reststat, exposure and int with exposure)
+```
+
+#Water
+```{r}
+
+beta_trans_water_microbes$reststat <- beta_trans_water_microbes$motu
+
+beta_trans_water_microbes$reststat[beta_trans_water_microbes$reststat == "aie"] <- "reference"
+beta_trans_water_microbes$reststat[beta_trans_water_microbes$reststat == "reiono"] <- "recovering"
+beta_trans_water_microbes$reststat[beta_trans_water_microbes$reststat == "rimatuu"] <- "unrestored"
+
+print(colnames(beta_trans_water_microbes))
+columns <- c( "RelAbund_Synechococcus" , "RelAbund_Litoricola", "RelAbund_Prochlorococcus", "RelAbund_SAR86_Clade",
+              "RelAbund_Uncultured_Alteromonadaceaeae", "RelAbund_SAR116_Clade", 
+              "RelAbund_SAR11_CladeIa", "RelAbund_SAR11_CladeIb","RelAbund_Rhodospirillales_AEGEAN_169_marine_group")
+#Loop
+dat <- beta_trans_water_microbes
+models <- list()
+for (i in columns) {
+  f <- formula(paste(i, "~ reststat*Distance_to_shore + reststat*Exposure + (1|site.name)"))
+  models[[i]] <- glmmTMB(f, data=dat, family = beta_family(), na.action = na.omit)
+  print(Anova(models[[i]])) 
+
+}
+
+
+#Almost all
+#Synechococcus (all sig )
+#Litoricola (sig by reststat, exp +sig int with exp)
+#Prochlorococcus (sig by reststat, exp +sig int with exp)
+#SAR86 (sig by reststat, exp +sig int with exp)
+#Alteromonadaceae (sig by reststat, exposure only)
+#SAR116 (not with restat, but all the rest)
+#SAR11 Clade 1a (not with restat, but exposure and sig int)
+#SAR11 Clade 1b (sig by reststat, exp,+ sig int with exp)
+#Rhodospirillales marine group (sig by reststat only)
+
+```
+
+
+
