@@ -406,87 +406,22 @@ anova(cor.fpd.lmer)
 #Exposure           10.587  10.587     1 35.346  0.1534 0.6977
 #algae.N15:Exposure  1.446   1.446     1 45.388  0.0209 0.8856
 
-test(emtrends(cor.fpd.lmer, ~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+test(emtrends(cor.even.lmer, ~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
 #Exposure  algae.N15.trend     SE  df z.ratio p.value
-# Exposed             0.938 1.77 Inf   0.530  0.5958
-# Protected           1.234 1.03 Inf   1.199  0.4608
-test(emtrends(cor.fpd.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
+# Exposed          0.096572 0.0335 Inf   2.881  0.0079
+# Protected        0.000956 0.0143 Inf   0.067  0.9467
+test(emtrends(cor.even.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr", lmer.df = "asymptotic"))
 #contrasts
 # contrast            estimate     SE  df z.ratio p.value
-# Exposed - Protected   -0.296 2.05 Inf  -0.145  0.8849
+# Exposed - Protected   0.0956 0.0364 Inf   2.624  0.0087
 
-#Yup, nothing significant
+#Apparently a significant exposure, but there is no overall interaction effect??
 
 #try not asymptotic
-test(emtrends(cor.fpd.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr"))
-#Same as above.
+test(emtrends(cor.even.lmer, pairwise~ Exposure, var = "algae.N15", adjust = "fdr"))
+#Still sig here. How to interpret?
 
 ```
-
-#Plot
-```{r}
-range(coral.microbes.seabirds$algae.N15, na.rm = T)
-
-fpd_plot_dat <- emmip(cor.fpd.lmer,  ~ algae.N15|Exposure, at = list(algae.N15 = seq(2.73, 10.66, 0.1)), CIs = TRUE, plotit=FALSE, type = "response")
-
-range(coral.microbes.seabirds[coral.microbes.seabirds$Exposure == "Protected",]$algae.N15, na.rm = T) #2.73, 10.66
-range(coral.microbes.seabirds[coral.microbes.seabirds$Exposure == "Exposed",]$algae.N15, na.rm = T) #4.64, 8.45
-
-fpd_plot_dat.protected<-
-  fpd_plot_dat%>%
-  filter(Exposure == "Protected")%>%
-  filter(algae.N15>=2.73&algae.N15<=10.66)
-
-fpd_plot_dat.exposed<-
-  fpd_plot_dat%>%
-  filter(Exposure == "Exposed")%>%
-  filter(algae.N15>=4.64&algae.N15<=8.45)
-
-
-my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
-
-ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = FaithPD, color = Exposure, 
-                      fill = Exposure, group = Exposure))+
-  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
-  geom_point(aes(shape = Exposure))+
-  geom_line(data = fpd_plot_dat.protected, aes(x = algae.N15, y = yvar))+
-   geom_ribbon(data = fpd_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-    geom_line(data = fpd_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
-   geom_ribbon(data = fpd_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-  ylab("Microbial Shannon Diveristy \n") +
-  xlab(expression(italic(delta)^15*N))+
-  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
-  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
-    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
-  theme_classic() +
-  theme(legend.position = c(0.85, 0.82)) +
-  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
-
-
-##without exposure 
-fpd_plot_dat_no_exp <- emmip(cor.fpd.lmer,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
-
-##Plot the richness according to N15 & exposure (combined effect line)--=--
-ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = FaithPD))+
-  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
-  geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
-  geom_line(data = fpd_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
-   geom_ribbon(data = fpd_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Microbial Faith's Phylogentic Diversity \n") +
-  xlab(expression(italic(delta)^15*N))+
-   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
-  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
-    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
-  theme_classic() +
-  theme(legend.position = c(0.85, 0.75)) +
-  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
-
-
-
-ggsave("../output/seabird-microbes/clean_output/3_coral_micro-faithpd_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
-
-```
-
 
 #Remove the NMDS axes since we include the NMDS plots
 
