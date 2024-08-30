@@ -409,6 +409,29 @@ fish_dens_algaen15_ad_log
 cor(fish_fg_dens_dat_levels_algae$structural_complexity_0to5, fish_fg_dens_dat_levels_algae$N.15_at_30m)
 
 
+#remove structure for consistency with others----
+fish_dens_algaen15_ad_log2<-adonis2(log(fish.dens.seabirds.trans_sp+1) ~ N.15_at_30m *wind.exposure, data = fish_fg_dens_dat_levels_algae)
+fish_dens_algaen15_ad_log2
+#                          Df SumOfSqs      R2      F Pr(>F)   
+#N.15_at_30m                1  0.06332 0.19989 5.6064  0.006 **
+#wind.exposure              1  0.00342 0.01079 0.3025  0.759   
+#N.15_at_30m:wind.exposure  1  0.02416 0.07626 2.1390  0.123   
+#Residual                  20  0.22587 0.71307                 
+#Total                     23  0.31676 1.00000                 
+
+
+fish_dens_algaen15_ad_2<-adonis2(fish.dens.seabirds.trans_sp ~ N.15_at_30m *wind.exposure, data = fish_fg_dens_dat_levels_algae)
+fish_dens_algaen15_ad_2
+#                          Df SumOfSqs      R2      F Pr(>F)
+#N.15_at_30m                1  0.05392 0.02866 0.6428  0.659
+#wind.exposure              1  0.04253 0.02261 0.5070  0.770
+#N.15_at_30m:wind.exposure  1  0.10717 0.05697 1.2776  0.282
+#Residual                  20  1.67761 0.89176              
+#Total                     23  1.88123 1.00000              
+
+
+
+#test----
 library(AICcPermanova)
 AllModels <- make_models(vars = c("N.15_at_30m", "wind.exposure", "structural_complexity_0to5", 
                                   "N.15_at_30m:wind.exposure", "N.15_at_30m:structural_complexity_0to5"))
@@ -534,23 +557,49 @@ ggsave(fish_dens_nmds_plot_rotate.autoF.newcolors, file = "../output/seabird-fis
 
 ###--------------------LOOK AT FISH DIVERSITY METRICS (and overall density, biomass, etc.) VS. SEABIRD LEVELS AND ALGAE N15-----------
 
-##check interaction models-----
+##check interaction models: biomass-----
 ```{r}
 #run lmms----
 #total biomass----
-
-fish_bio_full_mod_algae_log_int <-lmer(log(sum_fish_biomass)~N.15_at_30m * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+#without structure interaction:
+fish_bio_full_mod_algae_log_int <-lmer(log(sum_fish_biomass)~N.15_at_30m *wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
 summary(fish_bio_full_mod_algae_log_int)
 plot(fish_bio_full_mod_algae_log_int)
 qqnorm(resid(fish_bio_full_mod_algae_log_int))
-qqline(resid(fish_bio_full_mod_algae_log_int))
-#looks better - use this
-#still some high correlations of fixed effects?
+#looks better than non-log- use this
 
 Anova(fish_bio_full_mod_algae_log_int) #structure significant, and exposure *n15 significant....
-car::vif(fish_bio_full_mod_algae_log_int) 
-
+#N.15_at_30m                0.0011  1   0.973304   
+#wind.exposure              0.3363  1   0.561969   
+#structural_complexity_0to5 7.8462  1   0.005093 **
+#N.15_at_30m:wind.exposure  5.3240  1   0.021034 * 
 summary(fish_bio_full_mod_algae_log_int)
+#N.15_at_30m                         0.2350     0.1505   1.561
+#3wind.exposurewindward               6.6932     2.9558   2.264
+#structural_complexity_0to5          0.9095     0.3247   2.801
+#N.15_at_30m:wind.exposurewindward  -1.1807     0.5117  -2.307
+
+#BUT SINGULAR***
+
+#if remove structure, is it still singular?
+fish_bio_full_mod_algae_log_int3 <-lmer(log(sum_fish_biomass)~N.15_at_30m *wind.exposure   + (1|site.name), data = fish_comb_dat_levels_algae) #
+summary(fish_bio_full_mod_algae_log_int3)
+plot(fish_bio_full_mod_algae_log_int3)
+qqnorm(resid(fish_bio_full_mod_algae_log_int3))
+Anova(fish_bio_full_mod_algae_log_int3)
+#N.15_at_30m               0.5463  1     0.4598
+#wind.exposure             0.0026  1     0.9596
+#N.15_at_30m:wind.exposure 0.0418  1     0.8381
+#now not significant.
+
+#try nlme because singular??
+library(nlme)
+fish_bio_full_mod_algae_log_int_lme <-lme(log(sum_fish_biomass)~N.15_at_30m *wind.exposure + structural_complexity_0to5,  random = (~1|site.name), data = fish_comb_dat_levels_algae) 
+summary(fish_bio_full_mod_algae_log_int_lme)
+Anova(fish_bio_full_mod_algae_log_int_lme)
+anova(fish_bio_full_mod_algae_log_int_lme)
+#same results as above...
+
 plot_summs(fish_bio_full_mod_algae_log_int)
 
 emtrends(fish_bio_full_mod_algae_log_int, ~wind.exposure, var = "N.15_at_30m")
@@ -570,7 +619,144 @@ fish_comb_dat_levels_algae%>%
   stat_smooth(method = "lm")+
   facet_wrap(~wind.exposure)
 
+#with structure interaction----
+fish_bio_full_mod_algae_log_int2 <-lmer(log(sum_fish_biomass)~N.15_at_30m * wind.exposure + N.15_at_30m*structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+summary(fish_bio_full_mod_algae_log_int2)
+plot(fish_bio_full_mod_algae_log_int2)
+qqnorm(resid(fish_bio_full_mod_algae_log_int2))
 
+#no longer singular
+
+Anova(fish_bio_full_mod_algae_log_int2) #now only structure is significant....
+#N.15_at_30m                            0.0006  1    0.98118  
+#wind.exposure                          1.1132  1    0.29139  
+#structural_complexity_0to5             4.1210  1    0.04235 *
+#N.15_at_30m:wind.exposure              1.6210  1    0.20295  
+#N.15_at_30m:structural_complexity_0to5 0.0064  1    0.93648  
+summary(fish_bio_full_mod_algae_log_int2)
+#N.15_at_30m                             0.08220    1.40306   0.059
+#wind.exposurewindward                   5.75144    4.94248   1.164
+#structural_complexity_0to5              0.55144    3.15831   0.175
+#N.15_at_30m:wind.exposurewindward      -1.02197    0.80269  -1.273
+#N.15_at_30m:structural_complexity_0to5  0.04039    0.50678   0.080
+
+
+emtrends(fish_bio_full_mod_algae_log_int2, ~wind.exposure|structural_complexity_0to5, var = "N.15_at_30m")
+emtrends(fish_bio_full_mod_algae_log_int2, pairwise~wind.exposure|structural_complexity_0to5, var = "N.15_at_30m")
+emtrends(fish_bio_full_mod_algae_log_int2, ~wind.exposure, var = "structural_complexity_0to5")
+
+#compare to LRTs----
+anova(fish_bio_full_mod_algae_log_int2,fish_bio_full_mod_algae_log_int)
+#no different, so can drop structure interactions
+
+
+fish_bio_mod_algae_log_add <-lmer(log(sum_fish_biomass)~N.15_at_30m + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
+
+anova(fish_bio_full_mod_algae_log_int2,fish_bio_full_mod_algae_log_int, fish_bio_mod_algae_log_add)
+#additive model is worse...best is int (so only exposure interaction)
+
+
+##actual emmeans----
+test(emtrends(fish_bio_full_mod_algae_log_int, ~ wind.exposure, var = "N.15_at_30m", adjust = "fdr", lmer.df = "asymptotic"))
+# wind.exposure N.15_at_30m.trend     SE  df z.ratio p.value
+# leeward                   0.235 0.150 Inf   1.561  0.1184
+# windward                 -0.946 0.423 Inf  -2.238  0.0505
+
+#BUT neither significant when don't use asymptotic.
+test(emtrends(fish_bio_full_mod_algae_log_int, ~ wind.exposure, var = "N.15_at_30m", adjust = "fdr"))
+# leeward                   0.235 0.191 1.84   1.233  0.3519
+# windward                 -0.946 0.478 1.38  -1.977  0.3519
+
+test(emtrends(fish_bio_full_mod_algae_log_int, pairwise~ wind.exposure, var = "N.15_at_30m", adjust = "fdr", lmer.df = "asymptotic"))
+#contrast           estimate    SE  df z.ratio p.value
+#leeward - windward     1.18 0.512 Inf   2.307  0.0210
+
+#BUT not sig when don't use asymptotic...
+test(emtrends(fish_bio_full_mod_algae_log_int, pairwise~ wind.exposure, var = "N.15_at_30m", adjust = "fdr"))
+# leeward - windward     1.18 0.615 1.59   1.921  0.2266
+
+#does asymptotic make a big difference because singularity?
+
+
+###model plots----
+range(fish_comb_dat_levels_algae$N.15_at_30m, na.rm = T) #3.430000 6.993333
+
+fish_bio_plot_dat <- emmip(fish_bio_full_mod_algae_log_int,  ~ N.15_at_30m|wind.exposure, at = list(N.15_at_30m = seq(3.43, 7.0, 0.01)), CIs = TRUE, plotit=FALSE) #, type = "response"
+
+range(fish_comb_dat_levels_algae[fish_comb_dat_levels_algae$wind.exposure == "leeward",]$N.15_at_30m, na.rm = T) #3.430000 6.993333 - so whole range.
+range(fish_comb_dat_levels_algae[fish_comb_dat_levels_algae$wind.exposure == "windward",]$N.15_at_30m, na.rm = T) #5.366667 6.226667 - ouch, very narrow range
+
+fish_bio_plot_dat <- 
+  fish_bio_plot_dat%>%
+  mutate(wind.exposure = relevel(wind.exposure, "windward", "leeward"))
+
+fish_bio_plot_dat.protected<-
+  fish_bio_plot_dat%>%
+  filter(wind.exposure == "leeward") #%>%
+  #filter(N.15_at_30m>=2.73&N.15_at_30m<=10.66)
+
+fish_bio_plot_dat.exposed<-
+  fish_bio_plot_dat%>%
+  filter(wind.exposure == "windward")%>%
+  filter(N.15_at_30m>=5.36&N.15_at_30m<=6.3)
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+
+##Plot hard coral, in situ according to N15 & exposure
+fish_comb_dat_levels_algae%>%
+  mutate(wind.exposure = relevel(wind.exposure, "windward", "leeward"))%>%
+ggplot(aes(x = N.15_at_30m, y = log(sum_fish_biomass), color = wind.exposure, 
+                      fill = wind.exposure, group = wind.exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = wind.exposure))+
+  geom_line(data = fish_bio_plot_dat.protected, aes(x = N.15_at_30m, y = yvar))+
+   geom_ribbon(data = fish_bio_plot_dat.protected, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL, fill = wind.exposure, color = wind.exposure), alpha = .2, lwd=0)+
+    geom_line(data = fish_bio_plot_dat.exposed, aes(x = N.15_at_30m, y = yvar))+
+   geom_ribbon(data = fish_bio_plot_dat.exposed, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL, fill = wind.exposure, color = wind.exposure), alpha = .2, lwd=0)+
+  ylab("Hard coral proportional cover \n") +
+  xlab(expression(italic(delta)^15*N))+
+ scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+   scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  labs(shape = "Exposure", color = "Exposure", fill = "Exposure")+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+#ggsave("../output/seabird-benthic/clean_output/hard_coral_in_situ_model_plot.jpg", plot = last_plot(), width = 7, height = 5)
+
+
+###plot by structure instead-----
+fish_bio_plot_dat_struct <- emmip(fish_bio_full_mod_algae_log_int,  ~ structural_complexity_0to5, at = list(structural_complexity_0to5 = c(1.5, 2, 3)), CIs = TRUE, plotit=FALSE) 
+
+
+
+fish_comb_dat_levels_algae%>%
+ggplot(aes(x = structural_complexity_0to5, y = log(sum_fish_biomass)))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = wind.exposure, color = wind.exposure, 
+                      fill = wind.exposure))+
+  geom_line(data = fish_bio_plot_dat_struct, aes(x = structural_complexity_0to5, y = yvar))+
+   geom_ribbon(data = fish_bio_plot_dat_struct, aes(x = structural_complexity_0to5, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
+  ylab("Fish biomass (log kg/ha) \n") +
+  xlab("Structural complexity")+
+ scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+   scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  labs(shape = "Exposure", color = "Exposure", fill = "Exposure")+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+
+###plot model without structure in it-----
+fish_bio_full_mod_algae_log_int3
+
+```
+
+
+##species richness------
+```{r}
 #species richness----
 
 #with interactions:
@@ -578,8 +764,20 @@ fish_rich_full_mod_algae_int <-lmer(SR~N.15_at_30m  * wind.exposure + structural
 summary(fish_rich_full_mod_algae_int)
 Anova(fish_rich_full_mod_algae_int)
 vif(fish_rich_full_mod_algae_int) #super high
-
 #nothing sig
+
+#N.15_at_30m                0.0024  1     0.9608
+#wind.exposure              0.1093  1     0.7409
+#structural_complexity_0to5 1.0085  1     0.3153
+#N.15_at_30m:wind.exposure  0.0214  1     0.8838
+
+#re-run without structure:
+fish_rich_full_mod_algae_int2 <-lmer(SR~N.15_at_30m  * wind.exposure   + (1|site.name), data = fish_comb_dat_levels_algae) 
+summary(fish_rich_full_mod_algae_int2)
+Anova(fish_rich_full_mod_algae_int2)
+#N.15_at_30m               0.6146  1     0.4331
+#wind.exposure             0.0002  1     0.9893
+#N.15_at_30m:wind.exposure 0.3110  1     0.5771
 
 
 #species evenness----
@@ -587,13 +785,19 @@ fish_even_full_mod_algae <-lmer(evenness~N.15_at_30m  * wind.exposure + structur
 summary(fish_even_full_mod_algae)
 plot(fish_even_full_mod_algae)
 qqnorm(resid(fish_even_full_mod_algae))
-qqline(resid(fish_even_full_mod_algae))
 #looks okay
 
 Anova(fish_even_full_mod_algae) #nothing significant anyway....
+#N.15_at_30m                0.0402  1     0.8410
+#wind.exposure              1.7600  1     0.1846
+#structural_complexity_0to5 0.2962  1     0.5863
+#N.15_at_30m:wind.exposure  0.0154  1     0.9012
+
+
 plot_summs(fish_even_full_mod_algae)
 
-
+fish_even_full_mod_algae2 <-lmer(evenness~N.15_at_30m  * wind.exposure   + (1|site.name), data = fish_comb_dat_levels_algae) 
+Anova(fish_even_full_mod_algae2) #nothing significant anyway....
 
 
 #shannon----
@@ -604,112 +808,20 @@ qqnorm(resid(fish_shannon_full_mod_algae))
 
 
 Anova(fish_shannon_full_mod_algae) #nothing significant****
+#N.15_at_30m                0.0054  1     0.9412
+#wind.exposure              1.1385  1     0.2860
+#structural_complexity_0to5 0.2733  1     0.6011
+#N.15_at_30m:wind.exposure  0.1844  1     0.6676
+
+
 plot_summs(fish_shannon_full_mod_algae)
 
-fish_shannon_full_mod_algae <-lmer(shannon~N.15_at_30m * wind.exposure + N.15_at_30m *structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
+fish_shannon_full_mod_algae2 <-lmer(shannon~N.15_at_30m * wind.exposure  + (1|site.name), data = fish_comb_dat_levels_algae)   #not singular
 summary(fish_shannon_full_mod_algae)
-Anova(fish_shannon_full_mod_algae) #nothing significant****
-
+Anova(fish_shannon_full_mod_algae2) #nothing significant****
 
 ```
 
-
-
-```{r}
-
-#run lmms----
-#total biomass----
-fish_bio_full_mod_algae <-lmer(sum_fish_biomass~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
-summary(fish_bio_full_mod_algae)
-plot(fish_bio_full_mod_algae)
-qqnorm(resid(fish_bio_full_mod_algae))
-qqline(resid(fish_bio_full_mod_algae))
-#LOOKS BAD
-
-#use log again: 
-fish_bio_full_mod_algae_log <-lmer(log(sum_fish_biomass)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
-summary(fish_bio_full_mod_algae_log)
-plot(fish_bio_full_mod_algae_log)
-qqnorm(resid(fish_bio_full_mod_algae_log))
-qqline(resid(fish_bio_full_mod_algae_log))
-#looks better - use this
-#still some high correlations of fixed effects?
-
-Anova(fish_bio_full_mod_algae_log) #nothing significant***
-vif(fish_bio_full_mod_algae_log) #all good
-
-#see below for corr checks between algae n15 and structure
-
-fish_bio_full_mod_algae_log_int <-lmer(log(sum_fish_biomass)~N.15_at_30m * wind.exposure + N.15_at_30m *structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
-summary(fish_bio_full_mod_algae_log_int)
-plot(fish_bio_full_mod_algae_log_int)
-qqnorm(resid(fish_bio_full_mod_algae_log))
-qqline(resid(fish_bio_full_mod_algae_log))
-#looks better - use this
-#still some high correlations of fixed effects?
-
-Anova(fish_bio_full_mod_algae_log_int) #structure significant
-car::vif(fish_bio_full_mod_algae_log_int) #SUPER HIGH
-
-
-#species richness----
-fish_rich_full_mod_algae <-lmer(SR~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
-summary(fish_rich_full_mod_algae)
-plot(fish_rich_full_mod_algae)
-qqnorm(resid(fish_rich_full_mod_algae))
-qqline(resid(fish_rich_full_mod_algae))
-#all looks good*
-
-
-Anova(fish_rich_full_mod_algae) #nothing significant****
-vif(fish_rich_full_mod_algae) #all fine
-
-#with interactions:
-fish_rich_full_mod_algae_int <-lmer(SR~N.15_at_30m  * wind.exposure + N.15_at_30m  *structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
-summary(fish_rich_full_mod_algae_int)
-Anova(fish_rich_full_mod_algae_int)
-vif(fish_rich_full_mod_algae_int) #super high
-
-#species evenness----
-fish_even_full_mod_algae <-lmer(evenness~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #singular
-summary(fish_even_full_mod_algae)
-plot(fish_even_full_mod_algae)
-qqnorm(resid(fish_even_full_mod_algae))
-qqline(resid(fish_even_full_mod_algae))
-#looks okay
-
-Anova(fish_even_full_mod_algae) #nothing significant anyway....
-plot_summs(fish_even_full_mod_algae)
-
-#try removing exposure:
-fish_even_red_mod_algae <-lmer(evenness~N.15_at_30m   + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)
-#still singular.
-
-range(fish_comb_dat_levels_algae$evenness) #very small range of values.
-
-
-fish_even_full_mod_algae <-lmer(evenness~N.15_at_30m  * wind.exposure + N.15_at_30m*structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
-summary(fish_even_full_mod_algae)
-Anova(fish_even_full_mod_algae) #nothing significant anyway....
-
-
-
-#shannon----
-fish_shannon_full_mod_algae <-lmer(shannon~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
-summary(fish_shannon_full_mod_algae)
-plot(fish_shannon_full_mod_algae)
-qqnorm(resid(fish_shannon_full_mod_algae))
-qqline(resid(fish_shannon_full_mod_algae))
-
-
-Anova(fish_shannon_full_mod_algae) #nothing significant****
-plot_summs(fish_shannon_full_mod_algae)
-
-fish_shannon_full_mod_algae <-lmer(shannon~N.15_at_30m * wind.exposure + N.15_at_30m *structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
-summary(fish_shannon_full_mod_algae)
-Anova(fish_shannon_full_mod_algae) #nothing significant****
-
-```
 
 
 
@@ -727,12 +839,12 @@ anova(fish_herb_dens_mod_algae)
 #nothing sig
 
 
-fish_herb_dens_mod_algae <-lmer(log(Herb_density+1)~N.15_at_30m  * wind.exposure +N.15_at_30m  *  structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   
-#sig interaction.....
-vif(fish_herb_dens_mod_algae) #but high vif...
+fish_herb_dens_mod_algae <-lmer(log(Herb_density+1)~N.15_at_30m  * wind.exposure  + (1|site.name), data = fish_comb_dat_levels_algae)   
+Anova(fish_herb_dens_mod_algae)
+#nothing sig
 
 
-fish_invmob_dens_mod_algae <-lmer(log(InvMob_density+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
+fish_invmob_dens_mod_algae <-lmer(log(InvMob_density+1)~N.15_at_30m *wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
 summary(fish_invmob_dens_mod_algae)
 plot(fish_invmob_dens_mod_algae)
 qqnorm(resid(fish_invmob_dens_mod_algae))
@@ -740,7 +852,12 @@ Anova(fish_invmob_dens_mod_algae)
 anova(fish_invmob_dens_mod_algae)
 #algae n15 sig
 
-fish_omni_dens_mod_algae <-lmer(log(Omnivr_density+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
+fish_invmob_dens_mod_algae <-lmer(log(InvMob_density+1)~N.15_at_30m *wind.exposure  + (1|site.name), data = fish_comb_dat_levels_algae) 
+#still singular
+Anova(fish_invmob_dens_mod_algae)
+#now nothing sig
+
+fish_omni_dens_mod_algae <-lmer(log(Omnivr_density+1)~N.15_at_30m  * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
 summary(fish_omni_dens_mod_algae)
 plot(fish_omni_dens_mod_algae)
 qqnorm(resid(fish_omni_dens_mod_algae))
@@ -748,7 +865,12 @@ Anova(fish_omni_dens_mod_algae)
 anova(fish_omni_dens_mod_algae)
 #nothing sig
 
-fish_plank_dens_mod_algae <-lmer(log(Plktiv_density+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   
+fish_omni_dens_mod_algae <-lmer(log(Omnivr_density+1)~N.15_at_30m *wind.exposure   + (1|site.name), data = fish_comb_dat_levels_algae) 
+#no longer singular;
+Anova(fish_omni_dens_mod_algae)
+#but nothing sig
+
+fish_plank_dens_mod_algae <-lmer(log(Plktiv_density+1)~N.15_at_30m * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   
 summary(fish_plank_dens_mod_algae)
 plot(fish_plank_dens_mod_algae)
 qqnorm(resid(fish_plank_dens_mod_algae))
@@ -756,7 +878,11 @@ Anova(fish_plank_dens_mod_algae)
 anova(fish_plank_dens_mod_algae)
 #nothing sig
 
-fish_fiscep_dens_mod_algae <-lmer(log(FisCep_density+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
+fish_plank_dens_mod_algae <-lmer(log(Plktiv_density+1)~N.15_at_30m * wind.exposure  + (1|site.name), data = fish_comb_dat_levels_algae) 
+Anova(fish_plank_dens_mod_algae)
+#nothing sig
+
+fish_fiscep_dens_mod_algae <-lmer(log(FisCep_density+1)~N.15_at_30m*wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
 summary(fish_fiscep_dens_mod_algae)
 plot(fish_fiscep_dens_mod_algae)
 qqnorm(resid(fish_fiscep_dens_mod_algae))
@@ -764,13 +890,24 @@ Anova(fish_fiscep_dens_mod_algae)
 anova(fish_fiscep_dens_mod_algae)
 #algae n15 very sig
 
-fish_invses_dens_mod_algae <-lmer(log(InvSes_density+1)~N.15_at_30m  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)    #singular
+fish_fiscep_dens_mod_algae <-lmer(log(FisCep_density+1)~N.15_at_30m*wind.exposure  + (1|site.name), data = fish_comb_dat_levels_algae) 
+#now singular
+Anova(fish_fiscep_dens_mod_algae)
+#algae still sig, marginal interaction
+
+
+
+fish_invses_dens_mod_algae <-lmer(log(InvSes_density+1)~N.15_at_30m  *wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)    #singular
 summary(fish_invses_dens_mod_algae)
 plot(fish_invses_dens_mod_algae)
 qqnorm(resid(fish_invses_dens_mod_algae))
 Anova(fish_invses_dens_mod_algae)
 anova(fish_invses_dens_mod_algae)
 #nothing sig
+
+fish_invses_dens_mod_algae <-lmer(log(InvSes_density+1)~N.15_at_30m  *wind.exposure   + (1|site.name), data = fish_comb_dat_levels_algae) 
+Anova(fish_invses_dens_mod_algae)
+#still singular, algae still sig
 
 
 ###biomass-----
@@ -899,80 +1036,6 @@ dplyr::select(motu, site.name, wind.exposure, transect, structural_complexity_0t
   geom_point()+
   geom_line()
  # stat_smooth(method = "lm", formula = y ~ poly(x, 2))
-
-```
-
-##by restoration status----
-```{r}
-#run lmms----
-#total biomass----
-fish_bio_full_mod_rest <-lmer(sum_fish_biomass~motu  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
-summary(fish_bio_full_mod_rest)
-plot(fish_bio_full_mod_rest)
-qqnorm(resid(fish_bio_full_mod_rest))
-qqline(resid(fish_bio_full_mod_rest))
-#LOOKS BAD
-
-#use log again: 
-fish_bio_full_mod_rest_log <-lmer(log(sum_fish_biomass)~motu  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
-summary(fish_bio_full_mod_rest_log)
-plot(fish_bio_full_mod_rest_log)
-qqnorm(resid(fish_bio_full_mod_rest_log))
-qqline(resid(fish_bio_full_mod_rest_log))
-#looks better - use this
-#still some high correlations of fixed effects?
-
-Anova(fish_bio_full_mod_rest_log) #nothing significant***
-vif(fish_bio_full_mod_rest_log) #all good
-
-#see below for corr checks between algae n15 and structure
-
-
-
-#species richness----
-fish_rich_full_mod_rest <-lmer(SR~motu  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #depth_max_m + start_distance_to_shore_m
-summary(fish_rich_full_mod_algae)
-plot(fish_rich_full_mod_algae)
-qqnorm(resid(fish_rich_full_mod_rest))
-qqline(resid(fish_rich_full_mod_rest))
-#all looks good*
-
-
-Anova(fish_rich_full_mod_rest) #nothing significant****
-vif(fish_rich_full_mod_rest) #all fine
-
-
-
-#species evenness----
-fish_even_full_mod_rest<-lmer(evenness~motu  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #singular
-summary(fish_even_full_mod_rest)
-plot(fish_even_full_mod_rest)
-qqnorm(resid(fish_even_full_mod_rest))
-qqline(resid(fish_even_full_mod_rest))
-#looks okay
-
-Anova(fish_even_full_mod_rest) #nothing significant except wind exposure anyway....
-plot_summs(fish_even_full_mod_rest)
-
-#try removing exposure:
-fish_even_red_mod_rest <-lmer(evenness~motu   + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)
-#still singular.
-
-range(fish_comb_dat_levels_algae$evenness) #very small range of values.
-
-
-#shannon----
-fish_shannon_full_mod_rest <-lmer(shannon~motu  + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae)   #singular
-summary(fish_shannon_full_mod_rest)
-plot(fish_shannon_full_mod_rest)
-qqnorm(resid(fish_shannon_full_mod_rest))
-qqline(resid(fish_shannon_full_mod_rest))
-
-
-Anova(fish_shannon_full_mod_rest) #nothing significant except wind exposure
-plot_summs(fish_shannon_full_mod_rest)
-
-
 
 ```
 

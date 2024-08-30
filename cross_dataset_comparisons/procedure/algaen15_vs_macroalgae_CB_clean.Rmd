@@ -196,6 +196,7 @@ nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
 nmds.scores$N15 <- algae.div.seabirds$mean_n15_30m
 nmds.scores$site.name <- algae.div.seabirds$site.name
 nmds.scores$distance.along.transect <- algae.div.seabirds$distance.along.transect
+nmds.scores$exposure <- algae.div.seabirds$exposure
 
 
 ##get arrows:
@@ -282,6 +283,36 @@ cor(algae.div.seabirds[, 6:36],
 #Schizothrix.minuta          -0.465487496  0.07608294
 #Symploca.hydnoides          -0.049052907 -0.02040283
 #Turbinaria.ornata           -0.149510019 -0.85120601
+
+##nmds plot exposure-----
+
+algae.nmds.plot.rotate.exposure <-
+  nmds.scores%>%
+   mutate(exposure = fct_recode(exposure, leeward = "Protected", windward = "Exposed"))%>%
+  # mutate(exposure = fct_relevel(exposure, "leeward", "windward"))%>%
+ggplot() + 
+  #geom_text(data=nmds.scores,aes(x=NMDS1,y=NMDS2), alpha = .7, size = 3, hjust = .1) + 
+  geom_point(aes(x=NMDS1,y=NMDS2,colour=N15, shape = exposure), stat="identity", size = 3,alpha = .9) +
+  scale_color_distiller(palette = "YlGnBu") +
+    labs(colour = expression(algae~delta^15~N), fill = expression(algae~delta^15~N))+
+  scale_shape_manual(values = c(17, 16))+ #, labels = c("windward", "leeward")
+  geom_segment(data = en_coord_cont,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm"))) +
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.1, label = var.name),
+            size = 3, vjust = "inward", hjust = "inward")+
+  #    geom_text(data=algae_spp.sc.rotate,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels - 
+theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+         legend.position = c(.75, .75),
+        legend.box = "horizontal")
+
+
+algae.nmds.plot.rotate.exposure
+
+#ggsave(algae.nmds.plot.rotate.exposure, file = "../output/seabird-algaediv/organised_output/1_NMDS_AlgaeDiv_w_exposure.jpg",    width = 7, height = 5)
 
 
 ```
@@ -702,6 +733,14 @@ test(emtrends(richness.glmer, pairwise~ exposure, var = "mean_n15_30m", adjust =
 
 #yup, no significant difference in effect of n15 on exposed vs. protected side.
 
+
+test(emtrends(richness.glmer, ~1, var = "mean_n15_30m", adjust = "fdr"))
+# overall             -0.227 0.0742 Inf  -3.060  0.0022
+#this has log transformation (because poisson with log link), so interpret with exp:
+exp(-0.227) #0.7969208 --> decrease by factor of 0.8, which is equivalent to:
+1-exp(-0.227) #0.2030792 ---> 20% decrease
+
+
 ####plots----
 range(algae.div.seabirds$mean_n15_30m)
 
@@ -745,12 +784,13 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = richness, color = exposure,
 rich_plot_dat_no_exp <- emmip(richness.glmer,  ~ mean_n15_30m, at = list(mean_n15_30m = seq(3.43, 9.58, .1)), CIs = TRUE, plotit=FALSE, type = "response")
 
 ##Plot the richness according to N15 & exposure (combined effect line)--=--
+algae_rich_glmer_CB<-
 ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = richness))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(fill = exposure, colour = exposure, shape = exposure))+
   geom_line(data = rich_plot_dat_no_exp, aes(x = mean_n15_30m, y = yvar))+
    geom_ribbon(data = rich_plot_dat_no_exp, aes(x = mean_n15_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Algal species richness \n") +
+  ylab("Algal species richness") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
@@ -759,7 +799,7 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = richness))+
   theme(legend.position = c(0.85, 0.75)) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-
+algae_rich_glmer_CB
 
 #ggsave("../output/seabird-algaediv/algae_rich_glmer_CB.jpg", plot = last_plot(), width = 7, height = 5)
 ```
@@ -795,6 +835,8 @@ test(emtrends(richness.glmer, ~exposure, var = "mean_n15_30m", adjust = "fdr"))
 # Protected             -0.182 0.0638 Inf  -2.858  0.0085
 
 #can't get average value by exposure in this....
+test(emtrends(richness.glmer, ~1, var = "mean_n15_30m", adjust = "fdr"))
+#overall             -0.227 0.0742 Inf  -3.060  0.0022
 
 emmip(richness.glmer, ~mean_n15_30m, CIs = TRUE, at =list( mean_n15_30m = seq(0, 12, by = 2)))
 emmip(richness.glmer.add, ~mean_n15_30m, CIs = TRUE, at =list( mean_n15_30m = seq(0, 12, by = 2)))
@@ -806,13 +848,12 @@ emmip(richness.glmer.add, ~mean_n15_30m, CIs = TRUE, at =list( mean_n15_30m = se
 rich_plot_dat_add <- emmip(richness.glmer.add,  ~ mean_n15_30m, at = list(mean_n15_30m = seq(3.43, 9.58, .1)), CIs = TRUE, plotit=FALSE, type = "response")
 
 
-##Plot the richness according to N15 & distance from shore
 ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = richness))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(fill = exposure, colour = exposure, shape = exposure))+
   geom_line(data = rich_plot_dat_add, aes(x = mean_n15_30m, y = yvar))+
    geom_ribbon(data = rich_plot_dat_add, aes(x = mean_n15_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Algal species richness \n") +
+  ylab("Algal species richness") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
@@ -881,11 +922,9 @@ test(emtrends(evenness.lmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr", l
 # Protected            -0.0342 0.0125 Inf  -2.725  0.0064
 
 #BUT when use asymptotic DF, super significant on both sides....
-exp(-0.1093) #0.8964614
-exp(-0.0342) #0.9663782
+#this has no transformations, so can interpret as is, i.e.:
+#evenness decreases by .11 and .03 for each one unit increase in algae n15 on exposed and protected sides, respectively.
 
-exp(0.1093) #1.115497
-exp(0.0342) #1.034792
 
 test(emtrends(evenness.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr"))
 # contrast            estimate   SE  df z.ratio p.value
@@ -900,7 +939,7 @@ test(emtrends(evenness.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = 
 ####plots----
 range(algae.div.seabirds$mean_n15_30m)
 
-even_plot_dat <- emmip(evenness.lmer,  ~ mean_n15_30m|exposure, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE) #, type = "response" - not necessary because no transofmratoins
+even_plot_dat <- emmip(evenness.lmer,  ~ mean_n15_30m|exposure, at = list(mean_n15_30m = seq(3.43, 9.58, 1)), CIs = TRUE, plotit=FALSE) #, type = "response" - not necessary because no transofmratoins
 
 #limit each exposure to range of values on that side:
 range(algae.div.seabirds[algae.div.seabirds$exposure == "Protected",]$mean_n15_30m) #3.43 9.58
@@ -920,6 +959,7 @@ even_plot_dat.exposed<-
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 
 ##Plot evenness according to N15 & exposure
+algal_even_plot<-
 ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = evenness, color = exposure, 
                       fill = exposure, group = exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
@@ -937,8 +977,50 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = evenness, color = exposure,
   theme(legend.position = c(0.85, 0.82)) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
+algal_even_plot
+#not sure why error bars are a little wiggly for windward....reduce seq step then it looks better:----
 
-#not sure why error bars are a little wiggly for windward....
+even_plot_dat <- emmip(evenness.lmer,  ~ mean_n15_30m|exposure, at = list(mean_n15_30m = c(3.43, 4, 5.3, 6, 7.6, 9, 9.58)), CIs = TRUE, plotit=FALSE) #, type = "response" - not necessary because no transofmratoins
+
+#limit each exposure to range of values on that side:
+range(algae.div.seabirds[algae.div.seabirds$exposure == "Protected",]$mean_n15_30m) #3.43 9.58
+range(algae.div.seabirds[algae.div.seabirds$exposure == "Exposed",]$mean_n15_30m) #5.366667 7.526667
+
+even_plot_dat.protected<-
+  even_plot_dat%>%
+  filter(exposure == "Protected")%>%
+  filter(mean_n15_30m>=3.43&mean_n15_30m<=9.58)
+
+even_plot_dat.exposed<-
+  even_plot_dat%>%
+  filter(exposure == "Exposed")%>%
+  filter(mean_n15_30m>=5.3&mean_n15_30m<=7.6)
+
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
+
+algal_even_plot<-
+ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = evenness, color = exposure, 
+                      fill = exposure, group = exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = exposure))+
+  geom_line(data = even_plot_dat.protected, aes(x = mean_n15_30m, y = yvar))+
+   geom_ribbon(data = even_plot_dat.protected, aes(x = mean_n15_30m, y = yvar, ymin = LCL, ymax=UCL, fill = exposure, color = exposure), alpha = .2, lwd=0)+
+    geom_line(data = even_plot_dat.exposed, aes(x = mean_n15_30m, y = yvar))+
+   geom_ribbon(data = even_plot_dat.exposed, aes(x = mean_n15_30m, y = yvar, ymin = LCL, ymax=UCL, fill = exposure, color = exposure), alpha = .2, lwd=0)+
+  ylab("Algal species evenness") +
+  xlab(expression(italic(delta)^15*N))+
+  scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
+  scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
+    scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+
+algal_even_plot
+
+
+#ggsave("../output/seabird-algaediv/algal_even_plot_CB.jpg", plot = algal_even_plot, width = 7, height = 5)
 
 
 ```
@@ -953,6 +1035,12 @@ plot(shannon.lmer)
 qqnorm(resid(shannon.lmer))
 hist(resid(shannon.lmer))
 #looks okay
+
+#                               Estimate Std. Error t value
+#(Intercept)                     2.69206    0.53862   4.998
+#mean_n15_30m                   -0.26668    0.08077  -3.302
+#exposureProtected              -0.78873    0.60766  -1.298
+#mean_n15_30m:exposureProtected  0.09946    0.08904   1.117
 
 
 Anova(shannon.lmer)
@@ -992,6 +1080,13 @@ test(emtrends(shannon.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "
 # Exposed - Protected  -0.0995 0.089 Inf  -1.117  0.2640
 
 #when doing pairwise comparisons, no differences. 
+
+
+
+test(emtrends(shannon.lmer, ~1, var = "mean_n15_30m", adjust = "fdr"))
+# overall             -0.217 0.0464 44  -4.672  <.0001
+#this has no transformations, so can interpret as is, i.e.:
+#shannon's decreases by .-0.217 for each one unit increase in algae n15 on exposed and protected sides, respectively.
 
 
 ####plots----
@@ -1040,13 +1135,13 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = shannon, color = exposure,
 #or combined:-----
 shannon_plot_dat_add <- emmip(shannon.lmer,  ~ mean_n15_30m, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE) #, type = "response" - not necessary because no transofmratoins
 
-
+algal_shannon_plot<-
 ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = shannon))+
   geom_point(aes(color = exposure, 
                       fill = exposure, shape = exposure))+
   geom_line(data = shannon_plot_dat_add, aes(x = mean_n15_30m, y = yvar))+
    geom_ribbon(data = shannon_plot_dat_add, aes(x = mean_n15_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Algal species shannon diversity") +
+  ylab("Algal shannon diversity") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
@@ -1055,6 +1150,7 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = shannon))+
   theme(legend.position = c(0.85, 0.82)) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
+#ggsave("../output/seabird-algaediv/algal_shannon_plot_CB.jpg", plot = algal_shannon_plot, width = 7, height = 5)
 
 
 
@@ -1067,7 +1163,8 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = shannon))+
 algae.div.seabirds.2<-
   algae.div.seabirds%>%
   rowwise()%>%
-  mutate(algal.cover = 100-non.algae.cover)
+  mutate(algal.cover = 100-non.algae.cover)%>%
+  ungroup()
 
 #algal cover - n15----
 algal.cover.lmer<-lmer(algal.cover~mean_n15_30m*exposure + (1|site.name), data = algae.div.seabirds.2)
@@ -1077,7 +1174,35 @@ qqnorm(resid(algal.cover.lmer))
 hist(resid(algal.cover.lmer))
 #looks okay
 
-#probably could do glmer with beta (because proportion data)
+#probably could do glmer with beta (because proportion data)----
+transform01 <- function(x) {
+  (x * (length(x) - 1) + 0.5) / (length(x))
+}
+
+div100<-function(x) {
+  (x/100)
+}
+
+algae.div.seabirds.beta<-
+  algae.div.seabirds.2 %>%
+  dplyr::select(site.name, motu, exposure, mean_n15_30m, mean_n15_40m, transect.id.Maya, distance.along.transect, algal.cover, Turbinaria.ornata)%>%
+  mutate_at(c(8:9), div100)%>%
+  mutate_at(c(8:9), transform01)
+algae.div.seabirds.beta
+
+
+library(glmmTMB)
+algal.cover.glmer<-glmmTMB(algal.cover~mean_n15_30m*exposure + (1|site.name), family=beta_family(), data = algae.div.seabirds.beta)
+summary(algal.cover.glmer)
+plot(resid(algal.cover.glmer))
+qqnorm(resid(algal.cover.glmer))
+#looks good
+
+
+Anova(algal.cover.glmer)
+#mean_n15_30m          11.2231  1  0.0008079 ***
+#exposure               0.3239  1  0.5693000    
+#mean_n15_30m:exposure  1.1585  1  0.2817741 
 
 Anova(algal.cover.lmer)
 #Response: algal.cover
@@ -1086,6 +1211,7 @@ Anova(algal.cover.lmer)
 #exposure               0.1174  1  0.7318241    
 #mean_n15_30m:exposure  0.9919  1  0.3192823    
 
+#and results match lmer:
 #no interaction, just effect of mean n15
 
 #.check lrt-----
@@ -1094,33 +1220,46 @@ anova(algal.cover.lmer, algal.cover.lmer.add)
 #same result as Anova tables - p = 0.4139 delta aic <1
 
 ##emmeans---------
-test(emtrends(algal.cover.lmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr"))
+test(emtrends(algal.cover.glmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr"))
 # exposure  mean_n15_30m.trend     SE    df t.ratio p.value
-# Exposed               -0.667 1.054 41.5  -0.633  0.5302
-# Protected             -1.828 0.573 36.5  -3.188  0.0059
+#  Exposed              -0.0862 0.1421 Inf  -0.606  0.5444
+# Protected            -0.2605 0.0754 Inf  -3.455  0.0011
 
 #similar trends on both sides, but only significant on protected side
 
-test(emtrends(algal.cover.lmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr", lmer.df = "asymptotic"))
-# Exposed               -0.667 1.042 Inf  -0.640  0.5221
-# Protected             -1.828 0.523 Inf  -3.496  0.0009
 
-#smaller p-values, but results/conclusions identical
 #surprising that p-value nowhere near sig on exposed side....
 
 
-test(emtrends(algal.cover.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr"))
+test(emtrends(algal.cover.glmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr"))
 # contrast            estimate   SE  df z.ratio p.value
-# Exposed - Protected     1.16 1.2 43.5   0.968  0.3384
-
-test(emtrends(algal.cover.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr", lmer.df = "asymptotic"))
-# Exposed - Protected     1.16 1.17 Inf   0.996  0.3193
+# Exposed - Protected    0.174 0.162 Inf   1.076  0.2818
 
 #when doing pairwise comparisons, no differences...hence no interaction***
 
+test(emtrends(algal.cover.glmer, ~1, var = "mean_n15_30m", adjust = "fdr"))
+#overall             -0.173 0.0799 Inf  -2.170  0.0300
+#but how to get onto proper scale?? beta - so odds ratio?
+emmip(algal.cover.glmer,  ~ mean_n15_30m, at = list(mean_n15_30m = c(4, 5, 6, 7, 8)), CIs = TRUE, plotit=FALSE, type = "response") 
+# mean_n15_30m   yvar     SE  df    LCL    UCL tvar xvar
+#            4 0.1087 0.0253 Inf 0.0681 0.1691 1       4
+#            5 0.0930 0.0178 Inf 0.0635 0.1343 1       5
+#            6 0.0794 0.0134 Inf 0.0567 0.1099 1       6
+#            7 0.0676 0.0119 Inf 0.0477 0.0949 1       7
+#            8 0.0574 0.0121 Inf 0.0378 0.0863 1       8
+
+0.1087/.093
+0.0930/0.0794
+0.0794/0.0676
+0.0676/0.0574
+#okay, looks like ~17% decline with each one unit increase in algal n15
+
+0.1087*.83
+0.0930*.83
+#yup. 
 
 ####plots----
-algal.cover_plot_dat <- emmip(algal.cover.lmer,  ~ mean_n15_30m|exposure, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE) #, type = "response" - not necessary because no transofmratoins
+algal.cover_plot_dat <- emmip(algal.cover.glmer,  ~ mean_n15_30m|exposure, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE, type = "response") 
 
 #limit each exposure to range of values on that side:
 algal.cover_plot_dat.protected<-
@@ -1137,7 +1276,7 @@ algal.cover_plot_dat.exposed<-
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 
 ##Plot algal.cover according to N15 & exposure
-ggplot(algae.div.seabirds.2, aes(x = mean_n15_30m, y = algal.cover, color = exposure, 
+ggplot(algae.div.seabirds.beta, aes(x = mean_n15_30m, y = algal.cover, color = exposure, 
                       fill = exposure, group = exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(shape = exposure))+
@@ -1155,18 +1294,16 @@ ggplot(algae.div.seabirds.2, aes(x = mean_n15_30m, y = algal.cover, color = expo
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
 
-#not sure why error bars are a little wiggly for windward....
-
 #or combined:-----
-algal.cover_plot_dat_add <- emmip(algal.cover.lmer,  ~ mean_n15_30m, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE) #, type = "response" - not necessary because no transofmratoins
+algal.cover_plot_dat_add <- emmip(algal.cover.glmer,  ~ mean_n15_30m, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE, type = "response") 
 
-
-ggplot(algae.div.seabirds.2, aes(x = mean_n15_30m, y = algal.cover))+
+algal_cover_plot<-
+ggplot(algae.div.seabirds.beta, aes(x = mean_n15_30m, y = algal.cover))+
   geom_point(aes(color = exposure, 
                       fill = exposure, shape = exposure))+
   geom_line(data = algal.cover_plot_dat_add, aes(x = mean_n15_30m, y = yvar))+
    geom_ribbon(data = algal.cover_plot_dat_add, aes(x = mean_n15_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Algal % cover") +
+  ylab("Algal proportional cover") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
@@ -1175,8 +1312,14 @@ ggplot(algae.div.seabirds.2, aes(x = mean_n15_30m, y = algal.cover))+
   theme(legend.position = c(0.85, 0.82)) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
+algal_cover_plot
+
+#ggsave("../output/seabird-algaediv/algal_cover_plotCB.jpg", plot = algal_cover_plot, width = 7, height = 5)
+
 
 ```
+
+
 
 #check Turbinaria, since most abundant:
 ```{r}
@@ -1188,8 +1331,6 @@ qqnorm(resid(turb.lmer))
 hist(resid(turb.lmer))
 #looks okay
 
-#probably could do glmer with beta (because proportion data)
-
 Anova(turb.lmer)
 #Response: turb
 #                        Chisq Df Pr(>Chisq)    
@@ -1199,22 +1340,38 @@ Anova(turb.lmer)
 
 #sig interaction, marginal effect of n15
 
+#probably could do glmer with beta (because proportion data)----
+turb.glmer<-glmmTMB(Turbinaria.ornata~mean_n15_30m*exposure + (1|site.name), family=beta_family(), data = algae.div.seabirds.beta)
+summary(turb.glmer)
+plot(resid(turb.glmer))
+qqnorm(resid(turb.glmer))
+hist(resid(turb.glmer))
+
+#looks good
+
+Anova(turb.glmer)
+#mean_n15_30m          1.1361  1   0.286469   
+#exposure              0.8744  1   0.349753   
+#mean_n15_30m:exposure 7.0847  1   0.007774 **
+
+#results similar to lmer -  but now even more sig interaction
+
 
 ##emmeans---------
-test(emtrends(turb.lmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr"))
+test(emtrends(turb.glmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr"))
 # exposure  mean_n15_30m.trend     SE    df t.ratio p.value
 # Exposed                 1.02 0.868 42.0   1.175  0.2464
 # Protected              -1.01 0.462 30.1  -2.185  0.0736
 
 #OPPOSITE trends on both sides, but only marginally significant on protected side
 
-test(emtrends(turb.lmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr", lmer.df = "asymptotic"))
+test(emtrends(turb.glmer, ~ exposure, var = "mean_n15_30m", adjust = "fdr", lmer.df = "asymptotic"))
 # Exposed                 1.02 0.854 Inf   1.194  0.2325
 # Protected              -1.01 0.414 Inf  -2.439  0.0295
 
 #smaller p-values, but results/conclusions similar
 
-test(emtrends(turb.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr"))
+test(emtrends(turb.glmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr"))
 # contrast            estimate   SE  df z.ratio p.value
 # Exposed - Protected     2.03 0.983 43.9   2.065  0.0449
 
@@ -1225,7 +1382,7 @@ test(emtrends(turb.lmer, pairwise~ exposure, var = "mean_n15_30m", adjust = "fdr
 
 
 ####plots----
-turb_plot_dat <- emmip(turb.lmer,  ~ mean_n15_30m|exposure, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE) #, type = "response" - not necessary because no transofmratoins
+turb_plot_dat <- emmip(turb.glmer,  ~ mean_n15_30m|exposure, at = list(mean_n15_30m = seq(3.43, 9.58, .01)), CIs = TRUE, plotit=FALSE, type = "response") #, type = "response" - not necessary because no transofmratoins
 
 #limit each exposure to range of values on that side:
 turb_plot_dat.protected<-
@@ -1242,7 +1399,7 @@ turb_plot_dat.exposed<-
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 
 ##Plot turb according to N15 & exposure
-ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = Turbinaria.ornata, color = exposure, 
+ggplot(algae.div.seabirds.beta, aes(x = mean_n15_30m, y = Turbinaria.ornata, color = exposure, 
                       fill = exposure, group = exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(shape = exposure))+
@@ -1266,6 +1423,28 @@ ggplot(algae.div.seabirds, aes(x = mean_n15_30m, y = Turbinaria.ornata, color = 
 
 
 ```
+
+####COMBINE PLOTS AND SAVE-------
+```{r}
+algae_rich_glmer_CB
+algal_even_plot
+algal_shannon_plot
+algal_cover_plot
+algae.nmds.plot.rotate.exposure
+
+library(cowplot)
+
+algae_main_plots<-cowplot::plot_grid(algae_rich_glmer_CB, algal_even_plot, algal_cover_plot, algae.nmds.plot.rotate.exposure, labels = "auto", label_fontface = "plain")
+algae_main_plots
+
+ggsave("../output/seabird-algaediv/algae_main_plots.jpg", plot = algae_main_plots, width = 10, height = 8)
+
+
+```
+
+
+
+
 
 #run with only positive corr with n15 to see  - halimeda opt.
 ```{r}
