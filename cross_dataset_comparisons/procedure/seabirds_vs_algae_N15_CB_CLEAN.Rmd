@@ -299,7 +299,7 @@ anova(mod.lmer.rest, mod.lmer.add.dist)
 ```{r}
 
 #extract pair-wise differences:
-emmeans(mod.lmer.rest, list(pairwise ~ reststat|Distance_to_shore|Exposure), type = "response", adjust = "fdr")
+emmeans(mod.lmer.rest, list(pairwise ~ reststat|Distance_to_shore|Exposure), type = "response", adjust = "fdr", lmer.df = "asymptotic")
 ###On exposed side, no differences between restoration status********
 ##One protected side, all distances different between recovering/reference and unrestored*******
 
@@ -359,7 +359,54 @@ emmeans(mod.lmer.rest, list(pairwise ~ reststat|Distance_to_shore|Exposure), typ
 #repeat with different df (asymptotic):
 emmeans(mod.lmer.rest, list(pairwise ~ reststat|Distance_to_shore|Exposure), type = "response", adjust = "fdr",
         lmer.df = "asymptotic")
-#identical results!
+#nearly identical results!
+#Distance_to_shore = 10, Exposure = Exposed:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering     0.541 0.588 Inf   0.919  0.3579
+# reference - unrestored     1.118 0.588 Inf   1.901  0.1718
+# recovering - unrestored    0.578 0.576 Inf   1.003  0.3579
+
+#Distance_to_shore = 20, Exposure = Exposed:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering     0.780 0.583 Inf   1.338  0.4672
+# reference - unrestored     0.198 0.583 Inf   0.340  0.7342
+# recovering - unrestored   -0.583 0.576 Inf  -1.012  0.4672
+
+# Distance_to_shore = 30, Exposure = Exposed:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering     0.697 0.583 Inf   1.196  0.3478
+# reference - unrestored    -0.304 0.583 Inf  -0.521  0.6025
+# recovering - unrestored   -1.001 0.576 Inf  -1.739  0.2461
+
+#Distance_to_shore = 40, Exposure = Exposed:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering     0.459 0.714 Inf   0.643  0.5201
+# reference - unrestored    -1.052 0.714 Inf  -1.473  0.2113
+# recovering - unrestored   -1.511 0.576 Inf  -2.625  0.0260
+
+#Distance_to_shore = 10, Exposure = Protected:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering    -0.487 0.608 Inf  -0.801  0.4230
+# reference - unrestored     4.946 0.608 Inf   8.138  <.0001
+# recovering - unrestored    5.433 0.576 Inf   9.439  <.0001
+
+#Distance_to_shore = 20, Exposure = Protected:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering    -0.247 0.583 Inf  -0.424  0.6717
+# reference - unrestored     4.025 0.583 Inf   6.903  <.0001
+# recovering - unrestored    4.272 0.576 Inf   7.424  <.0001
+
+#Distance_to_shore = 30, Exposure = Protected:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering    -0.330 0.583 Inf  -0.567  0.5709
+# reference - unrestored     3.524 0.583 Inf   6.043  <.0001
+# recovering - unrestored    3.854 0.576 Inf   6.697  <.0001
+
+#Distance_to_shore = 40, Exposure = Protected:
+# 3                       estimate    SE  df z.ratio p.value
+# reference - recovering    -0.568 0.627 Inf  -0.907  0.3645
+# reference - unrestored     2.776 0.627 Inf   4.429  <.0001
+# recovering - unrestored    3.344 0.576 Inf   5.811  <.0001
 
 #if want to do with nlme, use this:
 emmeans(mod.lme.rest, list(pairwise ~ reststat|Distance_to_shore|Exposure), type = "response", adjust = "fdr",
@@ -433,6 +480,33 @@ emmeans(mod.lmer.rest, list(pairwise ~ Distance_to_shore|Exposure|reststat), typ
 emmeans(mod.lmer.rest, list(pairwise ~ Distance_to_shore|reststat|Exposure), type = "response", adjust = "fdr",
         lmer.df = "asymptotic")
 #no change to results***
+#$`pairwise differences of Distance_to_shore | reststat, Exposure`
+#reststat = reference, Exposure = Exposed:
+# 3                                         estimate    SE  df z.ratio p.value
+# Distance_to_shore10 - Distance_to_shore20   1.2086 0.426 Inf   2.836  0.0072
+# Distance_to_shore10 - Distance_to_shore30   1.8886 0.426 Inf   4.431  <.0001
+# Distance_to_shore10 - Distance_to_shore40   2.6881 0.552 Inf   4.870  <.0001
+# Distance_to_shore20 - Distance_to_shore30   0.6800 0.405 Inf   1.679  0.1118
+# Distance_to_shore20 - Distance_to_shore40   1.4795 0.525 Inf   2.819  0.0072
+# Distance_to_shore30 - Distance_to_shore40   0.7995 0.525 Inf   1.524  0.1276
+
+#reststat = recovering, Exposure = Exposed:
+# 3                                         estimate    SE  df z.ratio p.value
+# Distance_to_shore10 - Distance_to_shore20   1.4483 0.405 Inf   3.576  0.0007
+# Distance_to_shore10 - Distance_to_shore30   2.0450 0.405 Inf   5.049  <.0001
+# Distance_to_shore10 - Distance_to_shore40   2.6067 0.405 Inf   6.436  <.0001
+# Distance_to_shore20 - Distance_to_shore30   0.5967 0.405 Inf   1.473  0.1655
+# Distance_to_shore20 - Distance_to_shore40   1.1583 0.405 Inf   2.860  0.0064
+# Distance_to_shore30 - Distance_to_shore40   0.5617 0.405 Inf   1.387  0.1655
+
+#reststat = unrestored, Exposure = Exposed:
+# 3                                         estimate    SE  df z.ratio p.value
+# Distance_to_shore10 - Distance_to_shore20   0.2883 0.405 Inf   0.712  0.7917
+# Distance_to_shore10 - Distance_to_shore30   0.4667 0.405 Inf   1.152  0.7478
+# Distance_to_shore10 - Distance_to_shore40   0.5183 0.405 Inf   1.280  0.7478
+# Distance_to_shore20 - Distance_to_shore30   0.1783 0.405 Inf   0.440  0.7917
+# Distance_to_shore20 - Distance_to_shore40   0.2300 0.405 Inf   0.568  0.7917
+# Distance_to_shore30 - Distance_to_shore40   0.0517 0.405 Inf   0.128  0.8985
 
 
 ##
@@ -1116,6 +1190,16 @@ emtrends(mod.lmer.breeding.log,  list(pairwise~ Exposure), var = "log_breeding_b
 emtrends(mod.lmer.breeding.log.iti,  list(pairwise~ Distance_to_shore), var = "log_breeding_biomass_kgha_side", adjust = "fdr", lmer.df = "asymptotic") #no differences with distance to shore (averaged over exposure)
 emtrends(mod.lmer.breeding.log,  list(pairwise~ Distance_to_shore), var = "log_breeding_biomass_kgha_side", adjust = "fdr", lmer.df = "asymptotic") #compared to model without Iti - BIG DIFF (averaged over distance from shore)
 
+
+
+test(emtrends(mod.lmer.breeding.log.iti,  ~1, var = "log_breeding_biomass_kgha_side", adjust = "fdr", lmer.df = "asymptotic"))
+#1       log_breeding_biomass_kgha_side.trend    SE  df z.ratio p.value
+# overall                                0.594 0.279 Inf   2.135  0.0328
+
+#back transform estimates: because x log-transformed, need to raise trend log(2^(coef)) so each doubling of seabird biomass is associated with a change in mean algal n15 of log(2^coef) units
+log(2^0.594) #0.4117294
+
+test(emtrends(mod.lmer.breeding.log.iti,  ~Distance_to_shore, var = "log_breeding_biomass_kgha_side", adjust = "fdr", lmer.df = "asymptotic"))
 
 ```
 
