@@ -1,0 +1,342 @@
+---
+title: "microbiome_ordinations_n15"
+author: "HEE"
+date: "2024-07-22"
+output: html_document
+---
+
+#Load Libraries
+```{r}
+
+library(plyr)
+library(tidyverse)
+library(phyloseq)
+library(ggplot2)
+library(vegan)
+
+```
+
+#Bring in data and re-structure for downstream analyses
+```{r}
+#pull in the two phyloseq objects that to grab the beta diversity metrics
+physeq.coral.r <- readRDS("../../alpha-div/output/physeq-coral-nov21-rarefied.RDS")
+physeq.water.r <- readRDS("../../alpha-div/output/physeq-water-nov21-rarefied.RDS")
+
+#Export the data
+coral.micro.data <- as(sample_data(physeq.coral.r), "data.frame")
+water.micro.data <- as(sample_data(physeq.water.r), "data.frame")
+
+coral.micro.data$site <- as.factor(coral.micro.data$site)
+coral.micro.data$site.name <- paste(coral.micro.data$motu, coral.micro.data$site)
+
+#recode the site.name category so we can combine with seabird data
+
+coral.micro.data$site.name[coral.micro.data$site.name == "aie 1"] <- "Aie_Protected"
+coral.micro.data$site.name[coral.micro.data$site.name == "aie 2"] <- "Aie_Exposed"
+coral.micro.data$site.name[coral.micro.data$site.name == "reiono 1"] <- "Reiono_Protected"
+coral.micro.data$site.name[coral.micro.data$site.name == "reiono 2"] <- "Reiono_Exposed"
+coral.micro.data$site.name[coral.micro.data$site.name == "rimatuu 1"] <- "Rimatuu_Protected"
+coral.micro.data$site.name[coral.micro.data$site.name == "rimatuu 2"] <- "Rimatuu_Exposed"
+
+coral.micro.data$site.name <- as.factor(coral.micro.data$site.name)
+
+
+water.micro.data$site <- as.factor(water.micro.data$site)
+water.micro.data$site.name <- paste(water.micro.data$motu, water.micro.data$site)
+
+water.micro.data$site.name[water.micro.data$site.name == "aie 1"] <- "Aie_Protected"
+water.micro.data$site.name[water.micro.data$site.name == "aie 2"] <- "Aie_Exposed"
+water.micro.data$site.name[water.micro.data$site.name == "reiono 1"] <- "Reiono_Protected"
+water.micro.data$site.name[water.micro.data$site.name == "reiono 2"] <- "Reiono_Exposed"
+water.micro.data$site.name[water.micro.data$site.name == "rimatuu 1"] <- "Rimatuu_Protected"
+water.micro.data$site.name[water.micro.data$site.name == "rimatuu 2"] <- "Rimatuu_Exposed"
+
+water.micro.data$site.name <- as.factor(water.micro.data$site.name)
+
+#distance along transect needs to be made into a factor
+coral.micro.data$distance.along.transect <- as.factor(coral.micro.data$distance.along.transect)
+water.micro.data$distance.along.transect <- as.factor(water.micro.data$distance.along.transect)
+#algae.N15 is there !
+
+
+#need to add seabird level. 
+seabirds <- read.csv("../../../../cross_dataset_comparisons/output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+coral.microbes.seabirds <- merge(coral.micro.data, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
+head(coral.microbes.seabirds)
+water.microbes.seabirds <- merge(water.micro.data, seabirds, by = "site.name", all = TRUE, no.dups = TRUE)
+head(water.microbes.seabirds)
+
+
+coral.microbes.seabirds <-
+  coral.microbes.seabirds%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+str(coral.microbes.seabirds$seabird_level)
+
+water.microbes.seabirds <-
+  water.microbes.seabirds%>%
+  mutate(seabird_level = case_when(breeding_biomass_kgha_side<10 ~"low",
+                                   breeding_biomass_kgha_side>10&breeding_biomass_kgha_side <200 ~"mid",
+                                   breeding_biomass_kgha_side>200 ~"high"))%>%
+  mutate(seabird_level = as.factor(seabird_level))%>%
+  mutate(seabird_level = fct_relevel(seabird_level, "low", "mid", "high"))
+str(water.microbes.seabirds$seabird_level)
+
+```
+
+We now have the right sample data and phyloseq objects
+
+
+#Can we add the richness, evenness & shannon??
+```{r}
+
+#First pull in the rarefied data from the alpha diversity script (water-alphadiv-nov21.R)
+
+physeq.water.r <- readRDS("../../alpha-div/output/physeq-water-nov21-rarefied.RDS")
+physeq.coral.r <- readRDS("../../alpha-div/output/physeq-coral-nov21-rarefied.RDS")
+
+erich.coral <- estimate_richness(physeq.coral.r, measures = c("Observed", "Shannon"))
+erich.coral$evenness <- erich.coral$Shannon/log(erich.coral$Observed)
+
+erich.water <- estimate_richness(physeq.water.r, measures = c("Observed", "Shannon"))
+erich.water$evenness <- erich.water$Shannon/log(erich.water$Observed)
+
+#Can we add these back into the above dataframe?
+water.microbes.seabirds <- cbind(water.microbes.seabirds, erich.water)
+colnames(water.microbes.seabirds)
+
+coral.microbes.seabirds <- cbind(coral.microbes.seabirds, erich.coral)
+colnames(coral.microbes.seabirds)
+
+
+```
+
+#Coral NMDS
+
+
+```{r}
+
+nmds.coral <- ordinate(physeq.coral.r, "NMDS", "bray", trymax = 500, k = 2, autotransform = FALSE)
+nmds.coral #2 axes stress = 0.1239, a little weak but still below 0.2
+
+```
+
+
+```{r}
+plot(nmds.coral)
+scores(nmds.coral, display="sites")
+
+#look at plot and centroids with ordfit
+
+plot(nmds.coral)
+ord.fit.algae<-envfit(nmds.coral~algae.N15, data = coral.microbes.seabirds, na.rm=TRUE)
+ord.fit.algae 
+plot(ord.fit.algae)
+
+#rotate by algae n15 so can more easily interpret----
+nmds.rotate<-MDSrotate(nmds.coral, coral.microbes.seabirds$algae.N15, na.rm = TRUE)
+nmds.rotate
+plot(nmds.rotate)
+
+ord.fit<-envfit(nmds.rotate~algae.N15, data = coral.microbes.seabirds, na.rm=TRUE)
+ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
+
+
+```
+
+
+#Let's make it pretty
+
+```{r}
+colnames(coral.microbes.seabirds)
+#en <- coral.microbes.seabirds[,23]
+env.fit <- envfit(nmds.rotate ~ coral.microbes.seabirds$algae.N15, permutations = 999, na.rm = TRUE)
+
+plot(nmds.rotate)
+plot(env.fit)
+
+en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algal N15"))
+#en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+#en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
+
+nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
+
+#combine with other relevant data
+nmds.scores$N15 <- coral.microbes.seabirds$algae.N15
+nmds.scores$site.name <- coral.microbes.seabirds$site.name
+nmds.scores$distance.along.transect <- coral.microbes.seabirds$distance.along.transect
+nmds.scores$exposure <- coral.microbes.seabirds$island.side
+
+
+coral.microbe.nmds.plot.rotate <-
+ggplot() + 
+  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15, shape = exposure), stat="identity", size=5, alpha = .9) +
+  scale_color_distiller(palette = "YlGnBu") +
+  geom_segment(data = en_coord_cont,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm"))) +
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.15, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward")+
+  #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+       #shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
+  #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
+           # size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
+      labs(colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N))+
+theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85, .8),
+        legend.box = "horizontal")
+
+coral.microbe.nmds.plot.rotate
+ggsave(coral.microbe.nmds.plot.rotate, file = "../output/1b_NMDS_CoralMicrobe_div_CB.jpg",
+    width = 7, height = 5)
+
+```
+
+##Let's do the same with Water Microbes
+```{r}
+nmds.water <- ordinate(physeq.water.r, "NMDS", "bray", trymax = 500, k = 2, autotransform = FALSE)
+nmds.water #2 axes stress = 0.0348, a little weak but still below 0.2
+
+#rotate
+
+plot(nmds.water)
+scores(nmds.water, display="sites")
+
+#look at plot and centroids with ordfit
+
+plot(nmds.water)
+ord.fit.water <-envfit(nmds.water~algae.N15, data = water.microbes.seabirds, na.rm=TRUE)
+ord.fit.water
+plot(ord.fit.water)
+
+#rotate by algae n15 so can more easily interpret----
+nmds.rotate<-MDSrotate(nmds.water, water.microbes.seabirds$algae.N15, na.rm = TRUE)
+nmds.rotate
+plot(nmds.rotate)
+
+ord.fit<-envfit(nmds.rotate~algae.N15, data = water.microbes.seabirds, na.rm=TRUE)
+ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
+
+```
+
+
+```{r}
+colnames(water.microbes.seabirds)
+en <- water.microbes.seabirds[, c(20, 49:52)]
+env.fit <- envfit(nmds.rotate ~ water.microbes.seabirds$algae.N15, permutations = 999, na.rm = TRUE)
+
+plot(nmds.rotate)
+plot(env.fit)
+
+en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algal N15"))
+#en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
+#en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
+
+nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
+
+#combine with other relevant data
+nmds.scores$N15 <- water.microbes.seabirds$algae.N15
+nmds.scores$site.name <- water.microbes.seabirds$site.name
+nmds.scores$distance.along.transect <- water.microbes.seabirds$distance.along.transect
+nmds.scores$exposure <- water.microbes.seabirds$island.side
+
+water.microbe.nmds.plot.rotate <-
+ggplot() + 
+  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15, shape = exposure), stat="identity", size=5, alpha = .9) +
+  scale_color_distiller(palette = "YlGnBu") +
+  geom_segment(data = en_coord_cont,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm"))) +
+    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
+            size = 3, vjust = "outward", fontface = "bold")+
+      labs(colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N))+
+  #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+   #    shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
+  #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
+  #          size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
+theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.25, .25),
+        legend.box = "horizontal") 
+
+water.microbe.nmds.plot.rotate
+ggsave(water.microbe.nmds.plot.rotate, file = "../output/2b_NMDS_WaterMicrobe_div_CB.jpg",
+    width = 7, height = 5)
+
+
+```
+
+
+#Distance based linear models (adonis2)
+```{r}
+
+#Make a bray curtis dissimlarity matrix first
+bc.coral <- phyloseq::distance(physeq.coral.r, method = "bray")
+
+
+distlm_coralmicro_n15<-vegan::adonis2(bc.coral ~ algae.N15 * distance.along.transect  + Exposure,  data = coral.microbes.seabirds, method = "bray", permutations = 999, na.action = na.omit)
+distlm_coralmicro_n15
+
+#                                  Df SumOfSqs      R2      F Pr(>F)
+#algae.N15                          1   0.2098 0.01173 0.7142  0.596
+#distance.along.transect            3   0.6739 0.03768 0.7649  0.697
+#Exposure                           1   0.3549 0.01984 1.2084  0.248
+#algae.N15:distance.along.transect  3   1.0799 0.06039 1.2258  0.256
+#Residual                          53  15.5649 0.87036              
+#Total                             61  17.8834 1.00000 
+
+
+bc.coral <- phyloseq::distance(physeq.coral.r, method = "bray")
+
+#with exposure interaction:
+distlm_coralmicro_n15<-vegan::adonis2(bc.coral ~ algae.N15 * Exposure,  data = coral.microbes.seabirds, method = "bray", permutations = 999, na.action = na.omit)
+distlm_coralmicro_n15
+#algae.N15           1   0.2098 0.01173 0.7098  0.581
+#Exposure            1   0.3507 0.01961 1.1867  0.258
+#algae.N15:Exposure  1   0.1833 0.01025 0.6202  0.686
+#Residual           58  17.1397 0.95841              
+#Total              61  17.8834 1.00000              
+
+
+```
+
+
+```{r}
+bc.water <- phyloseq::distance(physeq.water.r, method = "bray")
+
+
+distlm_watermicro_n15<-vegan::adonis2(bc.water ~ algae.N15 * distance.along.transect  + Exposure,  data = water.microbes.seabirds, method = "bray", permutations = 999, na.action = na.omit)
+distlm_watermicro_n15
+
+#                                  Df SumOfSqs      R2      F Pr(>F)  
+#algae.N15                          1   0.6714 0.05822 3.6768  0.040 *
+#distance.along.transect            3   0.2161 0.01873 0.3944  0.904  
+#Exposure                           1   0.2263 0.01963 1.2395  0.261  
+#algae.N15:distance.along.transect  3   0.1930 0.01673 0.3522  0.949  
+#Residual                          56  10.2263 0.88669                
+#Total                             64  11.5331 1.00000  
+
+
+#with exposure interaction:
+distlm_watermicro_n15<-vegan::adonis2(bc.water ~ algae.N15 * Exposure,  data = water.microbes.seabirds, method = "bray", permutations = 999, na.action = na.omit)
+distlm_watermicro_n15
+#                   Df SumOfSqs      R2      F Pr(>F)  
+#algae.N15           1   0.6714 0.05822 4.0328  0.025 *
+#Exposure            1   0.2360 0.02046 1.4175  0.229  
+#algae.N15:Exposure  1   0.4697 0.04072 2.8211  0.065 .
+#Residual           61  10.1560 0.88059                
+#Total              64  11.5331 1.00000                
+
+```
+
+
