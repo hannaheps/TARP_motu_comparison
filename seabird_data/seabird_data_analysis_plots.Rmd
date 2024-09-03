@@ -443,18 +443,6 @@ seabird_rat_int_plot_box
 ```
 
 
-##save/print plots - OLD
-```{r}
-seabird_rat_log_plot
-seabird_rat_response_plot
-
-#go with log-plot to see everything - save plot
-
-#ggsave("outputs/seabird_vs_rat_log_plot.pdf", plot = seabird_rat_log_plot)
-
-```
-
-
 ##make plot of seabird proportions by motu
 ```{r}
 sb_dat_focal_nests_motu_sp%>%
@@ -580,12 +568,74 @@ sb_bio_stack_plot
 seabird_stack_plots<-plot_grid(sb_bio_stack_plot, sb_dens_stack_plot, labels = "auto")
 seabird_stack_plots
 
-ggsave(filename = "outputs/seabird_stack_plots_newlabels_colors.jpg", 
-      plot = seabird_stack_plots,
-      width = 10,
-     height = 5,
-      units = "in",
-      dpi = 500)
+#ggsave(filename = "outputs/seabird_stack_plots_newlabels_colors.jpg", 
+ #     plot = seabird_stack_plots,
+ #     width = 10,
+ #    height = 5,
+ #     units = "in",
+  #    dpi = 500)
+
+
+
+#re-make with spectral cover package:------
+library(RColorBrewer)
+sb_dens_stack_plot2<-
+sb_dat_focal_nests_motu_sp%>%
+  ggplot(aes(fill = SpeciesName, y = Density_ha, x = Motu))+
+  geom_bar(position = "stack", stat =  "identity")+
+  ylab("Seabird breeding density (individuals/ha)")+
+  xlab("")+
+  scale_fill_brewer(palette = "Spectral",  name = "Species",
+                                            breaks=c("Aminutus",  "Astolidus", "Galba",  "Ssula"),
+                       labels=c("Anous minutus (black noddy)", "Anous stolidus (brown noddy)", "Gygis alba (white tern)", "Sula sula (red-footed booby)")
+                    )+ #
+ scale_x_discrete(labels = c('reference','recovering','unrestored'))+
+  theme_bw()+
+ theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+       legend.position = c(.75,.8),
+      axis.text=element_text(size=12),
+      axis.title=element_text(size=12)
+       )
+sb_dens_stack_plot2
+
+
+
+sb_bio_stack_plot2<-
+sb_dat_focal_nests_motu_sp%>%
+  ggplot(aes(fill = SpeciesName, y = biomass_kg_ha, x = Motu))+
+  geom_bar(position = "stack", stat =  "identity")+
+  ylab("Seabird breeding biomass (kg/ha)")+
+  xlab("")+
+    scale_fill_brewer( palette = "Spectral",
+                    name = "Species",
+                                            breaks=c("Aminutus",  "Astolidus", "Galba",  "Ssula"),
+                       labels=c("Anous minutus (black noddy)", "Anous stolidus (brown noddy)", "Gygis alba (white tern)", "Sula sula (red-footed booby)")
+                    )+ 
+   scale_x_discrete(labels = c('reference','recovering','unrestored'))+
+  theme_bw()+
+ theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+      # legend.position = c(.75,.8)
+        legend.position = "none",
+      axis.text=element_text(size=12),
+      axis.title=element_text(size=12)
+        )
+
+sb_bio_stack_plot2
+
+
+seabird_stack_plots2<-plot_grid(sb_bio_stack_plot2, sb_dens_stack_plot2, labels = "auto", label_fontface = "plain")
+seabird_stack_plots2
+
+#ggsave(filename = "outputs/seabird_stack_plots_newlabels_colors_FINAL.jpg", 
+ #     plot = seabird_stack_plots2,
+ #     width = 10,
+ #    height = 5,
+ #     units = "in",
+ #     dpi = 500)
 
 
 ```
