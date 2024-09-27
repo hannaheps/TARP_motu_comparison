@@ -1,0 +1,250 @@
+---
+title: "seabirds_vs_fish_condition"
+author: "CEB"
+date: '2024-01-23'
+output: html_document
+---
+
+
+#load packages
+```{r}
+library(tidyverse)
+
+library(lme4)
+library(car)
+library(jtools)
+
+library(emmeans)
+
+library(corrplot)
+
+```
+
+
+#load data
+```{r}
+seabirds <- read.csv("../output/n15_seabirds_combined_no_iti.csv", strip.white = T, header = T)
+fish_n15_cond <- read.csv("../../fish_isotopes/output/fish_n15_condition.csv", stringsAsFactors = TRUE)
+algae_n15<-read.csv("../output/n15_seabirds_combined_no_iti.csv")
+
+```
+
+
+
+#merge data
+```{r}
+#make combined site name column in fish_n15
+
+fishn15.seabirds.cond<-right_join(dplyr::select(seabirds, c("site.name", "breeding_biomass_kgha_side")), 
+                                  dplyr::select(fish_n15_cond, c("site.name", "motu", "fish.id", "species", 
+                                                   "month.caught", "year.caught", "protection", "TL.cm", "FL.cm", "SL.cm", "whole.weight.g", 
+                                                    "n15", "c13", "n.percent", "c.percent")),
+                            
+                                   by = "site.name")%>%
+  mutate(site.name = as.factor(site.name))
+fishn15.seabirds.cond
+
+
+##remove C. argus because n = 1 for Aie----
+fishn15.seabirds.cond.r<-
+  fishn15.seabirds.cond%>%
+  filter(species != "Cephalopholis argus")%>%
+  droplevels()
+
+
+##check sample sizes, lengths per site:----
+fishn15.seabirds.cond.r%>%
+  group_by(species, site.name)%>%
+  summarize(n = length(n15))
+
+```
+
+#run lm's USING ALGAE N15 AT 40
+```{r}
+
+#can use algae n15 at 40 m from shore as offshore, because this is present at all sites where we have fish
+#because only one site per motu, random effects don't make sense, so run regular lm
+
+#combine data with algae n15----
+fishn15.seabirds.cond.algae<-
+  left_join(fishn15.seabirds.cond.r, 
+            dplyr::select(algae_n15, c("site.name", "N.15_at_10m", "N.15_at_20m","N.15_at_30m","N.15_at_40m")), 
+            by = "site.name")
+fishn15.seabirds.cond.algae
+
+
+#n15----
+fish_n15_algae_lm<-lm(n15~ N.15_at_40m*species, 
+                          data = fishn15.seabirds.cond.algae)
+summary(fish_n15_algae_lm)
+anova(fish_n15_algae_lm)#everything significant
+Anova(fish_n15_algae_lm)
+plot(fish_n15_algae_lm) #okay
+
+#N.15_at_40m          56.059  1 21.4254 2.17e-05 ***
+#species              26.701  3  3.4017 0.023670 *  
+#N.15_at_40m:species  33.384  3  4.2530 0.008836 ** 
+
+#look at emmeans:----
+emtrends(fish_n15_algae_lm,  ~ species, var = "N.15_at_40m")
+#looks like Ab sept and Ac tri both are positive. Other two trending towards positive but overlaps 0
+
+test(emtrends(fish_n15_algae_lm, ~ species, var = "N.15_at_40m", adjust = "fdr"))
+# Abudefduf septemfasciatus             1.708 0.327 57   5.215  <.0001
+#Acanthurus triostegus                   0.664 0.313 57   2.121  0.0765
+# Lutjanus fulvus                       0.140 0.323 57   0.434  0.6663
+# Stegastes nigricans                   0.501 0.330 57   1.515  0.1803
+
+
+test(emtrends(fish_n15_algae_lm, pairwise~ species, var = "N.15_at_40m", adjust = "fdr"))
+# Abudefduf septemfasciatus - Acanthurus triostegus    1.043 0.453 57   2.302  0.0500
+# Abudefduf septemfasciatus - Lutjanus fulvus          1.568 0.460 57   3.407  0.0073
+# Abudefduf septemfasciatus - Stegastes nigricans      1.207 0.465 57   2.596  0.0360
+# Acanthurus triostegus - Lutjanus fulvus              0.524 0.450 57   1.165  0.3735
+# Acanthurus triostegus - Stegastes nigricans          0.164 0.455 57   0.360  0.7202
+# Lutjanus fulvus - Stegastes nigricans               -0.360 0.462 57  -0.780  0.5265
+
+#Ab sept has strongest effect, all else similar. 
+
+
+# plot ---------
+range(fishn15.seabirds.cond.algae$N.15_at_40m) #3.043333 6.003333
+levels(fishn15.seabirds.cond.algae$species)
+(mylist <- list(
+    N.15_at_40m = seq(3, 6, by = 1),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+
+emmip(fish_n15_algae_lm, species ~ N.15_at_40m, at = mylist, CIs = TRUE)
+
+
+
+#plot raw data + lines: 
+plot_dat<-emmip(fish_n15_algae_lm, species ~ N.15_at_40m, at = mylist, CIs = TRUE, plotit=FALSE)
+plot_dat
+
+fishn15.seabirds.cond.algae %>%
+  dplyr::group_by(species, N.15_at_40m)%>%
+  dplyr::summarize(mean_n15 = mean(n15))%>%
+   ggplot(aes(x = N.15_at_40m, y = mean_n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+geom_line(data = plot_dat, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+  group_by(species, N.15_at_40m)%>%
+  dplyr::summarize(mean_n15 = mean(n15),
+            se = sd(n15)/sqrt(length(n15)))%>%
+   ggplot(aes(x = N.15_at_40m, y = mean_n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .8)+
+  geom_errorbar(aes(ymin = mean_n15 - se, ymax = mean_n15+se))+
+   geom_line(data = plot_dat, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  ylab(expression(Fish~delta^15~N))+
+  xlab(expression(Algae~delta^15~N))+
+  labs(color = "", fill = "")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+
+
+(mylist2 <- list(
+    N.15_at_40m = c(3.043333, 5.233333, 6.003333),
+    species = c("Abudefduf septemfasciatus", "Acanthurus triostegus" ,   "Lutjanus fulvus"     ,     
+ "Stegastes nigricans")
+))
+plot_dat2<-emmip(fish_n15_algae_lm, species ~ N.15_at_40m, at = mylist2, CIs = TRUE, plotit=FALSE)
+plot_dat2
+
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+  geom_point(alpha = .5)+
+   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .2, lwd=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+
+  theme_bw() 
+
+fishn15.algan15.plot<-
+fishn15.seabirds.cond.algae %>%
+      mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+   ggplot(aes(x = N.15_at_40m, y = n15, color = species, fill = species, group = species))+
+ # geom_point(alpha = .8)+
+    geom_jitter(alpha = .7, width = .05, height = 0, size = 2.5)+
+   geom_ribbon(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, ymin = LCL, ymax=UCL, fill = species), alpha = .1, linetype=0)+
+ geom_line(data = plot_dat2, aes(x = N.15_at_40m, y = yvar, color = species, group = species))+ #, lwd =1.5
+  ylab(expression(Fish~delta^15~N))+
+  xlab(expression(Algal~delta^15~N))+
+  scale_fill_viridis_d( labels=c(expression(paste(italic("Acanthurus triostegus")," (herbivore)")), expression(paste(italic("Stegastes nigricans")," (herbivore)")), expression(paste(italic("Abudefduf septemfasciatus")," (omnivore)")), expression(paste(italic("Lutjanus fulvus")," (piscivore)"))))+
+  scale_color_viridis_d( labels=c(expression(paste(italic("Acanthurus triostegus")," (herbivore)")), expression(paste(italic("Stegastes nigricans")," (herbivore)")), expression(paste(italic("Abudefduf septemfasciatus")," (omnivore)")), expression(paste(italic("Lutjanus fulvus")," (piscivore)"))) )+
+  labs(color = "", fill = "")+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.2,.85),
+        legend.background = element_blank())
+        #legent.key = element_rect) #,
+        #legend.direction = "horizontal",
+      #  legend.box.background = element_rect(colour = "black"))
+fishn15.algan15.plot
+
+
+#ggsave("../output/seabird-fishn15/fish_n15_algae_n15_estplot_lines_points_update.jpg", plot = fishn15.algan15.plot, width = 7, height = 5)
+#ggsave("../output/seabird-fishn15/fish_n15_algae_n15_estplot_lines_points_update.pdf", plot = fishn15.algan15.plot, width = 7, height = 5)
+
+```
+
+
+##simple boxplot of fish n15 veruss managemetn status
+```{r}
+fishn15.seabirds.cond.algae.rest<-
+  fishn15.seabirds.cond.algae%>%
+ mutate(reststat = case_when(motu == "Aie" ~ "reference",
+                              motu == "Reiono" ~ "recovering",
+                              motu == "Rimatuu" ~ "unrestored"))%>%
+   mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored")) %>% # relevel factor
+  relocate(reststat, .after = motu)
+
+#need italic and line break labels:
+xsub1 <- ~ atop(paste(italic("A. triostegus")), paste("(herbivore)"))
+xsub2 <- ~ atop(paste(italic("S. nigricans")), paste("(herbivore)"))
+xsub3 <- ~ atop(paste(italic("A. septemfasciatus")), paste("(omnivore)"))
+xsub4 <- ~ atop(paste(italic("L. fulvus")), paste("(piscivore)"))
+
+
+fishn15_box<-
+  fishn15.seabirds.cond.algae.rest%>%
+        mutate(species = fct_relevel(species, c("Acanthurus triostegus", "Stegastes nigricans", "Abudefduf septemfasciatus", "Lutjanus fulvus")))%>%
+  ggplot(aes(x = species, y = n15, fill = reststat))+
+  geom_boxplot(alpha = .5, outlier.shape = NA)+ #
+  geom_point(aes(color= reststat), position = position_dodge(.75), size = 2.5, alpha = .7)+
+  ylab(expression(Fish~delta^15~N))+
+  xlab("")+
+  scale_fill_manual(values = c('#2F9D3E', '#F2BB05', '#CD1913'), labels = c('reference','recovering','unrestored'), name = "")+
+  scale_colour_manual(values = c('#2F9D3E', '#F2BB05', '#CD1913'), labels = c('reference','recovering','unrestored'), name = "")+
+     # scale_x_discrete(labels = c("A. triostegus\n(herbivore)", "S. nigricans\n(herbivore)", "A. septemfasciatus\n(omnivore)", "L. fulvus\n(piscivore)"))+
+  scale_x_discrete(labels=c(xsub1,xsub2,xsub3,xsub4)) +
+     theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.position = c(.9, .85),
+        legend.text = element_text(size = 12))
+fishn15_box
+
+
+#ggsave("../output/seabird-fishn15/fishn15_box.jpg", plot = fishn15_box, width = 7, height = 5)
+#ggsave("../output/seabird-fishn15/fishn15_box.pdf", plot = fishn15_box, width = 7, height = 5)
+
+```
+

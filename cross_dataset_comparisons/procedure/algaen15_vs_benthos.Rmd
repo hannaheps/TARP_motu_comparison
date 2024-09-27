@@ -19,11 +19,9 @@ library(corrplot)
 
 library(vegan)
 
+library(cowplot)
+library(ggtext)
 
-#if want pairwise adonis:
-#install.packages('devtools')
-#library(devtools)
-#install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis") library(pairwise.adonis)
 
 ```
 
@@ -90,92 +88,9 @@ benthic.vid.seabirds.levels.algae
 ```
 
 
-#do some quick plots of data:
+#Stacked bar plots - video----
 ```{r}
 
-benthic.vid.seabirds.levels.algae%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = hard_coral_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-benthic.vid.seabirds.levels.algae%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-benthic.vid.seabirds.levels.algae%>%
-  ggplot(aes(x = N.15_at_30m, y = hard_coral_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(~wind.exposure)
-
-
-benthic.vid.seabirds.levels.algae%>%
-  ggplot(aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(~wind.exposure)
-
-benthic.vid.seabirds.levels.algae%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-
-benthic.vid.seabirds.levels.algae%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = coral_shannon))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-
-
-##stacked bar plot
-benthic.vid.seabirds.levels.algae%>%
-  dplyr::select(-c(total_percent_cover))%>%
-  pivot_longer(cols = ends_with("_percent_cover"),
-                                          names_to = "group",
-                                          values_to = "percent_cover")%>%
-  mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, site.name)%>%
-  dplyr::summarize(mean_percent_cover = mean(percent_cover))%>%
-  ggplot(aes(fill = group, y = mean_percent_cover, x = site.name))+
-  geom_bar(position = "stack", stat =  "identity")
-
-#doesn't look like much happening....
-
-#limit stacked bar to major groups, and do by seabird level rather than site: -----
-benthic_vid_stack_barplot_seabird_level<-
-benthic.vid.seabirds.levels.algae%>%
-  dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
-            other_fish_inverts_percent_cover))%>%
-  pivot_longer(cols = ends_with("_percent_cover"),
-                                          names_to = "group",
-                                          values_to = "percent_cover")%>%
-  mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, seabird_level)%>%
-  summarize(mean_percent_cover = mean(percent_cover))%>%
-  mutate(group = as.factor(group))%>%
-  mutate(group = fct_relevel(group, c("hard_coral", "macroalgae", "pavement", "rubble", "sand")))%>%
-  ggplot(aes(fill = group, y = mean_percent_cover, x = seabird_level))+
-  geom_bar(position = "stack", stat =  "identity")+
-  scale_fill_brewer(palette = "Set2")+
-  xlab("Seabird level")+
-  ylab("% cover")+
-    theme_bw()+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)
-        )
-  
-  benthic_vid_stack_barplot_seabird_level
-
-  
-#ggsave(benthic_vid_stack_barplot_seabird_level, file = "../output/seabird-benthic/benthic_vid_stack_barplot_seabird_level.jpg",
-#       width = 7, height = 5)
-#
-
-  
   
 benthic.vid.seabirds.levels.algae%>%
  # dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
@@ -189,8 +104,10 @@ benthic.vid.seabirds.levels.algae%>%
 
 
 
-#limit stacked bar to major groups, and do by MOTU STATUS rather than site: ----
-benthic_vid_stack_barplot_motu<-
+#limit stacked bar to major groups, and do by MOTU STATUS AND EXPOSURE : ----
+  
+# Plot it
+benthic_stack_plot_video<-
 benthic.vid.seabirds.levels.algae%>%
   dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
             other_fish_inverts_percent_cover))%>%
@@ -198,29 +115,31 @@ benthic.vid.seabirds.levels.algae%>%
                                           names_to = "group",
                                           values_to = "percent_cover")%>%
   mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, motu)%>%
+  group_by(group, motu, wind.exposure)%>%
   summarize(mean_percent_cover = mean(percent_cover))%>%
   mutate(group = as.factor(group))%>%
   mutate(group = fct_relevel(group, c("hard_coral", "macroalgae", "pavement", "rubble", "sand")))%>%
+ #  mutate(group = fct_relevel(group, c("sand", "rubble", "pavement", "macroalgae", "hard_coral")))%>%
   mutate(group = fct_recode(group, "hard coral" = "hard_coral"))%>%
   ggplot(aes(fill = group, y = mean_percent_cover, x = motu))+
   geom_bar(position = "stack", stat =  "identity")+
-  scale_fill_viridis_d()+
+ # scale_fill_manual(values = spec) +
+  scale_fill_brewer(palette = "Spectral")+ #, direction = -1
  scale_x_discrete(labels = c('reference','recovering','unrestored'))+
   xlab("")+
-  ylab("% cover")+
+  ylab("Percent cover (video)")+
     theme_bw()+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-       # axis.text.x = element_text(angle = 45, hjust = 1)
-        )
-  
-  benthic_vid_stack_barplot_motu
-  
+       #  axis.text.x = element_text(angle = 45, hjust = 1),
+       strip.text = element_text(hjust = 0, size = 12))+
+  facet_wrap(~wind.exposure, strip.position = "top",  
+             labeller = labeller (wind.exposure = c("leeward" = "a. Leeward", "windward" = "b. Windward")))
+
+benthic_stack_plot_video
+
 ```
-
-
 
 
 ##do NMDS with algae n15 as overlay
@@ -267,16 +186,12 @@ scores(nmds_video, display="species")
 
 
 #look at plot and centroids with ordfit
-plot(nmds_video)
-ord.fit.level<-envfit(nmds_video~seabird_level+protection, data = benthic.vid.seabirds.levels.algae, na.rm=TRUE)
-ord.fit.level 
-plot(ord.fit.level)
 
 plot(nmds_video)
-ord.fit.algae<-envfit(nmds_video~N.15_at_30m+protection, data = benthic.vid.seabirds.levels.algae, na.rm=TRUE)
+ord.fit.algae<-envfit(nmds_video~N.15_at_30m*protection, data = benthic.vid.seabirds.levels.algae, na.rm=TRUE)
 ord.fit.algae 
 plot(ord.fit.algae)
-
+#not significant
 
 
 #rotate by algae n15 so can more easily interpret----
@@ -346,77 +261,10 @@ benthic.vid.seabirds.levels.algae.w.nmds<-
                     "NMDS2.rotate" = "NMDS2.y")
 benthic.vid.seabirds.levels.algae.w.nmds
 
-#NMDS plots - non-rotated:----
-#get hull data - seabird level:
-sb.low <- benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == "low", ][chull(benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == 
-    "low", c("NMDS1", "NMDS2")]), ]
-
-sb.mid <- benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == "mid", ][chull(benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == 
-    "mid", c("NMDS1", "NMDS2")]), ]
-
-sb.high <- benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == "high", ][chull(benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == 
-    "high", c("NMDS1", "NMDS2")]), ]
-
-hull.data.vid <- rbind(sb.low, sb.mid, sb.high)  #combine
-hull.data.vid
-
-
-##get arrows:
-ord.fit.vid<-envfit(nmds_video ~ N.15_at_30m + wind.exposure, data = benthic.vid.seabirds.levels.algae.w.nmds, na.rm=TRUE)
-ord.fit.vid #looks like seabird level is marginal
-
-sb.scrs.vid <- as.data.frame(scores(ord.fit.vid, display = "vectors"))
-sb.scrs.vid <- cbind(sb.scrs.vid, variable = rownames(sb.scrs.vid))
-sb.scrs.vid<-
-  sb.scrs.vid%>%
-  mutate(variable2 = c("algae n15"))
-
-
-benthic_video_nmds_plot<-
-ggplot() + 
-  geom_text(data=video_spp.sc,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .7, size = 3, hjust = .1) +  # add the species labels - 
-  geom_point(data=benthic.vid.seabirds.levels.algae.w.nmds,aes(x=NMDS1,y=NMDS2,colour=seabird_level, fill = seabird_level, pch = seabird_level), stat="identity", size=5, alpha = .9) +
-  geom_polygon(data=hull.data.vid,aes(x=NMDS1,y=NMDS2,fill=seabird_level,group=seabird_level),alpha=0.30) + # add the convex hulls
- #   coord_fixed() + ## need aspect ratio of 1!
-  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  geom_segment(data = sb.scrs.vid,
-               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
-               arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = sb.scrs.vid, aes(x = NMDS1, y = NMDS2, label = sb.scrs.vid$variable2),
-            size = 3, vjust = "outward")+
-labs(colour = "Seabird biomass", fill = "Seabird biomass", shape = "Seabird biomass")+
-theme_bw() + 
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.2, .88)) 
-
-benthic_video_nmds_plot
-
-
-#save plot
-#ggsave(benthic_video_nmds_plot, file = "../output/seabird-benthic/benthic_video_nmds_plot.jpg",
-#       width = 7, height = 5)
-
-##
 
 
 #NMDS plots - rotated:----
 #get hull data - seabird level:
-sb.low.rotate <- benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == "low", ][chull(benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == 
-    "low", c("NMDS1.rotate", "NMDS2.rotate")]), ]
-
-sb.mid.rotate <- benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == "mid", ][chull(benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == 
-    "mid", c("NMDS1.rotate", "NMDS2.rotate")]), ]
-
-sb.high.rotate <- benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == "high", ][chull(benthic.vid.seabirds.levels.algae.w.nmds[benthic.vid.seabirds.levels.algae.w.nmds$seabird_level == 
-    "high", c("NMDS1.rotate", "NMDS2.rotate")]), ]
-
-hull.data.vid.rotate <- rbind(sb.low.rotate, sb.mid.rotate, sb.high.rotate)  #combine
-hull.data.vid.rotate
-
-
 ##get arrows:
 ord.fit.vid.rotate<-envfit(nmds_video.rotate ~ N.15_at_30m + wind.exposure, data = benthic.vid.seabirds.levels.algae.w.nmds, na.rm=TRUE)
 ord.fit.vid.rotate #looks like seabird level is marginal
@@ -425,61 +273,59 @@ sb.scrs.vid.rotate <- as.data.frame(scores(ord.fit.vid.rotate, display = "vector
 sb.scrs.vid.rotate <- cbind(sb.scrs.vid.rotate, variable = rownames(sb.scrs.vid.rotate))
 sb.scrs.vid.rotate<-
   sb.scrs.vid.rotate%>%
-  mutate(variable2 = c("algae n15"))
+  mutate(variable2 = c("algal n15"))
 
 
-benthic_video_nmds_plot_rotate<-
-ggplot() + 
-  geom_point(data=benthic.vid.seabirds.levels.algae.w.nmds,aes(x=NMDS1.rotate,y=NMDS2.rotate,colour=seabird_level, fill = seabird_level, pch = seabird_level), stat="identity", size=5, alpha = .9) +
-  geom_polygon(data=hull.data.vid.rotate,aes(x=NMDS1.rotate,y=NMDS2.rotate,fill=seabird_level,group=seabird_level),alpha=0.30) + # add the convex hulls
-  #  coord_fixed() + ## need aspect ratio of 1!
-  scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  geom_segment(data = sb.scrs.vid.rotate,
-               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
-               arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = sb.scrs.vid.rotate, aes(x = NMDS1, y = NMDS2, label = sb.scrs.vid.rotate$variable2),
-            size = 3, hjust = "outward")+
-    geom_text(data=video_spp.sc.rotate,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels -
-  xlab("NMDS1")+
-  ylab("NMDS2")+
-labs(colour = "seabird biomass", fill = "seabird biomass", shape = "seabird biomass")+
-theme_bw() + 
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-          legend.position = c(.14, .87),
-       legend.background = element_blank()
-     )
 
-benthic_video_nmds_plot_rotate
+cor(tet_video_raw_meta_broad_sp,
+      nmds_video.rotate$points,
+      use = "complete.obs",
+      method = "spearman")
+#                               MDS1        MDS2
+#hard_coral_percent_cover -0.0200000 -0.67043478
+#sand_percent_cover        0.8313043  0.58782609
+#pavement_percent_cover   -0.4817391  0.76000000
+#rubble_percent_cover     -0.2678843 -0.95151122
+#macroalgae_percent_cover -0.6230151  0.01044159
 
 
-#save plot
-ggsave(benthic_video_nmds_plot_rotate, file = "../output/seabird-benthic/benthic_video_nmds_plot_rotate.jpg",
-    width = 7, height = 5)
+cor(tet_video_raw_meta_broad_sp,
+      nmds_video.rotate$points,
+      use = "complete.obs",
+      method = "pearson")
+#                                MDS1       MDS2
+#hard_coral_percent_cover -0.05603667 -0.7099176
+#sand_percent_cover        0.93302043  0.4588428
+#pavement_percent_cover   -0.50810972  0.7743748
+#rubble_percent_cover     -0.33034600 -0.9252556
+#macroalgae_percent_cover -0.60388932  0.1213062
 
 benthic_video_nmds_plot_rotate_new_colours<-
 ggplot() + 
-  geom_point(data=benthic.vid.seabirds.levels.algae.w.nmds,aes(x=NMDS1.rotate,y=NMDS2.rotate,colour=N.15_at_30m, fill = N.15_at_30m), stat="identity", size=5, alpha = .9) +
+  geom_point(data=benthic.vid.seabirds.levels.algae.w.nmds,aes(x=NMDS1.rotate,y=NMDS2.rotate,colour=N.15_at_30m, fill = N.15_at_30m, shape = wind.exposure), stat="identity", size=5, alpha = .9) +
   geom_segment(data = sb.scrs.vid.rotate,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = sb.scrs.vid.rotate, aes(x = NMDS1, y = NMDS2, label = variable2),
-            size = 3,  hjust = c(.75), vjust = -1)+
-    geom_text(data=video_spp.sc.rotate,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels - 
+   geom_richtext(data = sb.scrs.vid.rotate, aes(x = NMDS1, y = NMDS2, label = paste0("algal \U03B4<sup>15</sup>N")),
+                                       size = 3, fill = NA, label.colour = NA,  hjust = c(.75), vjust = -1)+
+   # geom_text(data = sb.scrs.vid.rotate, aes(x = NMDS1, y = NMDS2, label = variable2),
+    #        size = 3,  hjust = c(.75), vjust = -1)+
+   # geom_text(data=video_spp.sc.rotate,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels - 
   scale_fill_distiller(palette = "YlGnBu", direction = -1)+
     scale_colour_distiller(palette = "YlGnBu", direction = -1)+
   #scale_fill_viridis_c(option = "inferno", direction = -1)+
   #  scale_colour_viridis_c(option = "inferno", direction = -1)+
-  labs(colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N))+
+  labs(shape = "exposure", colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N))+
+    scale_shape_manual(values = c(16, 17))+
   xlab("NMDS1")+
   ylab("NMDS2")+
 theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-           legend.position = c(.9, .79)
+        legend.position = c(.75,.78),
+        legend.box = "horizontal",
+        legend.background = element_blank()
      ) #   
 
 benthic_video_nmds_plot_rotate_new_colours
@@ -543,72 +389,8 @@ benthic.situ.seabirds.levels.algae
 
 
 
-
-#do some quick plots of data:
+#do stacked bar plot - in situ
 ```{r}
-
-benthic.situ.seabirds.levels.algae%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = coral_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-benthic.situ.seabirds.levels.algae%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = macroalgae_percent_cover))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-
-benthic.situ.seabirds.levels.algae%>%
-  ggplot(aes(x = breeding_biomass_kgha_side, y = coral_shannon))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-
-
-##stacked bar plot
-benthic.situ.seabirds.levels.algae%>%
-  pivot_longer(cols = ends_with("_percent_cover"),
-                                          names_to = "group",
-                                          values_to = "percent_cover")%>%
-  mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, site.name)%>%
-  summarize(mean_percent_cover = mean(percent_cover))%>%
-  ggplot(aes(fill = group, y = mean_percent_cover, x = site.name))+
-  geom_bar(position = "stack", stat =  "identity")
-
-#doesn't look like much happening....
-
-#limit stacked bar to most interesting groups, and do by seabird level rather than site: 
-benthic_situ_stack_barplot_seabird_level<-
-benthic.situ.seabirds.levels.algae%>%
-  dplyr::select(-c(cyano_percent_cover, other_invert_percent_cover))%>%
-  pivot_longer(cols = ends_with("_percent_cover"),
-                                          names_to = "group",
-                                          values_to = "percent_cover")%>%
-  mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, seabird_level)%>%
-  summarize(mean_percent_cover = mean(percent_cover))%>%
-  mutate(group = as.factor(group))%>%
-  mutate(group = fct_relevel(group, c("coral", "macroalgae", "pavement", "rubble", "sand")))%>%
-  ggplot(aes(fill = group, y = mean_percent_cover, x = seabird_level))+
-  geom_bar(position = "stack", stat =  "identity")+
-  scale_fill_brewer(palette = "Set2")+
-  xlab("Seabird level")+
-  ylab("% cover")+
-    theme_bw()+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1)
-        )
-  
-benthic_situ_stack_barplot_seabird_level
-
-  
-#ggsave(benthic_situ_stack_barplot_seabird_level, file = "../output/seabird-benthic/benthic_situ_stack_barplot_seabird_level.jpg",
-#       width = 7, height = 5)
-
-
 
 benthic.situ.seabirds.levels.algae%>%
  # dplyr::select(-c(total_percent_cover, transect_tape_percent_cover, cca_percent_cover, dead_coral_percent_cover, 
@@ -620,40 +402,44 @@ benthic.situ.seabirds.levels.algae%>%
   group_by(group, seabird_level)%>%
   dplyr::summarize(mean_percent_cover = mean(percent_cover))
 
-#limit stacked bar to major groups, and do by MOTU STATUS rather than site: 
-benthic_situ_stack_barplot_motu<-
+
+#limit stacked bar to major groups, and do by MOTU STATUS AND EXPOSURE : ----
+  
+# Plot it
+benthic_stack_plot_situ<-
 benthic.situ.seabirds.levels.algae%>%
   dplyr::select(-c(cyano_percent_cover, other_invert_percent_cover))%>%
   pivot_longer(cols = ends_with("_percent_cover"),
                                           names_to = "group",
                                           values_to = "percent_cover")%>%
   mutate(group = str_remove(group, '_percent_cover'))%>%
-  group_by(group, motu)%>%
+  group_by(group, motu, wind.exposure)%>%
   summarize(mean_percent_cover = mean(percent_cover))%>%
   mutate(group = as.factor(group))%>%
   mutate(group = fct_relevel(group, c("coral", "macroalgae", "pavement", "rubble", "sand")))%>%
   ggplot(aes(fill = group, y = mean_percent_cover, x = motu))+
   geom_bar(position = "stack", stat =  "identity")+
-#  scale_fill_brewer(palette = "Set2")+
-    scale_fill_viridis_d()+
+ # scale_fill_manual(values = spec) +
+  scale_fill_brewer(palette = "Spectral")+ #, direction = -1
+ scale_x_discrete(labels = c('reference','recovering','unrestored'))+
   xlab("")+
-  ylab("% cover")+
-   scale_x_discrete(labels = c('reference','recovering','unrestored'))+
+  ylab("Percent cover (in situ)")+
     theme_bw()+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-       # axis.text.x = element_text(angle = 45, hjust = 1)
-        )
- benthic_situ_stack_barplot_motu 
+      #   axis.text.x = element_text(angle = 45, hjust = 1),
+       strip.text = element_text(hjust = 0, size = 12))+
+  facet_wrap(~wind.exposure, strip.position = "top",  
+             labeller = labeller (wind.exposure = c("leeward" = "c. Leeward", "windward" = "d. Windward")))
 
-
+benthic_stack_plot_situ
 
 ```
 
 
 
-##do NMDS with algae n15 as overlay
+##do NMDS with algae n15 as overlay - in situ-----
 ```{r}
 
 #create data - all groups-----
@@ -761,20 +547,29 @@ benthic.situ.seabirds.levels.algae.w.nmds<-
 benthic.situ.seabirds.levels.algae.w.nmds
 
 
+##check correlations between species and axes-----
+cor(tet_situ_raw_meta_broad_sp,
+      nmds_situ.rotate$points,
+      use = "complete.obs",
+      method = "pearson")
+#                                MDS1        MDS2
+#coral_percent_cover      -0.73119452 -0.05035492
+#pavement_percent_cover    0.42068290 -0.90158400
+#rubble_percent_cover     -0.83308345  0.45280192
+#sand_percent_cover        0.53507287  0.77902515
+#macroalgae_percent_cover  0.08999919 -0.69460130
+
+cor(tet_situ_raw_meta_broad_sp,
+      nmds_situ.rotate$points,
+      use = "complete.obs",
+      method = "spearman")
+#coral_percent_cover      -0.78865381 -0.03362477
+#pavement_percent_cover    0.38387891 -0.89629842
+#rubble_percent_cover     -0.77861004  0.54367331
+#sand_percent_cover        0.42247451  0.80444373
+#macroalgae_percent_cover  0.08647449 -0.71939418
+
 #NMDS plots - rotated:----
-#get hull data - seabird level:
-sb.low.rotate <- benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == "low", ][chull(benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == 
-    "low", c("NMDS1.rotate", "NMDS2.rotate")]), ]
-
-sb.mid.rotate <- benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == "mid", ][chull(benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == 
-    "mid", c("NMDS1.rotate", "NMDS2.rotate")]), ]
-
-sb.high.rotate <- benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == "high", ][chull(benthic.situ.seabirds.levels.algae.w.nmds[benthic.situ.seabirds.levels.algae.w.nmds$seabird_level == 
-    "high", c("NMDS1.rotate", "NMDS2.rotate")]), ]
-
-hull.data.situ.rotate <- rbind(sb.low.rotate, sb.mid.rotate, sb.high.rotate)  #combine
-hull.data.situ.rotate
-
 
 ##get arrows: - UPDATED WITH CORRECT SCALING
 ord.fit.situ.rotate<-envfit(nmds_situ.rotate ~ N.15_at_30m + wind.exposure, data = benthic.situ.seabirds.levels.algae.w.nmds, na.rm=TRUE)
@@ -784,118 +579,65 @@ sb.scrs.situ.rotate <- as.data.frame(scores(ord.fit.situ.rotate, display = "vect
 sb.scrs.situ.rotate <- cbind(sb.scrs.situ.rotate, variable = rownames(sb.scrs.situ.rotate))
 sb.scrs.situ.rotate<-
   sb.scrs.situ.rotate%>%
-  mutate(variable2 = c("algae n15"))
+  mutate(variable2 = c("algal n15"))
 
 
-
-benthic_situ_nmds_plot_rotate<-
-ggplot() + 
-  geom_point(data=benthic.situ.seabirds.levels.algae.w.nmds,aes(x=NMDS1.rotate,y=NMDS2.rotate,colour=seabird_level, fill = seabird_level, pch = seabird_level), stat="identity", size=5, alpha = .9) +
-  geom_polygon(data=hull.data.situ.rotate,aes(x=NMDS1.rotate,y=NMDS2.rotate,fill=seabird_level,group=seabird_level),alpha=0.30) + # add the convex hulls
-  #  coord_fixed() + ## need aspect ratio of 1!
-  geom_segment(data = sb.scrs.situ.rotate,
-               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
-               arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = sb.scrs.situ.rotate, aes(x = NMDS1, y = NMDS2, label = sb.scrs.situ.rotate$variable2),
-            size = 3, hjust = "inward", vjust = "inward")+
-    geom_text(data=situ_spp.sc.rotate,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels - 
-   scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  labs(colour = "seabird biomass", fill = "seabird biomass", shape = "seabird biomass")+
-  xlab("NMDS")+
-  ylab("NMDS")+
-theme_bw() + 
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank()
-     ) #   legend.position = c(.2, .88)
-
-benthic_situ_nmds_plot_rotate
-
-
-
-
-
-#save plot
-ggsave(benthic_situ_nmds_plot_rotate, file = "../output/seabird-benthic/benthic_situ_nmds_plot_rotate.jpg",
-    width = 7, height = 5)
 
 
 benthic_situ_nmds_plot_rotate_new_colours<-
 ggplot() + 
-  geom_point(data=benthic.situ.seabirds.levels.algae.w.nmds,aes(x=NMDS1.rotate,y=NMDS2.rotate,colour=N.15_at_30m, fill = N.15_at_30m), stat="identity", size=5, alpha = .9) +
-  geom_segment(data = sb.scrs.situ.rotate,
+  geom_point(data=benthic.situ.seabirds.levels.algae.w.nmds,aes(x=NMDS1.rotate,y=NMDS2.rotate,colour=N.15_at_30m, fill = N.15_at_30m, shape = wind.exposure), stat="identity", size=5, alpha = .9) +
+  geom_segment(data = sb.scrs.vid.rotate,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = sb.scrs.situ.rotate, aes(x = NMDS1, y = NMDS2, label = variable2),
-            size = 3, hjust = "inward", vjust = "inward")+
-    geom_text(data=situ_spp.sc.rotate,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels - 
+  #  geom_text(data = sb.scrs.situ.rotate, aes(x = NMDS1, y = NMDS2, label = variable2),
+  #          size = 3,  hjust = c(.75), vjust = -1)+
+   geom_richtext(data = sb.scrs.vid.rotate, aes(x = NMDS1, y = .05, label = paste0("algal \U03B4<sup> 15</sup>N")),
+                                       size = 3, fill = NA, label.colour = NA,  hjust = c(.75))+
+   # geom_text(data=situ_spp.sc.rotate,aes(x=NMDS1,y=NMDS2,label=Species), alpha = .5, size = 3, hjust = .1) +  # add the species labels - 
   scale_fill_distiller(palette = "YlGnBu", direction = -1)+
     scale_colour_distiller(palette = "YlGnBu", direction = -1)+
   #scale_fill_viridis_c(option = "inferno", direction = -1)+
   #  scale_colour_viridis_c(option = "inferno", direction = -1)+
-  labs(colour = expression(algae~delta^15~N), fill = expression(algae~delta^15~N))+
+  labs(shape = "\n\n\n\n\nexposure", colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N))+
+    scale_shape_manual(values = c(16, 17))+
+      guides( col = guide_colorbar(order = 2),
+      shape = guide_legend(order = 1),
+      fill = guide_colorbar(order = 2))+
   xlab("NMDS1")+
   ylab("NMDS2")+
 theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),#,
-        legend.position = c(.88, .25)
+        strip.background = element_blank(),
+           legend.position = c(.82, .25),
+        legend.box = "horizontal",
+        legend.background = element_blank()
      ) #   
 
 benthic_situ_nmds_plot_rotate_new_colours
 
 #save plot
-ggsave(benthic_situ_nmds_plot_rotate_new_colours, file = "../output/seabird-benthic/benthic_situ_nmds_plot_rotate_new_colours.jpg",
-    width = 7, height = 5)
+ggsave(benthic_situ_nmds_plot_rotate_new_colours, file = "../output/seabird-benthic/benthic_situ_nmds_plot_rotate_new_colours.jpg",    width = 7, height = 5)
 
 ```
 
 
-#COMBINE NMDS PLOTS-----
-```{r}
-library(cowplot)
-
-benthic_nmds_plots<-plot_grid(benthic_video_nmds_plot_rotate, benthic_situ_nmds_plot_rotate, nrow = 2,
-  labels = c("a. video", "b. in situ"), label_x = c(.05, .05), label_y = c(.99, .99), label_fontface = "plain")
-benthic_nmds_plots
-
-
-ggsave(benthic_nmds_plots, file = "../output/seabird-benthic/benthic_COMBINED_nmds_plot_rotate.jpg",
-    width = 7, height = 7)
-
-
-```
 
 #COMBINE STACKED BAR PLOTS-----
 ```{r}
-benthic_vid_stack_barplot_seabird_level
-benthic_situ_stack_barplot_seabird_level
+benthic_stack_plot_video
+benthic_stack_plot_situ
 
-benthic_stack_plots<-plot_grid(benthic_vid_stack_barplot_seabird_level, benthic_situ_stack_barplot_seabird_level, nrow = 2,
-  labels = c("a. video", "b. in situ"), label_x = c(.02, .02), label_y = c(1, 1), label_fontface = "plain")
+benthic_stack_plots<-plot_grid(benthic_stack_plot_video, benthic_stack_plot_situ, nrow = 2)
 benthic_stack_plots
 
 
-ggsave(benthic_stack_plots, file = "../output/seabird-benthic/benthic_stack_plots_COMBINED.jpg",
-    width = 7, height = 7)
+#ggsave(benthic_stack_plots, file = "../output/seabird-benthic/benthic_stack_plots_by_reststat_exposure_COMBINED.jpg",
+#   width = 7, height = 7)
+#ggsave(benthic_stack_plots, file = "../output/seabird-benthic/benthic_stack_plots_by_reststat_exposure_COMBINED.pdf",
+   # width = 7, height = 7)
 
-##by motu status:
-benthic_situ_stack_barplot_motu2<-
-  benthic_situ_stack_barplot_motu+
-  labs(subtitle = "b. in situ")
-
-benthic_vid_stack_barplot_motu2<-
-  benthic_vid_stack_barplot_motu+
-  labs(subtitle = "a. video")
-
-benthic_stack_plots2<-plot_grid(benthic_vid_stack_barplot_motu2, benthic_situ_stack_barplot_motu2, nrow = 2)
-benthic_stack_plots2
-
-
-ggsave(benthic_stack_plots2, file = "../output/seabird-benthic/benthic_stack_plots_COMBINED_MOTU_STATUS.jpg",
-    width = 7, height = 7)
 ```
 
 
@@ -903,141 +645,39 @@ ggsave(benthic_stack_plots2, file = "../output/seabird-benthic/benthic_stack_plo
 #Run PERMANOVA----
 ```{r}
 
-#video - full community---
-#run analysis
-permanova_benthic_situ_n15<-adonis2(tet_video_raw_meta_broad_sp_all ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae)
-permanova_benthic_situ_n15
-#              Df SumOfSqs      R2      F Pr(>F)  
-#N.15_at_30m  1  0.00820 0.01182 0.2568  0.833
-#protection   1  0.01495 0.02154 0.4680  0.664
-#Residual    21  0.67060 0.96664              
-#Total       23  0.69375 1.00000         
-
-#nothing significant
-
-
 
 ##video- remove rare groups-----
-permanova_benthic_situ_n15_no_rare<-adonis2(tet_video_raw_meta_broad_sp ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae)
+permanova_benthic_situ_n15_no_rare<-adonis2(tet_video_raw_meta_broad_sp ~ N.15_at_30m*protection,  data = benthic.vid.seabirds.levels.algae)
 permanova_benthic_situ_n15_no_rare
 #            Df SumOfSqs      R2      F Pr(>F)
-#N.15_at_30m  1  0.00527 0.00771 0.1675  0.881
-#protection   1  0.01459 0.02134 0.4634  0.659
-#Residual    21  0.66109 0.96692              
-#Total       23  0.68371 1.00000  
+#N.15_at_30m             1  0.00803 0.01174 0.2737  0.804  
+#protection              1  0.01459 0.02134 0.4975  0.632  
+#N.15_at_30m:protection  1  0.07463 0.10916 2.5452  0.088 .
+#Residual               20  0.58646 0.85776                
+#Total                  23  0.68371 1.00000                
 
-#same results as above - nothing significant
-
-##wisconsin standardization (with rare removed) to match NMDS-----
-permanova_benthic_situ_n15_no_rare_wisc<-adonis2(wisconsin(tet_video_raw_meta_broad_sp) ~ N.15_at_30m  + protection, data = benthic.vid.seabirds.levels.algae)
-permanova_benthic_situ_n15_no_rare_wisc
-#            Df SumOfSqs      R2      F Pr(>F)
-#N.15_at_30m  1  0.01529 0.01879 0.4335  0.744
-#protection   1  0.05789 0.07113 1.6414  0.196
-#Residual    21  0.74067 0.91008              
-#Total       23  0.81385 1.00000    
-#same results as above - nothing significant
-
-
-##log transformation-----
-permanova_benthic_situ_n15_no_rare_log<-adonis2(log(tet_video_raw_meta_broad_sp+1) ~ N.15_at_30m  + protection, data = benthic.vid.seabirds.levels.algae)
-permanova_benthic_situ_n15_no_rare_log
-#            Df SumOfSqs      R2      F Pr(>F)
-#N.15_at_30m  1 0.003499 0.02775 0.6463  0.576
-#protection   1 0.008911 0.07067 1.6461  0.181
-#Residual    21 0.113685 0.90158              
-#Total       23 0.126094 1.00000     
-#same results as above - nothing significant
-
-#situ - full community---
-permanova_benthic_situ_n15<-adonis2(tet_situ_raw_meta_broad_sp_all ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae)
-permanova_benthic_situ_n15
-#              Df SumOfSqs      R2      F Pr(>F)  
-#N.15_at_30m  1  0.06415 0.05692 1.3318  0.263
-#protection   1  0.04594 0.04076 0.9537  0.416
-#Residual    21  1.01154 0.89759              
-#Total       23  1.12695 1.00000        
-
-#nothing significant
+#same results as with full community - marginal interaction
 
 
 ##situ- remove rare groups-----
-permanova_benthic_situ_n15_no_rare<-adonis2(tet_situ_raw_meta_broad_sp ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae)
+permanova_benthic_situ_n15_no_rare<-adonis2(tet_situ_raw_meta_broad_sp ~ N.15_at_30m*protection,  data = benthic.vid.seabirds.levels.algae)
 permanova_benthic_situ_n15_no_rare
-#            Df SumOfSqs      R2      F Pr(>F)
-#N.15_at_30m  1  0.06416 0.05819 1.3640  0.270
-#protection   1  0.04546 0.04123 0.9666  0.414
-#Residual    21  0.98771 0.89579              
-#Total       23  1.10260 1.00000   
+#                      Df SumOfSqs      R2      F Pr(>F)
+#N.15_at_30m             1  0.06943 0.06297 1.4717  0.238
+#protection              1  0.04546 0.04123 0.9636  0.440
+#N.15_at_30m:protection  1  0.04410 0.03999 0.9347  0.409
+#Residual               20  0.94361 0.85580              
+#Total                  23  1.10260 1.00000          
 
-#same results as above - nothing significant
-
-
-##wisconsin standardization (with rare removed) to match NMDS-----
-permanova_benthic_situ_n15_no_rare_wisc<-adonis2(wisconsin(tet_situ_raw_meta_broad_sp) ~ N.15_at_30m  + protection,  data = benthic.vid.seabirds.levels.algae)
-permanova_benthic_situ_n15_no_rare_wisc
-#            Df SumOfSqs      R2      F Pr(>F)
-#N.15_at_30m  1  0.04992 0.03594 0.8078  0.477
-#protection   1  0.04155 0.02991 0.6724  0.525
-#Residual    21  1.29781 0.93415              
-#Total       23  1.38929 1.00000   
-#same results as above - nothing significant
+#same results as with full community - nothing significant
 
 
 ```
-
 
 
 #Run LMMs using algae N15----------
 #video and in situ:--------
-```{r}
-
-#Major groups----
-#Hard coral - algae n15-----
-hard_coral.vid.algae.lmm<-lmer(hard_coral_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
-summary(hard_coral.vid.algae.lmm)
-Anova(hard_coral.vid.algae.lmm) #NOTHING SIGNIFICANT****
-vif(hard_coral.vid.algae.lmm)
-
-hard_coral.situ.algae.lmm<-lmer(coral_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
-summary(hard_coral.situ.algae.lmm)
-Anova(hard_coral.situ.algae.lmm) #NOTHING SIGNIFICANT****
-
-hard_coral.vid.motu.lmm<-lmer(hard_coral_percent_cover~motu+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
-summary(hard_coral.vid.motu.lmm)
-Anova(hard_coral.vid.motu.lmm) #NOTHING SIGNIFICANT****
-vif(hard_coral.vid.motu.lmm)
-
-hard_coral.situ.motu.lmm<-lmer(coral_percent_cover~motu+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
-summary(hard_coral.situ.motu.lmm)
-Anova(hard_coral.situ.motu.lmm) 
-#singular, but very significant
-
-
-##macroalgae algae n15-----
-macro.vid.algae.lmm<-lmer(macroalgae_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
-summary(macro.vid.algae.lmm)
-Anova(macro.vid.algae.lmm) #NOTHING SIGNIFICANT****
-
-macro.situ.algae.lmm<-lmer(macroalgae_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
-summary(macro.situ.algae.lmm)
-Anova(macro.situ.algae.lmm) #NOTHING SIGNIFICANT****
-
-
-macro.vid.motu.lmm<-lmer(macroalgae_percent_cover~motu+wind.exposure + (1|site.name), data = benthic.vid.seabirds.levels.algae)
-summary(macro.vid.motu.lmm)
-Anova(macro.vid.motu.lmm) #singular, but very significant
-vif(macro.vid.motu.lmm)
-
-macro.situ.motu.lmm<-lmer(macroalgae_percent_cover~motu+wind.exposure + (1|site.name), data = benthic.situ.seabirds.levels.algae)
-summary(macro.situ.motu.lmm)
-Anova(macro.situ.motu.lmm) 
-#nothing significant.
-
-```
-
-
-#try beta distribution for major groups (hard coral and macroalgae) - because untransformed and log-transformed didn't work**
+#use beta distribution for major groups (hard coral) - because untransformed and log-transformed didn't work**
 ```{r}
 transform01 <- function(x) {
   (x * (length(x) - 1) + 0.5) / (length(x))
@@ -1063,307 +703,175 @@ benthic.situ.seabirds.levels.algae.beta
 library(glmmTMB)
 
 
-###repeat for beta, macroalgae n15-----------
-hard_coral_vid.lmm.beta.n15<-glmmTMB(hard_coral_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
+###video models -----------
+hard_coral_vid.lmm.beta.n15<-glmmTMB(hard_coral_percent_cover~N.15_at_30m*wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
 summary(hard_coral_vid.lmm.beta.n15)
 Anova(hard_coral_vid.lmm.beta.n15)
 plot(resid(hard_coral_vid.lmm.beta.n15))
 qqnorm(resid(hard_coral_vid.lmm.beta.n15))
-
-macro_vid.lmm.beta.n15<-glmmTMB(macroalgae_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
-summary(macro_vid.lmm.beta.n15)
-Anova(macro_vid.lmm.beta.n15)
-  plot(resid(macro_vid.lmm.beta.n15))
-qqnorm(resid(macro_vid.lmm.beta.n15))
+#very significant interaction
+#N.15_at_30m                0.0562  1   0.812629   
+#wind.exposure              0.0023  1   0.961844   
+#N.15_at_30m:wind.exposure 10.0606  1   0.001515 **
 
 
-hard_coral_situ.lmm.beta.n15<-glmmTMB(coral_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
+###in situ models
+hard_coral_situ.lmm.beta.n15<-glmmTMB(coral_percent_cover~N.15_at_30m*wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
 summary(hard_coral_situ.lmm.beta.n15)
 Anova(hard_coral_situ.lmm.beta.n15)
 plot(resid(hard_coral_situ.lmm.beta.n15))
 qqnorm(resid(hard_coral_situ.lmm.beta.n15))
+#N.15_at_30m                6.2902  1    0.01214 *  
+#wind.exposure              2.8025  1    0.09412 .  
+#N.15_at_30m:wind.exposure 17.0591  1  3.624e-05 ***
+#super sig interaction, and effect of n15
 
-macro_situ.lmm.beta.n15<-glmmTMB(macroalgae_percent_cover~N.15_at_30m+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
-summary(macro_situ.lmm.beta.n15)
-Anova(macro_situ.lmm.beta.n15)
-  plot(resid(macro_situ.lmm.beta.n15))
-qqnorm(resid(macro_situ.lmm.beta.n15))
-
-##repeat for restoration status-----
-hard_coral_vid.lmm.beta.rest<-glmmTMB(hard_coral_percent_cover~motu+wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
-summary(hard_coral_vid.lmm.beta.rest)
-Anova(hard_coral_vid.lmm.beta.rest)
-plot(resid(hard_coral_vid.lmm.beta.rest))
-qqnorm(resid(hard_coral_vid.lmm.beta.rest))
-#sig effect of motu (restoration status)
-
-macro_vid.lmm.beta.rest<-glmmTMB(macroalgae_percent_cover~motu+wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
-summary(macro_vid.lmm.beta.rest)
-Anova(macro_vid.lmm.beta.rest)
-  plot(resid(macro_vid.lmm.beta.rest))
-qqnorm(resid(macro_vid.lmm.beta.rest))
-#sig effect of motu (restoration status)
-
-
-hard_coral_situ.lmm.beta.rest<-glmmTMB(coral_percent_cover~motu+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
-summary(hard_coral_situ.lmm.beta.rest)
-Anova(hard_coral_situ.lmm.beta.rest)
-plot(resid(hard_coral_situ.lmm.beta.rest))
-qqnorm(resid(hard_coral_situ.lmm.beta.rest))
-#sig effect of motu (restoration status)
-
-macro_situ.lmm.beta.rest<-glmmTMB(macroalgae_percent_cover~motu+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
-summary(macro_situ.lmm.beta.rest)
-Anova(macro_situ.lmm.beta.rest)
-  plot(resid(macro_situ.lmm.beta.rest))
-qqnorm(resid(macro_situ.lmm.beta.rest))
-#sig effect of motu (restoration status)
 
 ```
 
-
-##try comparing linear versus non-linear:
+##emmeans-----
 ```{r}
-#video-----
-hard_coral_vid.lmm.beta.n15.poly<-glmmTMB(hard_coral_percent_cover~N.15_at_30m+poly(N.15_at_30m, 2) + wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
-summary(hard_coral_vid.lmm.beta.n15.poly)
-Anova(hard_coral_vid.lmm.beta.n15.poly)
-plot(resid(hard_coral_vid.lmm.beta.n15))
-qqnorm(resid(hard_coral_vid.lmm.beta.n15))
 
-anova(hard_coral_vid.lmm.beta.n15.poly, hard_coral_vid.lmm.beta.n15)
-#no difference
+#hard coral, video-----
+test(emtrends(hard_coral_vid.lmm.beta.n15, ~ wind.exposure, var = "N.15_at_30m", adjust = "fdr"))
+# wind.exposure N.15_at_30m.trend     SE  df z.ratio p.value
+# leeward                 -0.0289 0.0664 Inf  -0.435  0.6638
+# windward                 0.9756 0.3096 Inf   3.151  0.0033
+#so on exposed side, sig positive effect of n15 on coral cover. 
+#no effect on leeward side
 
-
-macro_vid.lmm.beta.n15.poly<-glmmTMB(macroalgae_percent_cover~N.15_at_30m+poly(N.15_at_30m, 2)+wind.exposure + (1|site.name), family=beta_family(), data = benthic.vid.seabirds.levels.algae.beta)
-summary(macro_vid.lmm.beta.n15.poly)
-Anova(macro_vid.lmm.beta.n15.poly)
-  plot(resid(macro_vid.lmm.beta.n15.poly))
-qqnorm(resid(macro_vid.lmm.beta.n15.poly))
-
-anova(macro_vid.lmm.beta.n15, macro_vid.lmm.beta.n15.poly)
-#no difference, although poly term is marginal....
-
-###in situ -----
-hard_coral_situ.lmm.beta.n15.poly<-glmmTMB(coral_percent_cover~N.15_at_30m+poly(N.15_at_30m, 2)+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
-summary(hard_coral_situ.lmm.beta.n15.poly)
-Anova(hard_coral_situ.lmm.beta.n15.poly)
-plot(resid(hard_coral_situ.lmm.beta.n15.poly))
-qqnorm(resid(hard_coral_situ.lmm.beta.n15.poly))
-
-anova(hard_coral_situ.lmm.beta.n15.poly, hard_coral_situ.lmm.beta.n15)
-#no difference
+test(emtrends(hard_coral_vid.lmm.beta.n15, pairwise~ wind.exposure, var = "N.15_at_30m", adjust = "fdr"))
+#contrast           estimate    SE  df z.ratio p.value
+# leeward - windward       -1 0.317 Inf  -3.172  0.0015
 
 
-macro_situ.lmm.beta.n15.poly<-glmmTMB(macroalgae_percent_cover~N.15_at_30m+poly(N.15_at_30m, 2)+wind.exposure + (1|site.name), family=beta_family(), data = benthic.situ.seabirds.levels.algae.beta)
-summary(macro_situ.lmm.beta.n15.poly)
-Anova(macro_situ.lmm.beta.n15.poly)
-  plot(resid(macro_situ.lmm.beta.n15.poly))
-qqnorm(resid(macro_situ.lmm.beta.n15.poly))
+#hard coral, in situ-----
+test(emtrends(hard_coral_situ.lmm.beta.n15, ~ wind.exposure, var = "N.15_at_30m", adjust = "fdr"))
+# wind.exposure N.15_at_30m.trend     SE  df z.ratio p.value
+# leeward                  -0.218 0.066 Inf  -3.311  0.0009
+# windward                  1.114 0.315 Inf   3.530  0.0008
+#so on exposed side, sig positive effect of n15 on coral cover. 
+#and now sig negative effect on leeward side....weird.....
 
-anova(macro_situ.lmm.beta.n15.poly, macro_situ.lmm.beta.n15)
-#significant, AIC just > 2.
+test(emtrends(hard_coral_situ.lmm.beta.n15, pairwise~ wind.exposure, var = "N.15_at_30m", adjust = "fdr"))
+#contrast           estimate    SE  df z.ratio p.value
+# leeward - windward    -1.33 0.322 Inf  -4.130  <.0001
 
-
-##check plots:
-ggplot(benthic.situ.seabirds.levels.algae.beta, aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-  geom_point()+
-  geom_smooth(method = lm, formula =  y ~ poly(x, 2))
-
-ggplot(benthic.vid.seabirds.levels.algae.beta, aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-  geom_point()+
-  geom_smooth(method = lm, formula =  y ~ poly(x, 2))
-
-
-ggplot(benthic.situ.seabirds.levels.algae.beta, aes(x = N.15_at_30m, y = coral_percent_cover))+
-  geom_point()+
-  geom_smooth(method = lm, formula =  y ~ poly(x, 2))
-
-ggplot(benthic.vid.seabirds.levels.algae.beta, aes(x = N.15_at_30m, y = hard_coral_percent_cover))+
-  geom_point()+
-  geom_smooth(method = lm, formula =  y ~ poly(x, 2))
-
-###SO SOME EVIDENCE THAT MACROALGAE % COVER IS LOWER AT MID ALGAE N15 LEVELS***
-
-##emmeans----
-#look at emmeans:
-test(emtrends(macro_situ.lmm.beta.n15.poly,  var = "N.15_at_30m", adjust = "fdr", max.degree=2))
-test(emtrends(macro_vid.lmm.beta.n15.poly,  var = "N.15_at_30m", adjust = "fdr", max.degree=2))
-
-range(benthic.situ.seabirds.levels.algae.beta$N.15_at_30m)
-#plots - continuous within full data range:----
-(mylist <- list(
-    N.15_at_30m = seq(3.4,7,.1)
-))
-
-emmip(macro_situ.lmm.beta.n15.poly,  ~ N.15_at_30m, at = mylist, CIs = TRUE, plotit=TRUE)
-emmip(macro_vid.lmm.beta.n15.poly,  ~ N.15_at_30m, at = mylist, CIs = TRUE, plotit=TRUE)
-
-
-plot_dat_sit<-emmip(macro_situ.lmm.beta.n15.poly,  ~ N.15_at_30m, at = mylist, CIs = TRUE, plotit=FALSE)
-
-range(benthic.situ.seabirds.levels.algae.beta$macroalgae_percent_cover)
-range(benthic.vid.seabirds.levels.algae.beta$macroalgae_percent_cover)
-
-
-benthic.situ.seabirds.levels.algae.beta %>%
-   ggplot(aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-  geom_point(alpha = .5)+
-   geom_ribbon(data = plot_dat_sit, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_dat_sit, aes(x = N.15_at_30m, y = yvar))+
-  theme_bw() 
 
 ```
 
-
-#remake plots----
+#Plot - hard coral
 ```{r}
+#in situ first-----
+range(benthic.situ.seabirds.levels.algae.beta$N.15_at_30m, na.rm = T) #3.430000 6.993333
 
+hc_s_plot_dat <- emmip(hard_coral_situ.lmm.beta.n15,  ~ N.15_at_30m|wind.exposure, at = list(N.15_at_30m = seq(3.43, 7.0, 0.01)), CIs = TRUE, plotit=FALSE, type = "response")
+
+range(benthic.situ.seabirds.levels.algae.beta[benthic.situ.seabirds.levels.algae.beta$wind.exposure == "leeward",]$N.15_at_30m, na.rm = T) #3.430000 6.993333 - so whole range.
+range(benthic.situ.seabirds.levels.algae.beta[benthic.situ.seabirds.levels.algae.beta$wind.exposure == "windward",]$N.15_at_30m, na.rm = T) #5.366667 6.226667 - ouch, very narrow range
+
+hc_s_plot_dat <- 
+  hc_s_plot_dat%>%
+  mutate(wind.exposure = relevel(wind.exposure, "windward", "leeward"))
+
+hc_s_plot_dat.protected<-
+  hc_s_plot_dat%>%
+  filter(wind.exposure == "leeward") #%>%
+  #filter(N.15_at_30m>=2.73&N.15_at_30m<=10.66)
+
+hc_s_plot_dat.exposed<-
+  hc_s_plot_dat%>%
+  filter(wind.exposure == "windward")%>%
+  filter(N.15_at_30m>=5.36&N.15_at_30m<=6.3)
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(2, 1)]
+
+##Plot hard coral, in situ according to N15 & exposure
+coral_situ_plot<-
 benthic.situ.seabirds.levels.algae.beta%>%
-  ggplot(aes(x = motu, y = macroalgae_percent_cover))+
-  geom_boxplot()+
-  geom_point(aes(shape = protection))
-
-range(benthic.situ.seabirds.levels.algae.beta$N.15_at_30m) #3.430000 6.993333
-
-plot_data_macro_algae_n15<-emmip(macro_vid.lmm.beta.n15, ~ N.15_at_30m, at = list(N.15_at_30m = seq(3.430000, 6.994, by = .01)),
-    CIs = TRUE, plotit=FALSE, type = "response") #      type = "response", 
-plot_data_macro_algae_n15
-
-macro_beta_situ_est_plot_n15<-
-benthic.situ.seabirds.levels.algae.beta %>%
-   ggplot(aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-   geom_ribbon(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar))+
-    geom_point(alpha = .5, aes(fill = motu, color = motu))+
-  scale_fill_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  ylab("macroalgal cover (proportion")+
-  xlab(expression(algal~delta^15~N))+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = "none")
-
-macro_beta_situ_est_plot_n15
+#  mutate(wind.exposure = relevel(wind.exposure, "windward", "leeward"))%>%
+ggplot(aes(x = N.15_at_30m, y = coral_percent_cover, color = wind.exposure, 
+                      fill = wind.exposure, group = wind.exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = wind.exposure))+
+  geom_line(data = hc_s_plot_dat.protected, aes(x = N.15_at_30m, y = yvar))+
+   geom_ribbon(data = hc_s_plot_dat.protected, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL, fill = wind.exposure, color = wind.exposure), alpha = .2, linetype=0)+
+    geom_line(data = hc_s_plot_dat.exposed, aes(x = N.15_at_30m, y = yvar))+
+   geom_ribbon(data = hc_s_plot_dat.exposed, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL, fill = wind.exposure, color = wind.exposure), alpha = .2, linetype=0)+
+  ylab("Hard coral proportional cover") +
+  xlab(expression(italic(delta)^15*N))+
+ scale_fill_manual(values = my_colors)+
+  scale_color_manual(values = my_colors) +
+   scale_shape_manual(values = c(21, 24))+
+  labs(shape = "exposure", color = "exposure", fill = "exposure")+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+coral_situ_plot
 
 
-macro_beta_situ_est_plot_n15_2<-
-benthic.situ.seabirds.levels.algae.beta %>%
-  group_by(N.15_at_30m, motu)%>%
-  summarize(mean_macro = mean(macroalgae_percent_cover))%>%
-   ggplot(aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-   geom_ribbon(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar))+
-    geom_point(alpha = .5, aes(y = mean_macro, fill = motu, color = motu))+
-  scale_fill_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  ylab("macroalgal cover (proportion")+
-  xlab(expression(algal~delta^15~N))+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = "none")
-macro_beta_situ_est_plot_n15_2
+#ggsave("../output/seabird-benthic/hard_coral_in_situ_model_plot.jpg", plot = last_plot(), width = 7, height = 5)
 
+##hard coral - video-----
+hc_v_plot_dat <- emmip(hard_coral_vid.lmm.beta.n15,  ~ N.15_at_30m|wind.exposure, at = list(N.15_at_30m = seq(3.43, 7.0, 0.01)), CIs = TRUE, plotit=FALSE, type = "response")
 
-##in situ-----
+range(benthic.situ.seabirds.levels.algae.beta[benthic.situ.seabirds.levels.algae.beta$wind.exposure == "leeward",]$N.15_at_30m, na.rm = T) #3.430000 6.993333 - so whole range.
+range(benthic.situ.seabirds.levels.algae.beta[benthic.situ.seabirds.levels.algae.beta$wind.exposure == "windward",]$N.15_at_30m, na.rm = T) #5.366667 6.226667 - ouch, very narrow range
+
+hc_v_plot_dat <- 
+  hc_v_plot_dat%>%
+  mutate(wind.exposure = relevel(wind.exposure, "windward", "leeward"))
+
+hc_v_plot_dat.protected<-
+  hc_v_plot_dat%>%
+  filter(wind.exposure == "leeward") #%>%
+  #filter(N.15_at_30m>=2.73&N.15_at_30m<=10.66)
+
+hc_v_plot_dat.exposed<-
+  hc_v_plot_dat%>%
+  filter(wind.exposure == "windward")%>%
+  filter(N.15_at_30m>=5.36&N.15_at_30m<=6.3)
+
+my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(2,1)]
+
+##Plot hard coral, video according to N15 & exposure
+hc_vid_plot<-
 benthic.vid.seabirds.levels.algae.beta%>%
-  ggplot(aes(x = motu, y = macroalgae_percent_cover))+
-  geom_boxplot()+
-  geom_point(aes(shape = protection))
+  mutate(wind.exposure = relevel(wind.exposure, "leeward", "windward"))%>%
+ggplot(aes(x = N.15_at_30m, y = hard_coral_percent_cover, color = wind.exposure, 
+                      fill = wind.exposure, group = wind.exposure))+
+  #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
+  geom_point(aes(shape = wind.exposure))+
+  geom_line(data = hc_v_plot_dat.protected, aes(x = N.15_at_30m, y = yvar))+
+   geom_ribbon(data = hc_v_plot_dat.protected, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL, fill = wind.exposure, color = wind.exposure), alpha = .2, linetype=0)+
+    geom_line(data = hc_v_plot_dat.exposed, aes(x = N.15_at_30m, y = yvar))+
+   geom_ribbon(data = hc_v_plot_dat.exposed, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL, fill = wind.exposure, color = wind.exposure), alpha = .2, linetype=0)+
+  ylab("Hard coral proportional cover") +
+  xlab(expression(italic(delta)^15*N))+
+ scale_fill_manual(values = my_colors)+
+  scale_color_manual(values = my_colors) +
+   scale_shape_manual(values = c(21, 24))+
+  labs(shape = "exposure", color = "exposure", fill = "exposure")+
+  theme_classic() +
+  theme(legend.position = c(0.85, 0.82)) +
+  theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+hc_vid_plot
 
-range(benthic.vid.seabirds.levels.algae.beta$N.15_at_30m) #3.430000 6.993333
-
-plot_data_macro_algae_n15<-emmip(macro_vid.lmm.beta.n15, ~ N.15_at_30m, at = list(N.15_at_30m = seq(3.430000, 6.994, by = .01)),
-    CIs = TRUE, plotit=FALSE, type = "response") #      type = "response", 
-plot_data_macro_algae_n15
-
-macro_beta_vid_est_plot_n15<-
-benthic.vid.seabirds.levels.algae.beta %>%
-   ggplot(aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-   geom_ribbon(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar))+
-    geom_point(alpha = .5, aes(fill = motu, color = motu))+
-  scale_fill_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  ylab("macroalgal cover (proportion")+
-  xlab(expression(algal~delta^15~N))+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = "none")
-
-macro_beta_vid_est_plot_n15
+#ggsave("../output/seabird-benthic/hard_coral_video_model_plot.jpg", plot = last_plot(), width = 7, height = 5)
 
 
-macro_beta_vid_est_plot_n15_2<-
-benthic.vid.seabirds.levels.algae.beta %>%
-  group_by(N.15_at_30m, motu)%>%
-  summarize(mean_macro = mean(macroalgae_percent_cover))%>%
-   ggplot(aes(x = N.15_at_30m, y = macroalgae_percent_cover))+
-   geom_ribbon(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
- geom_line(data = plot_data_macro_algae_n15, aes(x = N.15_at_30m, y = yvar))+
-    geom_point(alpha = .5, aes(y = mean_macro, fill = motu, color = motu))+
-  scale_fill_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "Rimatuu" = "#CD1913", "Reiono" = "#F2BB05", "Aie" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  ylab("macroalgal cover (proportion")+
-  xlab(expression(algal~delta^15~N))+
-  theme_bw() +
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = "none")
-macro_beta_vid_est_plot_n15_2
+```
 
+##combine plots for supplement------
+```{r}
+hc_vid_plot
+coral_situ_plot
+benthic_situ_nmds_plot_rotate_new_colours
 
-##combine all into one plot:------
-plot_data_situ_beta<-
-  plot_data_situ_beta%>%
-  mutate(method = "in situ")
-
-
-plot_data_vid_beta<-
-  plot_data_vid_beta%>%
-  mutate(method = "video")
-
-
-plot_data_beta_all<-
-  rbind(plot_data_situ_beta, plot_data_vid_beta)%>%
-  mutate(group = fct_recode(group,  "macroalgae" = "algae"))%>%
-  mutate(group = fct_relevel(group, "hard coral", "macroalgae"))
-
-plot_data_beta_all
-
-plot_data_beta_all_plot_flipped<-
-  ggplot(data = plot_data_beta_all, aes(x = method, y = yvar*100, color = seabird_level, fill = seabird_level))+
-  geom_point(pch = 21,  position = position_dodge(.3))+
-  geom_pointrange(aes(ymin = LCL*100, ymax = UCL*100), alpha = .3, linewidth = 5, size = 0,  position = position_dodge(.3)) + 
- # geom_point(data = fishn15.seabirds.cond.r, 
-    #         aes(y = n15, x = species), size = 2.5, alpha = .5,  position = position_dodge(.3))+
-scale_fill_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+ #low-mid-high = red-yellow-green
-    scale_colour_manual(values = c( "low" = "#CD1913", "mid" = "#F2BB05", "high" ="#2F9D3E"))+#low-mid-high = red-yellow-green
-  ylab("% cover")+
-  xlab("")+
-  labs(color = "seabird level", fill = "seabird level")+
-    facet_wrap(~group)+
-   theme_bw()+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-        legend.position = c(.73,.92),
-        legend.direction = "horizontal",
-        legend.box.background = element_rect(colour = "black"))
-#,
-       # axis.text = element_text(size = 14),
-       # axis.title.y = element_text(size = 14)
-
-plot_data_beta_all_plot_flipped
-
-#ggsave("../output/seabird-benthic/plot_data_beta_all_plot_flipped.jpg", plot = plot_data_beta_all_plot_flipped, width = 7, height = 4.5)
+situ_supp_plots<-cowplot::plot_grid(hc_vid_plot, coral_situ_plot, benthic_situ_nmds_plot_rotate_new_colours, labels = "auto", label_fontface = "plain")
+situ_supp_plots
+#ggsave("../output/seabird-benthic/Supp_hc_situ_plots_combined.jpg", plot = situ_supp_plots, width = 10, height = 8)
+#ggsave("../output/seabird-benthic/Supp_hc_situ_plots_combined.pdf", plot = situ_supp_plots, width = 10, height = 8)
 
 
 ```

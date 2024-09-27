@@ -32,7 +32,7 @@ library(corrplot)
 #load data
 ```{r}
 #load seabird data----
-load("outputs/seabird_dens_bio_data.RData")
+load("../outputs/seabird_dens_bio_data.RData")
 
 #by species:
 #sb_dat_focal_nests_motu_sp
@@ -299,6 +299,10 @@ emmeans(sb_br_bio_space_mod_log_lm_2int, list(revpairwise ~ rat.eradication.stat
 emmeans(sb_br_bio_space_mod_log_lm_2int, list(pairwise ~ rat.eradication.status), type = "response", adjust = "fdr")
 
 #need to decide best method for extracting p-values**** Currently using ANOVA table for overall p-values, and emmeans for estimates and pairwise comparisons****
+
+
+
+emmeans(sb_br_bio_space_mod_log_lm_2int, pairwise ~ protection | rat.eradication.status, transform = "response")
 
 ```
 
@@ -692,4 +696,88 @@ dev.off()
 ```
 
 
+##scraps from trying to figure out emmeans
 
+#run model
+```{r}
+sb_br_bio_space_mod_log_lm_int<-lm(log(breeding_biomass+1)~ rat.eradication.status * protection + spatial_scale*rat.eradication.status + protection*spatial_scale, 
+                          data = seabird_focal_all_meta_long)
+summary(sb_br_bio_space_mod_log_lm_int)
+plot(sb_br_bio_space_mod_log_lm_int) #plots/assumptions look okay
+
+
+anova(sb_br_bio_space_mod_log_lm_int)
+Anova(sb_br_bio_space_mod_log_lm_int)#same as anova
+#marginal interaction between protection*eradication status.  eradication status also significant
+#Response: log(breeding_biomass + 1)
+#                                     Sum Sq Df  F value    Pr(>F)    
+#rat.eradication.status               71.014  2 177.9597 4.556e-06 ***
+#protection                            0.200  1   1.0048   0.35484    
+#spatial_scale                         1.500  3   2.5060   0.15592    
+#rat.eradication.status:protection     1.673  2   4.1929   0.07255 .  
+#rat.eradication.status:spatial_scale  2.829  6   2.3630   0.15960    
+#protection:spatial_scale              0.334  3   0.5573   0.66223    
+#Residuals                             1.197  6                       
+
+
+
+#get estimates using emmeans:-----
+#overall estimates of biomass in each group:
+regrid(emmeans(sb_br_bio_space_mod_log_lm_int, list(~ rat.eradication.status)))
+# rat.eradication.status response     SE df lower.CL upper.CL
+# eradicated_2018          103.36 16.480  6    63.03   143.68
+# eradicated_2022            3.92  0.777  6     2.02     5.82
+# None                     278.76 44.181  6   170.65   386.87
+
+#or on log scale:
+emmeans(sb_br_bio_space_mod_log_lm_int, list(~ rat.eradication.status))
+# rat.eradication.status emmean    SE df lower.CL upper.CL
+# eradicated_2018          4.65 0.158  6     4.26     5.03
+# eradicated_2022          1.59 0.158  6     1.21     1.98
+# None                     5.63 0.158  6     5.25     6.02
+
+
+#pairwise comparisons, first by rat eradication status:
+#on log scale:
+emmeans(sb_br_bio_space_mod_log_lm_int, list(pairwise ~ rat.eradication.status),  adjust = "fdr")
+#$`pairwise differences of rat.eradication.status`
+# 1                                 estimate    SE df t.ratio p.value
+# eradicated_2018 - eradicated_2022    3.055 0.223  6  13.677  <.0001
+# eradicated_2018 - None              -0.986 0.223  6  -4.415  0.0045
+# eradicated_2022 - None              -4.041 0.223  6 -18.092  <.0001
+
+#Results are averaged over the levels of: protection, spatial_scale 
+#Note: contrasts are still on the log(mu + 1) scale. Consider using
+ #     regrid() if you want contrasts of back-transformed estimates. 
+#P value adjustment: fdr method for 3 tests 
+
+#or can look at ratios:
+logemm.erad <- regrid(emmeans(sb_br_bio_space_mod_log_lm_int, "rat.eradication.status"), transform = "log")
+confint(logemm.erad, type = "response") #response estimates
+pairs(logemm.erad, type = "response", reverse = TRUE, adjust = "fdr")
+# contrast                            ratio       SE df null t.ratio p.value
+# eradicated_2022 / eradicated_2018  0.0379  0.00965  6    1 -12.863  <.0001
+# None / eradicated_2018             2.6971  0.60637  6    1   4.413  0.0045
+# None / eradicated_2022            71.1206 18.04977  6    1  16.803  <.0001
+#Results are averaged over the levels of: protection, spatial_scale 
+#P value adjustment: fdr method for 3 tests 
+#Tests are performed on the log scale 
+
+
+#look at protection*eradication status:
+test(pairs(emmeans(sb_br_bio_space_mod_log_lm_int, ~ protection|rat.eradication.status, adjust = "fdr", type = "response"))) #here, adjust = "fdr" doesn't change anything, becuase only doing 1 test within each family. 
+EMM_rat <- emmeans(sb_br_bio_space_mod_log_lm_int, ~  protection|rat.eradication.status, type = "response")
+test(pairs(EMM_rat, adjust = "fdr", type = "response"))
+#same result as above
+
+test(pairs(regrid(EMM_rat, adjust = "fdr", type = "response")))
+pairs(regrid(EMM_rat, transform = "response"), simple = "protection", type = "response", adjust = "fdr")
+#different result - now p = 0.06 (because not on log-scale)
+
+
+logemm.erad.prot <- regrid(emmeans(sb_br_bio_space_mod_log_lm_int, ~  protection|rat.eradication.status), transform = "log")
+confint(logemm.erad.prot, type = "response")
+pairs(logemm.erad.prot, type = "response", reverse = TRUE, adjust = "fdr")
+
+
+```
