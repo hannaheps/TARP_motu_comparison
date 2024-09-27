@@ -688,6 +688,7 @@ emtrends(fish_bio_full_mod_algae_log_int2, ~wind.exposure, var = "structural_com
 #compare to LRTs----
 anova(fish_bio_full_mod_algae_log_int2,fish_bio_full_mod_algae_log_int, fish_bio_full_mod_algae_log_int3)
 #no different, so can drop structure interactions, but can't drop structure all together
+#BUT likely weird because of singularity.....
 
 
 fish_bio_mod_algae_log_add <-lmer(log(sum_fish_biomass)~N.15_at_30m + wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #
@@ -696,7 +697,7 @@ vif(fish_bio_mod_algae_log_add)
 
 anova(fish_bio_full_mod_algae_log_int2,fish_bio_full_mod_algae_log_int, fish_bio_mod_algae_log_add)
 #additive model is worse...best is int (so only exposure interaction)
-
+#BUT likely weird because of singularity.....
 
 ##try wtih center/scaled:
 fish_bio_full_mod_algae_log_int_cs <-lmer(log(sum_fish_biomass)~base::scale(N.15_at_30m) *wind.exposure + base::scale(structural_complexity_0to5)  + (1|site.name), data = fish_comb_dat_levels_algae) 
@@ -865,6 +866,11 @@ Anova(fish_rich_full_mod_algae_int_glmer)
 #N.15_at_30m:wind.exposure  0.1774  1     0.6736
 
 
+fish_rich_full_mod_algae_int_glmer2 <-glmer(SR~N.15_at_30m  * wind.exposure + N.15_at_30m  *structural_complexity_0to5  + (1|site.name), family = "poisson", data = fish_comb_dat_levels_algae) 
+summary(fish_rich_full_mod_algae_int_glmer2)
+Anova(fish_rich_full_mod_algae_int_glmer2) #singular, but nothing sig anyway
+
+
 #species evenness----
 fish_even_full_mod_algae <-lmer(evenness~N.15_at_30m  * wind.exposure + structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) #singular
 summary(fish_even_full_mod_algae)
@@ -882,6 +888,10 @@ Anova(fish_even_full_mod_algae) #nothing significant anyway....
 plot_summs(fish_even_full_mod_algae)
 
 fish_even_full_mod_algae2 <-lmer(evenness~N.15_at_30m  * wind.exposure   + (1|site.name), data = fish_comb_dat_levels_algae) 
+Anova(fish_even_full_mod_algae2) #nothing significant anyway....
+
+fish_even_full_mod_algae2 <-lmer(evenness~N.15_at_30m  * wind.exposure + N.15_at_30m  * structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
+summary(fish_even_full_mod_algae2)
 Anova(fish_even_full_mod_algae2) #nothing significant anyway....
 
 
@@ -904,6 +914,12 @@ plot_summs(fish_shannon_full_mod_algae)
 fish_shannon_full_mod_algae2 <-lmer(shannon~N.15_at_30m * wind.exposure  + (1|site.name), data = fish_comb_dat_levels_algae)   #not singular
 summary(fish_shannon_full_mod_algae)
 Anova(fish_shannon_full_mod_algae2) #nothing significant****
+
+
+fish_shannon_full_mod_algae2 <-lmer(shannon~N.15_at_30m  * wind.exposure + N.15_at_30m  * structural_complexity_0to5  + (1|site.name), data = fish_comb_dat_levels_algae) 
+summary(fish_shannon_full_mod_algae2)
+Anova(fish_shannon_full_mod_algae2) #nothing significant anyway....
+
 
 ```
 
