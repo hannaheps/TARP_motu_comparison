@@ -137,12 +137,12 @@ ord.fit.algae
 plot(ord.fit.algae)
 
 #rotate by algae n15 so can more easily interpret----
-nmds.rotate<-MDSrotate(nmds.coral, coral.microbes.seabirds$algae.N15, na.rm = TRUE)
-nmds.rotate
-plot(nmds.rotate)
+nmds.coral.rotate<-MDSrotate(nmds.coral, coral.microbes.seabirds$algae.N15, na.rm = TRUE)
+nmds.coral.rotate
+plot(nmds.coral.rotate)
 
-ord.fit<-envfit(nmds.rotate~algae.N15, data = coral.microbes.seabirds, na.rm=TRUE)
-ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
+ord.fit.coral<-envfit(nmds.coral.rotate~algae.N15, data = coral.microbes.seabirds, na.rm=TRUE)
+ord.fit.coral #p and r^2 are the same, just rotated so all with NMDS1 now.
 
 
 ```
@@ -151,51 +151,53 @@ ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
 #Let's make it pretty
 
 ```{r}
-colnames(coral.microbes.seabirds)
+#colnames(coral.microbes.seabirds)
 #en <- coral.microbes.seabirds[,23]
-env.fit <- envfit(nmds.rotate ~ coral.microbes.seabirds$algae.N15, permutations = 999, na.rm = TRUE)
+env.fit.coral <- envfit(nmds.coral.rotate ~ coral.microbes.seabirds$algae.N15, permutations = 999, na.rm = TRUE)
 
-plot(nmds.rotate)
-plot(env.fit)
+plot(nmds.coral.rotate)
+plot(env.fit.coral)
 
-en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
-en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algal N15"))
+en_coord_cont = as.data.frame(scores(env.fit.coral, "vectors")) * ordiArrowMul(env.fit.coral)
+en_coord_cont = en_coord_cont %>% mutate(var.name = "Algal N15")
 #en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
 #en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
 
-nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
+nmds.scores.coral.rotate <- as.data.frame(scores(nmds.coral.rotate)$sites)
 
 #combine with other relevant data
-nmds.scores$N15 <- coral.microbes.seabirds$algae.N15
-nmds.scores$site.name <- coral.microbes.seabirds$site.name
-nmds.scores$distance.along.transect <- coral.microbes.seabirds$distance.along.transect
-nmds.scores$exposure <- coral.microbes.seabirds$island.side
+nmds.scores.coral.rotate$N15 <- coral.microbes.seabirds$algae.N15
+nmds.scores.coral.rotate$site.name <- coral.microbes.seabirds$site.name
+nmds.scores.coral.rotate$distance.along.transect <- coral.microbes.seabirds$distance.along.transect
+nmds.scores.coral.rotate$exposure <- coral.microbes.seabirds$island.side
 
+library(ggtext) #needed to put the correct algal N15 label on the arrow (geom_richtext)
 
 coral.microbe.nmds.plot.rotate <-
 ggplot() + 
-  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15, shape = exposure), stat="identity", size=5, alpha = .9) +
+  geom_point(data=nmds.scores.coral.rotate,aes(x=NMDS1,y=NMDS2,colour=N15, shape = exposure), stat="identity", size=5, alpha = .9) +
   scale_color_distiller(palette = "YlGnBu") +
   geom_segment(data = en_coord_cont,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.15, label = en_coord_cont$var.name),
-            size = 3, vjust = "outward")+
+    geom_richtext(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.2, label = paste0("algal \U03B4<sup>15</sup>N")),
+            size = 3, fill = NA, label.color = NA)+
   #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
        #shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
   #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
            # size = 3, vjust = "outward", fontface = "bold", colour = "gray30")+
-      labs(colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N))+
+      labs(colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N), shape = "exposure")+
 theme_bw() + 
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.85, .8),
+        #legend.position = c(.85, .79),
+        legend.position = "none",
         legend.box = "horizontal")
 
 coral.microbe.nmds.plot.rotate
-ggsave(coral.microbe.nmds.plot.rotate, file = "../output/1b_NMDS_CoralMicrobe_div_CB.jpg",
-    width = 7, height = 5)
+#ggsave(coral.microbe.nmds.plot.rotate, file = "../output/1b_NMDS_CoralMicrobe_div_CB.jpg",
+    #width = 7, height = 5)
 
 ```
 
@@ -217,47 +219,49 @@ ord.fit.water
 plot(ord.fit.water)
 
 #rotate by algae n15 so can more easily interpret----
-nmds.rotate<-MDSrotate(nmds.water, water.microbes.seabirds$algae.N15, na.rm = TRUE)
-nmds.rotate
-plot(nmds.rotate)
+nmds.water.rotate<-MDSrotate(nmds.water, water.microbes.seabirds$algae.N15, na.rm = TRUE)
+nmds.water.rotate
+plot(nmds.water.rotate)
 
-ord.fit<-envfit(nmds.rotate~algae.N15, data = water.microbes.seabirds, na.rm=TRUE)
+ord.fit<-envfit(nmds.water.rotate~algae.N15, data = water.microbes.seabirds, na.rm=TRUE)
 ord.fit #p and r^2 are the same, just rotated so all with NMDS1 now.
 
 ```
 
 
 ```{r}
-colnames(water.microbes.seabirds)
-en <- water.microbes.seabirds[, c(20, 49:52)]
-env.fit <- envfit(nmds.rotate ~ water.microbes.seabirds$algae.N15, permutations = 999, na.rm = TRUE)
+#colnames(water.microbes.seabirds)
+#en <- water.microbes.seabirds[, c(20, 49:52)]
+env.fit.water <- envfit(nmds.water.rotate ~ water.microbes.seabirds$algae.N15, permutations = 999, na.rm = TRUE)
 
-plot(nmds.rotate)
-plot(env.fit)
+plot(nmds.water.rotate)
+plot(env.fit.water)
 
-en_coord_cont = as.data.frame(scores(env.fit, "vectors")) * ordiArrowMul(env.fit)
+en_coord_cont = as.data.frame(scores(env.fit.water, "vectors")) * ordiArrowMul(env.fit.water)
 en_coord_cont = en_coord_cont %>% mutate(var.name = c("Algal N15"))
 #en_coord_cat = as.data.frame(scores(env.fit, "factors")) * ordiArrowMul(env.fit)
 #en_coord_cat = en_coord_cat %>% mutate(var.name = c("Low", "Mid", "High"))
 
-nmds.scores <- as.data.frame(scores(nmds.rotate)$sites)
+nmds.scores.rotate.water <- as.data.frame(scores(nmds.water.rotate)$sites)
 
 #combine with other relevant data
-nmds.scores$N15 <- water.microbes.seabirds$algae.N15
-nmds.scores$site.name <- water.microbes.seabirds$site.name
-nmds.scores$distance.along.transect <- water.microbes.seabirds$distance.along.transect
-nmds.scores$exposure <- water.microbes.seabirds$island.side
+nmds.scores.rotate.water$N15 <- water.microbes.seabirds$algae.N15
+nmds.scores.rotate.water$site.name <- water.microbes.seabirds$site.name
+nmds.scores.rotate.water$distance.along.transect <- water.microbes.seabirds$distance.along.transect
+nmds.scores.rotate.water$exposure <- water.microbes.seabirds$island.side
 
 water.microbe.nmds.plot.rotate <-
 ggplot() + 
-  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2,colour=N15, shape = exposure), stat="identity", size=5, alpha = .9) +
+  geom_point(data=nmds.scores.rotate.water,aes(x=NMDS1,y=NMDS2,colour=N15, shape = exposure), stat="identity", size=5, alpha = .9) +
   scale_color_distiller(palette = "YlGnBu") +
   geom_segment(data = en_coord_cont,
                aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm"))) +
-    geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
-            size = 3, vjust = "outward", fontface = "bold")+
-      labs(colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N))+
+  geom_richtext(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.05, label = paste0("algal \U03B4<sup>15</sup>N")),
+            size = 3, fill = NA, label.color = NA)+
+    #geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2 +0.06, label = en_coord_cont$var.name),
+            #size = 3, vjust = "outward", fontface = "bold")+
+      labs(colour = expression(algal~delta^15~N), fill = expression(algal~delta^15~N), shape = "\n\n\n\n\nexposure")+
   #geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
    #    shape = "diamond", size = 4, alpha = 0.6, colour = "gray30") +
   #geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2 - 0.06, label = en_coord_cat$var.name),
@@ -266,12 +270,12 @@ theme_bw() +
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(),
-        legend.position = c(.25, .25),
+        legend.position = c(.25, .3),
         legend.box = "horizontal") 
 
 water.microbe.nmds.plot.rotate
-ggsave(water.microbe.nmds.plot.rotate, file = "../output/2b_NMDS_WaterMicrobe_div_CB.jpg",
-    width = 7, height = 5)
+#ggsave(water.microbe.nmds.plot.rotate, file = "../output/2b_NMDS_WaterMicrobe_div_CB.jpg",
+    #width = 7, height = 5)
 
 
 ```
@@ -338,5 +342,28 @@ distlm_watermicro_n15
 #Total              64  11.5331 1.00000                
 
 ```
+
+#Combine all the main figures with NMDS plots for main ms
+```{r}
+
+##Combining the plots from microbes - Bring in richness plots (p.wat.rich and p.cor.rich) from algaen15_vs_microbes_clean.R
+
+#a) Observed ASV richness - seawater: p.wat.rich
+#b) Water microbe NMDS: water.microbe.nmds.plot.rotate
+#c) Observed ASV richness - coral:  p.cor.rich
+#d) Coral microbe NMDS: coral.microbe.nmds.plot.rotate
+
+library(cowplot)
+
+microbe_main_plots<-cowplot::plot_grid(p.wat.rich, water.microbe.nmds.plot.rotate, p.cor.rich, coral.microbe.nmds.plot.rotate, labels = "auto", label_fontface = "plain")
+microbe_main_plots
+
+ggsave("../output/seabird-microbes/microbe_main_plots.jpg", plot = microbe_main_plots, width = 10, height = 8)
+ggsave("../output/seabird-microbes/microbe_main_plots.pdf", plot = microbe_main_plots, width = 10, height = 8)
+#something weird with saving as a pdf here, doesn't like the delta symbol 
+#fix w/ illustrator?
+
+```
+
 
 
