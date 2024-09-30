@@ -143,7 +143,7 @@ rich_plot_dat.exposed<-
 
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 ##Plot the richness according to N15 & exposure
-ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposure, 
+p.cor.rich <- ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposure, 
                       fill = Exposure, group = Exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(shape = Exposure))+
@@ -151,17 +151,17 @@ ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposur
    geom_ribbon(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
     geom_line(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-  ylab("Microbial Observed ASV richness \n") +
+  ylab("Microbial ASV richness \n(Coral Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.85, 0.82)) +
+  theme(legend.position = "None") +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-
-ggsave("../output/seabird-microbes/clean_output/1_coral_micro-richness_model_HE_w_exp.jpg", plot = last_plot(), width = 7, height = 5)
+p.cor.rich
+#ggsave("../output/seabird-microbes/clean_output/1_coral_micro-richness_model_HE_w_exp.jpg", plot = last_plot(), width = 7, height = 5)
 
 rich_plot_dat_no_exp <- emmip(cor.rich.glm,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
 
@@ -171,18 +171,18 @@ ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Observed))+
   geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
   geom_line(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Microbial Observed ASV richness \n") +
+  ylab("Observed ASV richness \n(Coral Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.85, 0.75)) +
+  theme(legend.position = c(0.85, 0.85)) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
 
 
-ggsave("../output/seabird-microbes/clean_output/1_coral_micro-richness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+#ggsave("../output/seabird-microbes/clean_output/1_coral_micro-richness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 
 ```
@@ -253,23 +253,23 @@ sh_plot_dat.exposed<-
 
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 
-ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = log(Shannon), color = Exposure, 
+p.cor.sh <- ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = log(Shannon), color = Exposure, 
                       fill = Exposure, group = Exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(shape = Exposure))+
-  geom_line(data = sh_plot_dat.protected, aes(x = algae.N15, y = yvar))+
-   geom_ribbon(data = sh_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-    geom_line(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
-   geom_ribbon(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-  ylab("Microbial Shannon Diveristy \n") +
+  geom_line(data = sh_plot_dat.protected, aes(x = algae.N15, y = log(yvar)))+
+   geom_ribbon(data = sh_plot_dat.protected, aes(x = algae.N15, y = log(yvar), ymin = log(LCL), ymax=log(UCL), fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+    geom_line(data = sh_plot_dat.exposed, aes(x = algae.N15, y = log(yvar)))+
+   geom_ribbon(data = sh_plot_dat.exposed, aes(x = algae.N15, y = log(yvar), ymin = log(LCL), ymax=log(UCL), fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
+  ylab("Microbial Shannon Diversity \n (Coral Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.85, 0.82)) +
+  theme(legend.position = "None") +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
-
+p.cor.sh
 
 ##without exposure 
 sh_plot_dat_no_exp <- emmip(shannon.lmer,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
@@ -286,12 +286,12 @@ ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Shannon))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.85, 0.75)) +
+  theme(legend.position = "None") +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
 
 
-ggsave("../output/seabird-microbes/clean_output/2_coral_micro-shannon_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+#ggsave("../output/seabird-microbes/clean_output/2_coral_micro-shannon_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 ```
 
@@ -357,7 +357,7 @@ ev_plot_dat.exposed<-
 
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 
-ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Evenness, color = Exposure, 
+p.cor.even <- ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Evenness, color = Exposure, 
                       fill = Exposure, group = Exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(shape = Exposure))+
@@ -365,20 +365,36 @@ ggplot(coral.microbes.seabirds, aes(x = algae.N15, y = Evenness, color = Exposur
    geom_ribbon(data = ev_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
     geom_line(data = ev_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = ev_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-  ylab("Coral Microbial Evennness \n") +
+  ylab("Microbial Evennness \n(Coral Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.85, 0.82)) +
+  theme(legend.position = c(0.85, 0.15),
+        legend.backgroun = element_rect(fill = "transparent")) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
+p.cor.even
 #WEIRD
 
-ggsave("../output/seabird-microbes/clean_output/3_coral_micro-evenness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+#ggsave("../output/seabird-microbes/clean_output/3_coral_micro-evenness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 
+```
+
+#Plot
+```{r}
+library(cowplot)
+
+#1) p.cor.sh
+#2) p.cor.even
+
+coral_microbe_supp_plots<-cowplot::plot_grid(p.cor.sh, p.cor.even, labels = "auto", label_fontface = "plain")
+coral_microbe_supp_plots
+
+ggsave("../output/seabird-microbes/coral_microbe_supp_divplots.jpg", plot = coral_microbe_supp_plots, width = 10, height = 4)
+ggsave("../output/seabird-microbes/coral_microbe_supp_divplots.pdf", plot = coral_microbe_supp_plots, width = 10, height = 4)
 ```
 
 
@@ -569,7 +585,7 @@ rich_plot_dat.exposed<-
 
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 ##Plot the richness according to N15 & exposure
-ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposure, 
+p.wat.rich <- ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposure, 
                       fill = Exposure, group = Exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(shape = Exposure))+
@@ -577,16 +593,17 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Observed, color = Exposur
    geom_ribbon(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
     geom_line(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-  ylab("Microbial Observed ASV richness \n") +
+  ylab("Microbial ASV richness \n(Seawater Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.85, 0.82)) +
+  theme(legend.position = c(0.85, 0.85)) +
+  #theme(legend.position = "none") +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-ggsave("../output/seabird-microbes/clean_output/4_water_micro-richness_model_w_exp_HE.jpg", plot = last_plot(), width = 7, height = 5)
+#ggsave("../output/seabird-microbes/clean_output/4_water_micro-richness_model_w_exp_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 rich_plot_dat_no_exp <- emmip(wat.rich.glm,  ~ algae.N15, at = list(algae.N15 = seq(2.73, 10.66, .1)), CIs = TRUE, plotit=FALSE, type = "response")
 
@@ -607,7 +624,7 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Observed))+
 
 
 
-ggsave("../output/seabird-microbes/clean_output/4_water_micro-richness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
+#ggsave("../output/seabird-microbes/clean_output/4_water_micro-richness_model_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 
 #try plotting by motu-----
@@ -617,7 +634,7 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Observed))+
   geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
   geom_line(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = rich_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Microbial Observed ASV richness \n") +
+  ylab("Microbial Observed ASV Richness \n") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu'))+
   scale_color_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu')) +
@@ -645,7 +662,6 @@ Anova(wat.rich.glm.noaie)
 #Exposure            5.0686  1  0.0243637 *  
 #algae.N15:Exposure 14.4095  1  0.0001471 ***
 
-#Oh, pattern does hold***
 
 #plot it-----
 rich_plot_dat <- emmip(wat.rich.glm.noaie,  ~ algae.N15|Exposure, at = list(algae.N15 = seq(2.73, 10.66, 0.1)), CIs = TRUE, plotit=FALSE, type = "response")
@@ -665,24 +681,30 @@ rich_plot_dat.exposed<-
 
 my_colors <- RColorBrewer::brewer.pal(3, "Dark2")[c(1,2)]
 ##Plot the richness according to N15 & exposure
-ggplot(water.microbes.seabirds.noaiepro, aes(x = algae.N15, y = Observed, color = Exposure, 
-                      fill = Exposure, group = Exposure))+
+p.rich.wat.noaie <- ggplot(water.microbes.seabirds.noaiepro, aes(x = algae.N15, y = Observed, 
+                                                                 color = Exposure, fill = Exposure, 
+                                                                 group = Exposure))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(shape = Exposure))+
   geom_line(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = rich_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
     geom_line(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = rich_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-  ylab("Microbial Observed ASV richness \n") +
+  ylab("Microbial ASV richness \n(Seawater Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.85, 0.25)) +
+  theme(legend.position = c(0.1, 0.9),
+        legend.background = element_rect(fill='transparent')) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-ggsave("../output/seabird-microbes/clean_output/4_water_micro-richness_model_w_exp_no_aie_HE.jpg", plot = last_plot(), width = 7, height = 5)
+p.rich.wat.noaie
+ggsave("../output/seabird-microbes/water_microbe_richness-noaiepro.jpg", plot = p.rich.wat.noaie, width = 7, height = 5)
+ggsave("../output/seabird-microbes/water_microbe_richness-noaiepro.pdf", plot = p.rich.wat.noaie, width = 7, height = 5)
+
+#ggsave("../output/seabird-microbes/clean_output/4_water_micro-richness_model_w_exp_no_aie_HE.jpg", plot = #last_plot(), width = 7, height = 5)
 
 
 ```
@@ -756,7 +778,7 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon, color = Exposure
    geom_ribbon(data = sh_plot_dat.protected, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
     geom_line(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = sh_plot_dat.exposed, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL, fill = Exposure, color = Exposure), alpha = .2, lwd=0)+
-  ylab("Water Microbial Shannon Diversity \n") +
+  ylab("Microbial Shannon Diversity \n(Seawater Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
   scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
@@ -772,23 +794,25 @@ sh_plot_dat_no_exp <- emmip(wat.sh.lmer,  ~ algae.N15, at = list(algae.N15 = seq
 
 my_colors_6 <- RColorBrewer::brewer.pal(6, "Dark2")[c(1:6)]
 
-ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon))+
+p.wat.sh <- ggplot(water.microbes.seabirds, aes(x = algae.N15, y = Shannon))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
   geom_line(data = sh_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = sh_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Water MicrobialShannon Diversity \n") +
+  ylab("Microbial Shannon Diversity \n(Seawater Microbiome)") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors_6, labels = c('Aie',  'Reiono', 'Rimatuu')) +
   scale_color_manual(values = my_colors_6, labels = c('Aie',  'Reiono', 'Rimatuu')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.15, 0.3)) +
+  theme(legend.position = "None") +
+  #theme(legend.position = c(0.15, 0.3),
+      #  legend.background = element_rect(fill='transparent')) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-
-
-ggsave( "../output/seabird-microbes/clean_output/5_wat_micro-shannon_motu.jpg",plot = last_plot(), width = 7, height = 5)
+p.wat.sh
+#ggsave( "../output/seabird-microbes/water_shannon_motu.jpg",plot = p.wat.sh, width = 7, height = 5)
+#ggsave( "../output/seabird-microbes/water_shannon_motu.pdf",plot = p.wat.sh, width = 7, height = 5)
 
 
 ```
@@ -1072,7 +1096,7 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus))+
   geom_point(aes(fill = Exposure, colour = Exposure, shape = Exposure))+
   geom_line(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Microbial Observed ASV richness \n") +
+  ylab("Relative Abundance of Synechococcus (Water Microbiome) \n") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors, labels = c('windward', 'leeward'))+
   scale_color_manual(values = my_colors, labels = c('windward', 'leeward')) +
@@ -1085,21 +1109,23 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus))+
 #You can see that it's by location here too
 
 my_colors_3 <- RColorBrewer::brewer.pal(3, "Dark2")[c(1:3)]
-ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus))+
+p.wat.syn <- ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_Synechococcus))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
   geom_line(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = syn_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Relative Abundance of Synechococcus (Water Microbiome) \n") +
+  ylab(expression(paste("Relative Abundance of", italic("Synechococcus")))) +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu'))+
   scale_color_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.9, 0.7)) +
+  theme(legend.position = c(0.15, 0.68),
+        legend.background = element_rect(fill = 'transparent')) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-ggsave("../output/seabird-microbes/clean_output/6_water_micro-synechococcus_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
+p.wat.syn
+#ggsave("../output/seabird-microbes/clean_output/6_water_micro-synechococcus_motu_HE.jpg", plot = #last_plot(), width = 7, height = 5)
 
 
 ```
@@ -1166,7 +1192,8 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR86_Clade))+
   theme(legend.position = c(0.85, 0.75)) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-ggsave("../output/seabird-microbes/clean_output/7_water_micro-sar86_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
+
+#ggsave("../output/seabird-microbes/clean_output/7_water_micro-sar86_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 
 #looks better than synechococcus! 
@@ -1174,21 +1201,23 @@ ggsave("../output/seabird-microbes/clean_output/7_water_micro-sar86_motu_HE.jpg"
 #Quick look via motu
 
 my_colors_3 <- RColorBrewer::brewer.pal(3, "Dark2")[c(1:3)]
-ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR86_Clade))+
+p.wat.sar86 <- ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR86_Clade))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
   geom_line(data = sar86_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = sar86_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Relative Abundance of SAR86 (Water Microbiome) \n") +
+  ylab("Relative Abundance of SAR86") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu'))+
   scale_color_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.9, 0.7)) +
+  theme(legend.position = "None") +
+  #theme(legend.position = c(0.9, 0.7),
+  #      legend.background = element_rect(fill = "transparent")) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
-
-ggsave("../output/seabird-microbes/clean_output/7b_water_micro-sar86_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
+p.wat.sar86
+#ggsave("../output/seabird-microbes/clean_output/7b_water_micro-sar86_motu_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 #Aie is all alone but the trend seems to hold - check without aie?
 
@@ -1256,7 +1285,7 @@ ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR116_Clade))+
   theme(legend.position = c(0.85, 0.75)) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
 
-ggsave("../output/seabird-microbes/clean_output/8_water_micro-sar116_HE.jpg", plot = last_plot(), width = 7, height = 5)
+#ggsave("../output/seabird-microbes/clean_output/8_water_micro-sar116_HE.jpg", plot = last_plot(), width = 7, height = 5)
 
 
 #looks better than synechococcus! 
@@ -1264,22 +1293,46 @@ ggsave("../output/seabird-microbes/clean_output/8_water_micro-sar116_HE.jpg", pl
 #Quick look via motu
 
 my_colors_3 <- RColorBrewer::brewer.pal(3, "Dark2")[c(1:3)]
-ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR116_Clade))+
+p.wat.sar116 <- ggplot(water.microbes.seabirds, aes(x = algae.N15, y = RelAbund_SAR116_Clade))+
   #geom_point(stat = "summary", fun = "mean", alpha = 0.5, size  = 3) +
   geom_point(aes(fill = motu, colour = motu, shape = Exposure))+
   geom_line(data = sar116_plot_dat_no_exp, aes(x = algae.N15, y = yvar))+
    geom_ribbon(data = sar116_plot_dat_no_exp, aes(x = algae.N15, y = yvar, ymin = LCL, ymax=UCL), alpha = .2, lwd=0)+
-  ylab("Relative Abundance of SAR116 (Water Microbiome) \n") +
+  ylab("Relative Abundance of SAR116") +
   xlab(expression(italic(delta)^15*N))+
    scale_fill_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu'))+
   scale_color_manual(values = my_colors_3, labels = c('Aie', 'Reiono', 'Rimatuu')) +
     scale_shape_manual(values = c(24,  21), labels = c('windward', 'leeward'))+
   theme_classic() +
-  theme(legend.position = c(0.9, 0.7)) +
+  theme(legend.position = "None") +
+  #theme(legend.position = c(0.9, 0.7),
+   #     legend.background = element_rect(fill = 'transparent')) +
   theme(panel.border = element_rect(color = "black", fill = NA, linetype = 1, linewidth = 0.5))
+p.wat.sar116
 
 #minimal visual location effect
 
+
+```
+#Let's combine the plots necessary for supplement
+```{r}
+#1) p.wat.sh
+
+#2) p.wat.syn
+
+#3) p.wat.sar86
+
+#4) p.wat.sar116
+
+##Only need Synechococcus with the legend I think?? Try again
+
+library(cowplot)
+
+microbe_supp_plots<-cowplot::plot_grid(p.wat.sh, p.wat.syn, p.wat.sar86, p.wat.sar116, labels = "auto", label_fontface = "plain")
+microbe_supp_plots
+
+ggsave("../output/seabird-microbes/water_microbe_supp_plots.jpg", plot = microbe_supp_plots, width = 10, height = 8)
+ggsave("../output/seabird-microbes/water_microbe_supp_plots.pdf", plot = microbe_supp_plots, width = 10, height = 8)
 
 ```
 
@@ -1363,4 +1416,96 @@ for (i in columns) {
 ```
 
 
+#Can we plot the main coral taxa by restoration status and exposure?
+#1. Endo, 2. Litoricola 3. Alteromonadacaea, 4. Neptunibacter
+```{r}
+beta_trans_coral_microbes <- beta_trans_coral_microbes %>% mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored"))
+p.cor.endo <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Endozoicomonas, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab(expression(paste("Relative Abundance of ", italic("Endozoicomonas")))) +
+  xlab("")+
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "none")
+p.cor.endo
+
+```
+
+```{r}
+mod.nept <- glmmTMB(RelAbund_Oceanospirillales_Neptuniibacter ~ reststat*Distance_to_shore + Exposure + (1|site.name), data=beta_trans_coral_microbes, family = beta_family(), na.action = na.omit)
+Anova(mod.nept)
+emmeans(mod.nept,list(pairwise ~ reststat + Exposure), type = "response", adjust = "fdr" )
+
+beta_trans_coral_microbes <- beta_trans_coral_microbes %>% mutate(reststat = fct_relevel(reststat, "reference", "recovering", "unrestored"))
+
+p.cor.nept <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Oceanospirillales_Neptuniibacter, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab(expression(paste("Relative Abundance of ", italic("Neptunibacter")))) +
+  xlab("")+
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(.85,.85))
+p.cor.nept
+```
+
+```{r}
+p.cor.lito <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Litoricola, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab(expression(paste("Relative Abundance of ", italic("Litoricola")))) +
+  xlab("") +
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position ="none")
+p.cor.lito
+```
+
+
+```{r}
+
+p.cor.alter <- ggplot(beta_trans_coral_microbes, aes(y = RelAbund_Uncultured_Alteromonadaceaeae, x = reststat, fill = Exposure))+
+  geom_boxplot( alpha = 0.6) +
+  ylab("Relative Abundance of \nUncultured Alteromonadaceae") +
+  xlab("")+
+  scale_fill_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  scale_colour_manual(values = c("Protected" = "#D76127", "Exposed" = "#1C9E77")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "none")
+p.cor.alter
+
+```
+
+```{r}
+#Final plot for supps 
+
+#1)Endo: p.cor.endo
+#1) Litoricola: p.cor.lito
+#3) Altero: p.cor.alter
+#4) Neptu: p.cor.nept (this has the legend)
+
+
+cor_taxa_plots <- cowplot::plot_grid(p.cor.endo, p.cor.lito, p.cor.alter, p.cor.nept, labels = "auto", label_fontface = "plain")
+cor_taxa_plots
+
+ggsave("../output/seabird-microbes/coral_microbe_supp_taxaplots.jpg", plot = cor_taxa_plots, width = 10, height = 8)
+ggsave("../output/seabird-microbes/coral_microbe_supp_taxaplots.pdf", plot = cor_taxa_plots, width = 10, height = 8)
+```
 
