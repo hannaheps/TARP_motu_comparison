@@ -3,6 +3,7 @@
 Benkwitt et al. In Review
 
 This repository holds the data and analyses for our comparative study (Benkwitt et al. In Review) among motu on Tetiaroa, French Polynesia that dispaly varying rat invasion histories.
+
 All analyses were done on data collected from Tetiaroa in November 2021 
 
 **Repository Organisation**
@@ -21,7 +22,9 @@ Data streams included in analysis here:
 Each directory includes the sub-directories: input (or raw_data), output and procedure.
 
 **input** = any necessary input data files or raw data files (some directories may not include an input file)
-**output** = any output files, including data tables and figures, from scripts
+
+**output** = any output filesfrom scripts (including data tables and figures)
+
 **procedure** = any code/script file (most included here are either R, R Markdown or bash scripts)
 
 
@@ -29,6 +32,7 @@ Each directory includes the sub-directories: input (or raw_data), output and pro
 
 *Important Note:*
 Deprecated scripts and files (i.e., those that include old or inaccurate R code and associated output) are included in either 'deprecated' or 'old_results' directories throughout this repository. 
+
 These are kept only for reference and should NOT be used for replication of results.
 
 
