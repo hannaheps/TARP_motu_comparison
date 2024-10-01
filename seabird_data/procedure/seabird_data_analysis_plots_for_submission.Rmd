@@ -32,7 +32,7 @@ library(corrplot)
 #load data
 ```{r}
 #load seabird data----
-load("outputs/seabird_dens_bio_data.RData")
+load("../outputs/seabird_dens_bio_data.RData")
 
 #by species:
 #sb_dat_focal_nests_motu_sp
@@ -55,7 +55,7 @@ load("outputs/seabird_dens_bio_data.RData")
 
 
 #load metadata----
-site_metdata<-read.csv("../metadata/TARP_Nov2021_site_metadata_version2.csv")
+site_metdata<-read.csv("../../metadata/TARP_Nov2021_site_metadata_version2.csv")
 str(site_metdata)   
 
 ```
@@ -272,6 +272,11 @@ seabird_rat_log_int_plot_box<-
         legend.box.background = element_rect(colour = "black"))
 seabird_rat_log_int_plot_box
 
+
+#ggsave(filename = "../outputs/Figure2_seabird_boxplot.jpg",    plot = seabird_rat_log_int_plot_box,    width = 7,  height = 5,    units = "in",   dpi = 500)
+#ggsave(filename = "../outputs/Figure2_seabird_boxplot.pdf",    plot = seabird_rat_log_int_plot_box,    width = 7,  height = 5,    units = "in",   dpi = 500)
+
+
 ```
 
 
@@ -330,8 +335,8 @@ sb_bio_stack_plot2
 seabird_stack_plots2<-plot_grid(sb_bio_stack_plot2, sb_dens_stack_plot2, labels = "auto", label_fontface = "plain")
 seabird_stack_plots2
 
-#ggsave(filename = "outputs/Supp_Fig_seabird_stack_plots.jpg",    plot = seabird_stack_plots2,    width = 10,  height = 5,    units = "in",   dpi = 500)
-#ggsave(filename = "outputs/Supp_Fig_seabird_stack_plots.pdf",    plot = seabird_stack_plots2,    width = 10,  height = 5,    units = "in",   dpi = 500)
+#ggsave(filename = "../outputs/Supp_Fig_seabird_stack_plots.jpg",    plot = seabird_stack_plots2,    width = 10,  height = 5,    units = "in",   dpi = 500)
+#ggsave(filename = "../outputs/Supp_Fig_seabird_stack_plots.pdf",    plot = seabird_stack_plots2,    width = 10,  height = 5,    units = "in",   dpi = 500)
 
 ```
 
@@ -352,9 +357,9 @@ cor(seabird_focal_all_meta_for_corr, method = "pearson")
 
 ##PEARSON----
 correlation.matrix <- cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs")
-write.csv(correlation.matrix, "outputs/seabird_metrics_corrmatrix.csv")
+write.csv(correlation.matrix, "../outputs/seabird_metrics_corrmatrix.csv")
 
-pdf(file = "outputs/seabirds_corrplot.pdf")
+pdf(file = "../outputs/seabirds_corrplot.pdf")
 corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs"), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5, title = "Seabirds")
 dev.off()
@@ -364,7 +369,7 @@ dev.off()
 correlation.matrix <- cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs", method = "spearman")
 write.csv(correlation.matrix, "outputs/seabird_metrics_corrmatrix_SPEARMAN.csv")
 
-pdf(file = "outputs/seabirds_corrplot_SPEARMAN.pdf")
+pdf(file = "../outputs/seabirds_corrplot_SPEARMAN.pdf")
 corrplot(cor(seabird_focal_all_meta_for_corr, use = "pairwise.complete.obs", method = "spearman"), type = "upper",
          addCoef.col = NULL, addCoefasPercent = FALSE, tl.col = "black", tl.cex = 0.5)
 dev.off()
