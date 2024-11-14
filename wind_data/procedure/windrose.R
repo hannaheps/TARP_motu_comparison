@@ -1,4 +1,5 @@
 ##Function Written By Andy Clifton : https://stackoverflow.com/users/2514568/andy-clifton##
+#For detailsl go here: https://stackoverflow.com/questions/17266780/wind-rose-with-ggplot-r/17266781#17266781
 
 require(ggplot2)
 require(RColorBrewer)
