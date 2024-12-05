@@ -75,7 +75,7 @@ plot.windrose <- function(data,
                          labels = spd.labels,
                          ordered_result = TRUE)
   # clean up the data
-  data. <- na.omit(data)
+  data <- na.omit(data)
   
   # figure out the wind direction bins
   dir.breaks <- c(-dirres/2,
